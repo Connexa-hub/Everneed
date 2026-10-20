@@ -27,3 +27,12 @@ Bank transfer and WhatsApp work now. Card is a registered provider slot: Stage 3
 
 ## Countries (Stage 1.1)
 `js/config.js` holds one block per country: currency, locale, delivery fee, bank and WhatsApp, sign-in options and Terms/Privacy links. The country is guessed from the device region and timezone, confirmed at sign-up, and changeable in Settings. Products and banners can be limited with `"cty":["NG","GH"]` (empty = everywhere). Phone-code, Google and NIN sign-in are listed per country and go live with Supabase and a verification provider in Stage 2.
+
+## Stage 2: shared backend (Supabase)
+1. supabase.com, New project. In **SQL Editor**, run `supabase/schema.sql`.
+2. Project Settings, API: copy the **Project URL** and **anon public key** into `supabase:{url,key}` in `js/config.js`. (The anon key is meant to be public; the database rules protect your data.)
+3. Authentication, Providers, Email: for testing, turn off "Confirm email". For SMS sign-in, enable Phone and connect an SMS provider (e.g. Twilio).
+4. Open the app, create your account, then run in SQL Editor: `update public.profiles set role='admin' where email='YOU@EXAMPLE.COM';`
+5. Sign in again: Settings now shows Manage store, and products, banners and images you add are live for every customer. Orders are saved to the database and you see all of them.
+
+Without keys the app still runs in local mode. Google and NIN sign-in are Stage 2b (they need a Google OAuth client and a verification provider account).
