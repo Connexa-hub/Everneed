@@ -24,3 +24,6 @@ Bank transfer and WhatsApp work now. Card is a registered provider slot: Stage 3
 
 ## Roadmap
 2 Supabase accounts and shared data · 3 Paystack · 4 CJdropshipping/EPROLO sync · 5 admin dashboard · 6 signed release build for Google Play
+
+## Countries (Stage 1.1)
+`js/config.js` holds one block per country: currency, locale, delivery fee, bank and WhatsApp, sign-in options and Terms/Privacy links. The country is guessed from the device region and timezone, confirmed at sign-up, and changeable in Settings. Products and banners can be limited with `"cty":["NG","GH"]` (empty = everywhere). Phone-code, Google and NIN sign-in are listed per country and go live with Supabase and a verification provider in Stage 2.

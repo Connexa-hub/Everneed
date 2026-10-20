@@ -2,7 +2,7 @@
 window.S=(function(){
   var K="en_",rp=[],rb=[];
   function g(k,d){try{var v=localStorage.getItem(K+k);return v?JSON.parse(v):d}catch(e){return d}}
-  function s(k,v){try{localStorage.setItem(K+k,JSON.stringify(v));return true}catch(e){alert("Storage is full. Use a smaller image.");return false}}
+  function s(k,v){try{localStorage.setItem(K+k,JSON.stringify(v));return true}catch(e){window.dispatchEvent(new CustomEvent("en-error",{detail:"Storage is full. Use a smaller image."}));return false}}
   function j(u){return fetch(u).then(function(r){return r.json()}).catch(function(){return[]})}
   return{
     get:g,set:s,
