@@ -103,3 +103,8 @@ main{padding-top:0}
 @keyframes bob{50%{transform:translateY(-9px)}}
 @keyframes fade{from{opacity:0;transform:translateY(10px)}}
 @media(prefers-reduced-motion:reduce){.eb,.sk,.sbar,.sh .logo,.emp{animation:none!important}}
+.onb{min-height:86vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 6px;gap:8px}
+.onb h1{font-size:30px;line-height:1.1;max-width:11em}.onb .m{max-width:24em}
+.onb .act{width:100%;max-width:360px;margin-top:22px}
+.dots{display:flex;gap:6px;margin-bottom:26px}.dots i{width:7px;height:7px;border-radius:99px;background:var(--line);transition:width .25s}.dots i.on{width:22px;background:var(--ink)}
+.eb.big{width:124px;height:124px;margin-bottom:18px}
