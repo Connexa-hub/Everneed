@@ -33,3 +33,16 @@ create policy "media admin upload" on storage.objects for insert with check (buc
 
 -- After you create your account in the app, make yourself admin:
 -- update public.profiles set role='admin' where email='YOU@EXAMPLE.COM';
+
+-- Stage 2.1 additions (already applied to the connected project)
+alter table public.profiles add column if not exists dob date, add column if not exists idv text;
+create table public.collections(id text primary key default gen_random_uuid()::text,name text not null unique,grp text,icon text,at bigint not null default (extract(epoch from now())*1000)::bigint);
+create table public.settings(id text primary key,data jsonb not null default '{}'::jsonb,at bigint not null default (extract(epoch from now())*1000)::bigint);
+alter table public.collections enable row level security;
+alter table public.settings enable row level security;
+create policy "collections read" on public.collections for select using (true);
+create policy "collections admin" on public.collections for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "settings read" on public.settings for select using (true);
+create policy "settings admin" on public.settings for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create function public.email_is_admin(e text) returns boolean language sql stable security definer set search_path=public as $$ select exists(select 1 from public.profiles where lower(email)=lower(e) and role='admin') $$;
+grant execute on function public.email_is_admin(text) to anon, authenticated;

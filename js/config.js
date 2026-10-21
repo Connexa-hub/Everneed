@@ -2,7 +2,7 @@
 (function(){
 function C(n,s,l,d,tz,auth){return{name:n,symbol:s,locale:l,dial:d,tz:tz,auth:auth,fee:0,freeFrom:0,whatsapp:"",bank:{name:"",number:"",holder:""},terms:"",privacy:""}}
 window.CFG={
-  name:"EverNeed",adminEmail:"",supabase:{url:"https://krpzbuoxozdyduszzlvb.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtycHpidW94b3pkeWR1c3p6bHZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0ODI3OTUsImV4cCI6MjEwODA1ODc5NX0.CPsQdyOpdwSGUHH0Fhx59GsHrGKAPfgp0TO5sbA3ls8"},defaultCountry:"NG",
+  name:"EverNeed",adminEmail:"",minAge:18,supabase:{url:"https://krpzbuoxozdyduszzlvb.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtycHpidW94b3pkeWR1c3p6bHZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0ODI3OTUsImV4cCI6MjEwODA1ODc5NX0.CPsQdyOpdwSGUHH0Fhx59GsHrGKAPfgp0TO5sbA3ls8"},defaultCountry:"NG",
   collections:["Groceries","Electricals","Accessories","Skincare"],
   countries:{
     NG:C("Nigeria","₦","en-NG","+234",["Africa/Lagos"],["email","phone","google","nin"]),
