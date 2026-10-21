@@ -46,3 +46,7 @@ create policy "settings read" on public.settings for select using (true);
 create policy "settings admin" on public.settings for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create function public.email_is_admin(e text) returns boolean language sql stable security definer set search_path=public as $$ select exists(select 1 from public.profiles where lower(email)=lower(e) and role='admin') $$;
 grant execute on function public.email_is_admin(text) to anon, authenticated;
+
+-- Password mode (default while email codes are not set up)
+create or replace function public.email_status(e text) returns text language sql stable security definer set search_path=public as $$ select case when exists(select 1 from public.profiles where lower(email)=lower(e) and role='admin') then 'admin' when exists(select 1 from public.profiles where lower(email)=lower(e)) then 'user' else 'new' end $$;
+grant execute on function public.email_status(text) to anon, authenticated;
