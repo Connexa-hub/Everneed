@@ -5,7 +5,7 @@ Minimalist store app for groceries, electricals, accessories, skincare and more.
 ## Get the app
 1. Push this folder's contents to a GitHub repo (the `.github` folder must be at the repo root).
 2. Open the **Actions** tab. The "Build Android app" run starts on every push (about 5-8 minutes).
-3. When it is green, open the run, scroll to **Artifacts**, download **everneed-apk**, unzip it and install `app-debug.apk` on your phone (allow "install unknown apps" when asked).
+3. When it is green, open the repo's **Releases** page, tap the newest build and download **EverNeed.apk** (a plain APK, no zip). Install it and allow "install unknown apps" when asked. The zipped copy is still under the run's **Artifacts**.
 
 ## Set up (js/config.js)
 `adminEmail`, `whatsapp`, `bank`, `fee`, `freeFrom`, `collections`. Empty values hide that feature.
@@ -36,3 +36,17 @@ Bank transfer and WhatsApp work now. Card is a registered provider slot: Stage 3
 5. Sign in again: Settings now shows Manage store, and products, banners and images you add are live for every customer. Orders are saved to the database and you see all of them.
 
 Without keys the app still runs in local mode. Google and NIN sign-in are Stage 2b (they need a Google OAuth client and a verification provider account).
+
+## Stage 3: card payments (Paystack)
+The `paystack` function (supabase/functions/paystack) is already deployed. To switch it on:
+1. paystack.com, create an account. Copy your **Secret key** (test key `sk_test_...` first) from Settings, API Keys.
+2. Supabase, Edge Functions, Secrets: add `PAYSTACK_SECRET_KEY` with that key.
+3. Paystack, Settings, API Keys & Webhooks: set the webhook URL to `https://krpzbuoxozdyduszzlvb.supabase.co/functions/v1/paystack`.
+4. In the app: Manage store, Store setup, choose your country, turn **Cards (Paystack)** On, Save.
+Customers then see "Card, bank or USSD" at checkout. The server recomputes every amount from your product prices, saves reusable cards as tokens only, and marks the order paid from Paystack's signed webhook.
+
+## Regions, currency and checkout
+- Prices are entered in the base currency (`baseCurrency` in js/config.js, NGN) and converted to each shopper's currency using daily rates from open.er-api.com. In Store setup you can add a markup % per country. If rates cannot be fetched, the app shows the base currency rather than a wrong price.
+- Switching country changes currency, delivery rules and the payment methods on offer (bank transfer needs bank details for that country, cards need Paystack turned on for it).
+- Checkout is two bottom sheets: confirm the delivery address (with the country), then review and pay. A saved address from another country is not reused.
+- Card payments open Paystack's secure pop-up inside the app. Local currencies are NGN, GHS, KES and ZAR; other countries are charged in USD, which Paystack must enable on your account. The server recomputes every amount from product prices, delivery settings and its own exchange rate.

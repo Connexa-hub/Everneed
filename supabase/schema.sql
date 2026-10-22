@@ -50,3 +50,17 @@ grant execute on function public.email_is_admin(text) to anon, authenticated;
 -- Password mode (default while email codes are not set up)
 create or replace function public.email_status(e text) returns text language sql stable security definer set search_path=public as $$ select case when exists(select 1 from public.profiles where lower(email)=lower(e) and role='admin') then 'admin' when exists(select 1 from public.profiles where lower(email)=lower(e)) then 'user' else 'new' end $$;
 grant execute on function public.email_status(text) to anon, authenticated;
+
+-- Stage 3: card payments (already applied to the connected project)
+alter table public.orders add column if not exists ref text, add column if not exists paid_at bigint;
+create table public.cards(id text primary key default gen_random_uuid()::text,user_id uuid not null references auth.users on delete cascade,email text,brand text,last4 text,exp text,bank text,code text not null unique,at bigint not null default (extract(epoch from now())*1000)::bigint);
+alter table public.cards enable row level security;
+revoke all on public.cards from anon, authenticated;
+grant select (id,brand,last4,exp,bank,at), delete on public.cards to authenticated;
+create policy "cards own read" on public.cards for select to authenticated using (user_id=auth.uid());
+create policy "cards own delete" on public.cards for delete to authenticated using (user_id=auth.uid());
+drop policy "orders insert" on public.orders;
+create policy "orders insert" on public.orders for insert to authenticated with check (user_id=auth.uid() and status in ('new','awaiting_transfer','sent','awaiting_payment'));
+
+-- Regional pricing: orders remember the currency they were placed in (already applied)
+alter table public.orders add column if not exists currency text;
