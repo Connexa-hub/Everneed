@@ -44,5 +44,15 @@ window.Auth=(function(){
     if(k==="aresend"){send(A.au().email,true);return true}
     if(k==="gsoon"){notify(d.n+" sign-in is coming soon.");return true}
     return false}
+  function fixDob(v,del){var d=v.replace(/\D/g,"").slice(0,8);
+    if(d.length&&+d[0]>3)d=("0"+d).slice(0,8);
+    if(d.length>=2){var dd=+d.slice(0,2);if(dd>31)d="31"+d.slice(2);else if(dd===0)d="01"+d.slice(2)}
+    if(d.length>=3&&+d[2]>1)d=(d.slice(0,2)+"0"+d.slice(2)).slice(0,8);
+    if(d.length>=4){var mm=+d.slice(2,4);if(mm>12)d=d.slice(0,2)+"12"+d.slice(4);else if(mm===0)d=d.slice(0,2)+"01"+d.slice(4)}
+    if(d.length>=5&&"12".indexOf(d[4])<0)d=d.slice(0,4);
+    if(d.length===8){var mx=new Date(+d.slice(4),+d.slice(2,4),0).getDate();if(+d.slice(0,2)>mx)d=("0"+mx).slice(-2)+d.slice(2)}
+    var o=d.slice(0,2)+(d.length>2?"/"+d.slice(2,4):"")+(d.length>4?"/"+d.slice(4):"");
+    if(!del&&(d.length===2||d.length===4))o+="/";return o}
+  document.addEventListener("input",function(e){var t=e.target;if(t.name!=="dob")return;var prev=t.dataset.p||"",o=fixDob(t.value,t.value.length<prev.length);t.value=o;t.dataset.p=o});
   return{page:page,submit:submit,act:act};
 })();
