@@ -1,6 +1,6 @@
 /* Data layer. With Supabase keys in config.js it reads and writes the shared database; without them it runs locally on the device. */
 window.S=(function(){
-  var K="en_",rp=[],rb=[],ro=[],rc=[],T={p:"products",b:"banners",o:"orders"};
+  var K="en_",rp=[],rb=[],ro=[],rc=[],rch=[],rr={},T={p:"products",b:"banners",o:"orders",c:"size_charts"};
   function g(k,d){try{var v=localStorage.getItem(K+k);return v?JSON.parse(v):d}catch(e){return d}}
   function s(k,v){try{localStorage.setItem(K+k,JSON.stringify(v));return true}catch(e){window.dispatchEvent(new CustomEvent("en-error",{detail:"Storage is full. Use a smaller image."}));return false}}
   function j(u){return fetch(u).then(function(r){return r.json()}).catch(function(){return[]})}
@@ -8,19 +8,23 @@ window.S=(function(){
   var nid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5)};
   function out(k,o){var r=Object.assign({},o);if(k==="p"){r.descr=r.desc;delete r.desc}if(k==="b"){r.starts=r.from;r.ends=r.to;delete r.from;delete r.to}return r}
   function inn(k,r){if(k==="p")r.desc=r.descr;if(k==="b"){r.from=r.starts;r.to=r.ends}return r}
-  function err(e){window.dispatchEvent(new CustomEvent("en-error",{detail:/fetch|network/i.test(e.message)?"No connection. Check your internet and try again.":e.message}));return null}
-  function cache(k){return k==="p"?rp:k==="b"?rb:ro}
+  function err(e){var off=/fetch|network|load failed/i.test(e.message);window.dispatchEvent(new CustomEvent(off?"en-offline":"en-error",{detail:e.message}));return null}
+  function cache(k){return k==="p"?rp:k==="b"?rb:k==="c"?rch:ro}
   function add(k,o){var l=g(k,[]);o.id=o.id||nid();o.at=o.at||Date.now();l.unshift(o);return s(k,l)?o:null}
   return{
     get:g,set:s,id:nid,
     load:function(){
-      if(rem())return Supa.ready().then(function(){return Promise.all([Supa.list("products"),Supa.list("banners"),Supa.uid()?Supa.list("orders"):Promise.resolve([]),Supa.list("collections").catch(function(){return[]}),Supa.list("settings").catch(function(){return[]})])}).then(function(a){rp=a[0].map(function(r){return inn("p",r)});rb=a[1].map(function(r){return inn("b",r)});ro=a[2];rc=a[3];a[4].forEach(function(r){if(CFG.countries[r.id])Object.assign(CFG.countries[r.id],r.data)})}).catch(err);
+      if(rem())return Supa.ready().then(function(){return Promise.all([Supa.list("products"),Supa.list("banners"),Supa.uid()?Supa.list("orders"):Promise.resolve([]),Supa.list("collections").catch(function(){return[]}),Supa.list("settings").catch(function(){return[]}),Supa.list("size_charts").catch(function(){return[]}),Supa.q("/rest/v1/product_ratings?select=*").catch(function(){return[]})])}).then(function(a){rp=a[0].map(function(r){return inn("p",r)});rb=a[1].map(function(r){return inn("b",r)});ro=a[2];rc=a[3];rch=a[5];rr={};a[6].forEach(function(r){rr[r.product_id]=r});a[4].forEach(function(r){if(CFG.countries[r.id])Object.assign(CFG.countries[r.id],r.data)})}).catch(err);
       return Promise.all([j("data/products.json"),j("data/banners.json")]).then(function(a){rp=a[0];rb=a[1]});
     },
     products:function(){return rem()?rp:rp.concat(g("p",[]))},
     banners:function(){return rem()?rb:rb.concat(g("b",[]))},
     orders:function(){return rem()?ro:g("o",[])},
     mine:function(k){return rem()?cache(k):g(k,[])},
+    charts:function(){return rch.slice().sort(function(a,b){return a.name.localeCompare(b.name)})},
+    chart:function(id){return rch.filter(function(c){return c.id===id})[0]},
+    rating:function(id){return rr[id]||null},
+    loadRatings:function(){return Supa.q("/rest/v1/product_ratings?select=*").then(function(l){rr={};l.forEach(function(r){rr[r.product_id]=r})}).catch(function(){})},
     collections:function(){return rc.slice().sort(function(a,b){return a.name.localeCompare(b.name)})},
     addCols:function(l){return Supa.upsert("collections",l,"name",true).then(function(r){(r||[]).forEach(function(x){rc.push(x)});return r||[]}).catch(err)},
     delCol:function(id){return Supa.del("collections",id).then(function(){rc=rc.filter(function(x){return x.id!==id})}).catch(err)},

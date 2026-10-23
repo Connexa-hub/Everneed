@@ -50,3 +50,7 @@ Customers then see "Card, bank or USSD" at checkout. The server recomputes every
 - Switching country changes currency, delivery rules and the payment methods on offer (bank transfer needs bank details for that country, cards need Paystack turned on for it).
 - Checkout is two bottom sheets: confirm the delivery address (with the country), then review and pay. A saved address from another country is not reused.
 - Card payments open Paystack's secure pop-up inside the app. Local currencies are NGN, GHS, KES and ZAR; other countries are charged in USD, which Paystack must enable on your account. The server recomputes every amount from product prices, delivery settings and its own exchange rate.
+
+## Suppliers (CJdropshipping)
+Imported products carry `supplier`, `sup_pid`, `sup_cost` (USD cost), `variants` (option label, CJ variant id and SKU) and `ship_days`. Price rule used for the first import: (CJ cost + freight to Nigeria) x 1,400 NGN/USD x 1.5, rounded to the nearest 500. Edit prices in Manage store, Catalog. Orders keep the chosen option, which maps to a CJ variant id for fulfilment.
+Before selling skincare or other regulated goods in Nigeria, check NAFDAC registration and import rules, and check each electronics item's battery shipping limits with CJ.

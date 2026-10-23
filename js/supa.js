@@ -4,7 +4,7 @@ window.Supa=(function(){
   function on(){return!!(U&&K)}
   function setSess(j){if(j&&j.access_token){sess={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,uid:(j.user&&j.user.id)||(sess&&sess.uid)};S.set("sess",sess)}return j}
   function raw(path,o){o=o||{};var h={apikey:K,"Content-Type":"application/json",Authorization:"Bearer "+((o.anon!==true&&sess&&sess.access_token)||K)};for(var k in (o.h||{}))h[k]=o.h[k];
-    Busy.inc();return fetch(U+path,{method:o.m||"GET",headers:h,body:o.b===undefined?undefined:JSON.stringify(o.b)}).then(function(r){return r.text().then(function(t){var j=null;try{j=t?JSON.parse(t):null}catch(e){}if(!r.ok)throw new Error((j&&(j.msg||j.message||j.error_description||j.error))||"Request failed ("+r.status+")");return j})}).then(function(v){Busy.dec();return v},function(e){Busy.dec();throw e})}
+    if(!o.quiet)Busy.inc();return fetch(U+path,{method:o.m||"GET",headers:h,body:o.b===undefined?undefined:JSON.stringify(o.b)}).then(function(r){return r.text().then(function(t){var j=null;try{j=t?JSON.parse(t):null}catch(e){}if(!r.ok)throw new Error((j&&(j.msg||j.message||j.error_description||j.error))||"Request failed ("+r.status+")");return j})}).then(function(v){if(!o.quiet)Busy.dec();return v},function(e){if(!o.quiet)Busy.dec();throw e})}
   function ready(){if(!sess||sess.expires_at-Date.now()>60000)return Promise.resolve();return raw("/auth/v1/token?grant_type=refresh_token",{m:"POST",b:{refresh_token:sess.refresh_token},anon:true}).then(setSess).catch(function(){sess=null;S.set("sess",null)})}
   function api(path,o){return ready().then(function(){return raw(path,o)})}
   return{
@@ -21,7 +21,7 @@ window.Supa=(function(){
     verifyEmail:function(email,code){return raw("/auth/v1/verify",{m:"POST",b:{type:"email",email:email,token:code},anon:true}).then(setSess)},
     upsert:function(t,o,conf,ignore){return api("/rest/v1/"+t+"?on_conflict="+conf,{m:"POST",b:o,h:{Prefer:(ignore?"resolution=ignore-duplicates":"resolution=merge-duplicates")+",return=representation"}})},
     fn:function(n,b){return api("/functions/v1/"+n,{m:"POST",b:b})},
-    q:function(p,m){return api(p,{m:m||"GET"})},
+    q:function(p,m,quiet){return api(p,{m:m||"GET",quiet:quiet})},
     list:function(t){return api("/rest/v1/"+t+"?select=*&order=at.desc")},
     insert:function(t,o){return api("/rest/v1/"+t,{m:"POST",b:o,h:{Prefer:"return=representation"}})},
     patch:function(t,id,p){return api("/rest/v1/"+t+"?id=eq."+encodeURIComponent(id),{m:"PATCH",b:p})},

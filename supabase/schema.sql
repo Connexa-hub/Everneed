@@ -64,3 +64,18 @@ create policy "orders insert" on public.orders for insert to authenticated with 
 
 -- Regional pricing: orders remember the currency they were placed in (already applied)
 alter table public.orders add column if not exists currency text;
+
+-- Sizes, galleries and reviews (already applied to the connected project)
+alter table public.products add column if not exists images text[] not null default '{}', add column if not exists chart text, add column if not exists sizes text[] not null default '{}';
+create table public.size_charts(id text primary key default gen_random_uuid()::text,name text not null,cols text[] not null default '{}',rows jsonb not null default '[]'::jsonb,at bigint not null default (extract(epoch from now())*1000)::bigint);
+alter table public.size_charts enable row level security;
+create policy "charts read" on public.size_charts for select using (true);
+create policy "charts admin" on public.size_charts for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create table public.reviews(id text primary key default gen_random_uuid()::text,product_id text not null references public.products(id) on delete cascade,user_id uuid not null default auth.uid() references auth.users on delete cascade,order_id text references public.orders(id) on delete set null,rating integer not null check (rating between 1 and 5),body text,name text,at bigint not null default (extract(epoch from now())*1000)::bigint,unique(user_id,product_id));
+alter table public.reviews enable row level security;
+create policy "reviews read" on public.reviews for select using (true);
+create policy "reviews insert" on public.reviews for insert to authenticated with check (user_id=auth.uid() and exists(select 1 from public.orders o where o.user_id=auth.uid() and o.status='delivered' and o.items @> jsonb_build_array(jsonb_build_object('id',product_id))));
+create policy "reviews own update" on public.reviews for update to authenticated using (user_id=auth.uid()) with check (user_id=auth.uid());
+create policy "reviews own delete" on public.reviews for delete to authenticated using (user_id=auth.uid() or public.is_admin());
+create view public.product_ratings with (security_invoker=true) as select product_id, round(avg(rating)::numeric,1)::float8 as avg, count(*)::int as n from public.reviews group by product_id;
+grant select on public.product_ratings to anon, authenticated;
