@@ -36,11 +36,15 @@ window.Shop=(function(){
   function rate(pid,oid){stars=0;var p=A.byId(pid);sheet(X+"<h3>Rate "+esc(p?p.name:"this product")+'</h3><div class="sr" id="sr">'+[1,2,3,4,5].map(function(n){return'<button type="button" class="sb" data-act="rstar" data-v="'+n+'" aria-label="'+n+' star">★</button>'}).join("")+'</div><form data-form="areview" novalidate><input type="hidden" name="p" value="'+esc(pid)+'"><input type="hidden" name="o" value="'+esc(oid)+'"><textarea name="body" rows="3" placeholder="Tell others what you think (optional)"></textarea><button class="btn w">Submit review</button></form>')}
   function submit(k,f,d){if(k!=="areview")return false;if(!stars){notify("Tap a star to rate.","err");return true}
     Supa.insert("reviews",{product_id:d.p,order_id:d.o,rating:stars,body:(d.body||"").trim(),name:who(A.user().name)}).then(function(){sheet(null);notify("Thanks for your review");return S.loadRatings()}).then(function(){A.refresh()}).catch(function(e){/duplicate|unique/i.test(e.message)?notify("You have already reviewed this product.","err"):A.netErr(e)});return true}
+  var CJ={CREATED:"Order received",IN_CART:"Order received",UNPAID:"Order received",UNSHIPPED:"Being prepared for shipping",SHIPPED:"On its way",DELIVERED:"Delivered",CANCELLED:"Cancelled by the supplier"};
+  function trackHtml(o){var t=o.track;if(!t||!t.cjOrderId)return"";
+    return'<div class="sec"><h3>Delivery tracking</h3></div><div class="rw"><span><b>'+esc(CJ[t.cjStatus]||"Processing with our supplier")+"</b><small>"+(t.carrier?esc(t.carrier)+" · ":"")+(t.trackNumber?"Tracking "+esc(t.trackNumber):"Tracking number not assigned yet")+"</small></span>"+(t.trackingUrl?'<a class="btn s o" target="_blank" rel="noopener" href="'+esc(t.trackingUrl)+'">Track</a>':"")+"</div>"+(t.events&&t.events.length?t.events.slice(0,6).map(function(e){return'<div class="rw"><span><b>'+esc(e.trackingStatus||e.status||e.desc||"Update")+"</b><small>"+esc(e.trackingTime||e.time||"")+"</small></span></div>"}).join(""):"")+'<button class="btn o w" data-act="trk" data-id="'+esc(o.id)+'">Refresh tracking</button>'}
+  function trackRefresh(id,quiet){if(!Supa.on())return;Supa.fn("cj",{action:"refresh",order_id:id},quiet).then(function(r){var o=S.orders().filter(function(x){return x.id===id})[0];if(o){o.track=r.track;if(r.status)o.status=r.status}if($("#sheet").className==="on")order(id)}).catch(function(e){if(!quiet)A.netErr(e)})}
   function order(id){var o=S.orders().filter(function(x){return x.id===id})[0];if(!o)return;
     var idx={new:0,awaiting_transfer:0,awaiting_payment:0,sent:0,payment_reported:0,paid:1,shipped:2,delivered:3}[o.status],steps=["Placed","Paid","Shipped","Delivered"],m=function(n){return Ctx.money(n,o.currency)};
     sheet(X+"<h3>Order "+esc(o.id.toUpperCase())+'</h3><button class="lnk" style="margin:0 0 6px" data-act="ocopy" data-id="'+esc(o.id)+'">Copy order ID</button><p class="m" style="margin:0">'+new Date(o.at).toLocaleString()+"</p>"+(o.status==="cancelled"?'<div class="alert">This order was cancelled.</div>':'<div class="tl">'+steps.map(function(s,i){return'<div class="ts'+(i<=idx?" on":"")+'"><i></i>'+s+"</div>"}).join("")+"</div>")
       +o.items.map(function(i){return'<div class="rw"><span><b>'+esc(i.name)+"</b><small>"+(i.size?esc(i.size)+" · ":"")+"Qty "+i.qty+" · "+m(i.price*i.qty)+"</small></span>"+(o.status==="delivered"?'<button class="btn s o" data-act="rate" data-p="'+esc(i.id)+'" data-o="'+esc(o.id)+'">Rate</button>':"")+"</div>"}).join("")
-      +'<div class="tt" style="margin-top:8px"><b>Total</b><b>'+m(o.total)+'</b></div><div class="rw"><span class="m">Deliver to</span><span style="text-align:right">'+esc((o.cust||{}).addr||"")+"</span></div>")}
+      +trackHtml(o)+'<div class="tt" style="margin-top:8px"><b>Total</b><b>'+m(o.total)+'</b></div><div class="rw"><span class="m">Deliver to</span><span style="text-align:right">'+esc((o.cust||{}).addr||"")+"</span></div>");if(o.track&&o.track.cjOrderId&&Date.now()-(o.track.checkedAt||0)>6e5)trackRefresh(o.id,true)}
   function copy(id){var t=String(id).toUpperCase();if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){notify("Order ID copied")},function(){notify(t)});else notify(t)}
   function act(k,d,a){
     if(k==="zoom"){zoom(d.id,+d.i,a);return true}
@@ -49,6 +53,7 @@ window.Shop=(function(){
     if(k==="rvs"){var r=$("#rv");if(r)r.scrollIntoView({behavior:"smooth"});return true}
     if(k==="rate"){rate(d.p,d.o);return true}
     if(k==="rstar"){stars=+d.v;[].forEach.call($("#sr").children,function(c,i){c.classList.toggle("on",i<stars)});return true}
+    if(k==="trk"){trackRefresh(d.id,false);return true}
     if(k==="myorder"){order(d.id);return true}
     if(k==="ocopy"){copy(d.id);return true}
     return false}

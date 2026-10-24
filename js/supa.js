@@ -20,7 +20,7 @@ window.Supa=(function(){
     emailOtp:function(email){return raw("/auth/v1/otp",{m:"POST",b:{email:email,create_user:true},anon:true})},
     verifyEmail:function(email,code){return raw("/auth/v1/verify",{m:"POST",b:{type:"email",email:email,token:code},anon:true}).then(setSess)},
     upsert:function(t,o,conf,ignore){return api("/rest/v1/"+t+"?on_conflict="+conf,{m:"POST",b:o,h:{Prefer:(ignore?"resolution=ignore-duplicates":"resolution=merge-duplicates")+",return=representation"}})},
-    fn:function(n,b){return api("/functions/v1/"+n,{m:"POST",b:b})},
+    fn:function(n,b,q){return api("/functions/v1/"+n,{m:"POST",b:b,quiet:q})},
     q:function(p,m,quiet){return api(p,{m:m||"GET",quiet:quiet})},
     list:function(t){return api("/rest/v1/"+t+"?select=*&order=at.desc")},
     insert:function(t,o){return api("/rest/v1/"+t,{m:"POST",b:o,h:{Prefer:"return=representation"}})},

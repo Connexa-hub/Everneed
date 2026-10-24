@@ -54,3 +54,11 @@ Customers then see "Card, bank or USSD" at checkout. The server recomputes every
 ## Suppliers (CJdropshipping)
 Imported products carry `supplier`, `sup_pid`, `sup_cost` (USD cost), `variants` (option label, CJ variant id and SKU) and `ship_days`. Price rule used for the first import: (CJ cost + freight to Nigeria) x 1,400 NGN/USD x 1.5, rounded to the nearest 500. Edit prices in Manage store, Catalog. Orders keep the chosen option, which maps to a CJ variant id for fulfilment.
 Before selling skincare or other regulated goods in Nigeria, check NAFDAC registration and import rules, and check each electronics item's battery shipping limits with CJ.
+
+## Order fulfilment with CJdropshipping
+Flow: the customer pays you (Paystack, or bank transfer you mark paid) -> the order is sent to CJ with the buyer's address -> CJ ships -> the tracking number and status appear on the customer's order screen. Customers never see your supplier cost or profit; the admin order screen does.
+Setup (once):
+1. CJ: My CJ, Authorization, API, generate an API key. Supabase, Edge Functions, Secrets: add `CJ_API_KEY`.
+2. In the app: Admin, Store setup, bottom: Supplier settings. Start with both switches Off and use **Send to CJ** by hand on a few orders. Turn on automatic sending when you trust it. "Pay CJ automatically" spends your CJ balance, so keep it funded.
+3. Optional: CJ webhook to `https://krpzbuoxozdyduszzlvb.supabase.co/functions/v1/cj?hook=1`. Tracking also refreshes when a customer opens their order.
+Money: Paystack pays out to your bank in naira. CJ is paid from your CJ balance in dollars, which you top up yourself. Paystack cannot pay CJ directly.

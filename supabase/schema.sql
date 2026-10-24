@@ -79,3 +79,25 @@ create policy "reviews own update" on public.reviews for update to authenticated
 create policy "reviews own delete" on public.reviews for delete to authenticated using (user_id=auth.uid() or public.is_admin());
 create view public.product_ratings with (security_invoker=true) as select product_id, round(avg(rating)::numeric,1)::float8 as avg, count(*)::int as n from public.reviews group by product_id;
 grant select on public.product_ratings to anon, authenticated;
+
+-- Supplier fulfilment (already applied to the connected project)
+alter table public.products add column if not exists supplier text, add column if not exists sup_pid text, add column if not exists sup_cost numeric, add column if not exists variants jsonb not null default '[]'::jsonb, add column if not exists opt text, add column if not exists ship_days text;
+create unique index if not exists products_supplier_pid on public.products(supplier, sup_pid) where supplier is not null;
+alter table public.orders add column if not exists track jsonb;
+create table public.order_costs(order_id text primary key references public.orders(id) on delete cascade, data jsonb not null default '{}'::jsonb);
+alter table public.order_costs enable row level security;
+create policy "costs admin" on public.order_costs for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create table public.kv(key text primary key, value jsonb not null);
+alter table public.kv enable row level security;
+
+-- Pricing, offers and server-side orders (already applied to the connected project)
+alter table public.products add column if not exists sup_ship numeric;
+create table public.offers(id text primary key default gen_random_uuid()::text,name text not null,kind text not null check (kind in ('percent','fixed')),value numeric not null check (value>0),scope text not null default 'all',target text,code text unique,min_total numeric not null default 0,starts text,ends text,limit_uses integer,used integer not null default 0,active boolean not null default true,cty text[] not null default '{}',at bigint not null default (extract(epoch from now())*1000)::bigint);
+alter table public.offers enable row level security;
+create policy "offers admin" on public.offers for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create view public.auto_offers as select id,name,kind,value,scope,target,min_total,starts,ends,cty from public.offers where code is null and active;
+grant select on public.auto_offers to anon, authenticated;
+create function public.coupon_info(c text) returns jsonb language sql stable security definer set search_path=public as $$ select to_jsonb(o) - 'code' - 'used' - 'at' - 'limit_uses' from public.offers o where lower(o.code)=lower(c) and o.active and (o.limit_uses is null or o.used<o.limit_uses) limit 1 $$;
+grant execute on function public.coupon_info(text) to anon, authenticated;
+alter table public.orders add column if not exists coupon text, add column if not exists discount numeric not null default 0, add column if not exists offer jsonb;
+drop policy if exists "orders insert" on public.orders;

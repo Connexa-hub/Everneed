@@ -10,6 +10,7 @@ window.Ctx=(function(){
     for(var k in C)if((C[k].tz||[]).indexOf(z)>-1)return k;return CFG.defaultCountry}
   return{
     guess:guess,base:base,
+    usd:function(){return rt&&rt.rates&&rt.rates.USD?1/rt.rates.USD:null},
     loadRates:function(){if(rt&&Date.now()-rt.t<432e5)return Promise.resolve();
       return fetch("https://open.er-api.com/v6/latest/"+base()).then(function(r){return r.json()}).then(function(j){if(j&&j.rates){rt={t:Date.now(),rates:j.rates};S.set("fx",rt)}}).catch(function(){})},
     code:function(){var c=S.get("cty",null);return CFG.countries[c]?c:guess()},
