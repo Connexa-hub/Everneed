@@ -62,3 +62,6 @@ Setup (once):
 2. In the app: Admin, Store setup, bottom: Supplier settings. Start with both switches Off and use **Send to CJ** by hand on a few orders. Turn on automatic sending when you trust it. "Pay CJ automatically" spends your CJ balance, so keep it funded.
 3. Optional: CJ webhook to `https://krpzbuoxozdyduszzlvb.supabase.co/functions/v1/cj?hook=1`. Tracking also refreshes when a customer opens their order.
 Money: Paystack pays out to your bank in naira. CJ is paid from your CJ balance in dollars, which you top up yourself. Paystack cannot pay CJ directly.
+
+## Updating the app from GitHub
+Every build is signed with the same key (keystore/debug.keystore) and gets a higher version number, so a new APK installs over the old one and keeps its data. Android will not update an app signed with a different key. If your phone still has an older EverNeed build, uninstall it once before installing this one.

@@ -24,6 +24,11 @@ async function ps(path: string, body?: unknown) {
   return r.json();
 }
 
+async function isAdmin(id: string) {
+  const { data } = await db.from("profiles").select("role").eq("id", id).maybeSingle();
+  return data?.role === "admin";
+}
+
 // Product prices are stored in the base currency (NGN). Rates are fetched here, never trusted from the app.
 let FX: { t: number; rates: Record<string, number> } | null = null;
 async function rate(cur: string) {
@@ -94,10 +99,10 @@ async function settle(tx: any) {
   if (!oid) return false;
   const { data: o } = await db.from("orders").select("*").eq("id", oid).maybeSingle();
   if (!o) return false;
-  if (o.status === "paid") return true;
+  if (o.status === "paid" || o.paid_at) return true;
   // o.total and o.currency were set by this function when the payment was started.
   if (!o.currency || tx.currency !== o.currency || tx.amount < Math.round(Number(o.total) * 100)) return false;
-  await db.from("orders").update({ status: "paid", ref: tx.reference, paid_at: Date.now() }).eq("id", oid);
+  await db.from("orders").update({ status: o.status === "delivered" ? "delivered" : "paid", ref: tx.reference, paid_at: Date.now() }).eq("id", oid);
   const a = tx.authorization;
   if (a && a.reusable && a.authorization_code && o.user_id) {
     await db.from("cards").upsert({
@@ -117,6 +122,22 @@ async function settle(tx: any) {
     }
   } catch (_) { /* the admin can still send the order by hand */ }
   return true;
+}
+
+// Charges the card the customer saved for pay-on-delivery orders.
+async function chargeSaved(o: any) {
+  if (!SK) throw new Error("Card payments are not set up yet.");
+  const { data: c } = await db.from("cards").select("*").eq("id", o.card_id).eq("user_id", o.user_id).maybeSingle();
+  if (!c) throw new Error("The saved card was not found.");
+  const cur = curOf(o.country), pr = await price(o, cur), amt = Math.round(pr.total * 100);
+  await db.from("orders").update({ total: amt / 100, currency: cur, discount: pr.discount }).eq("id", o.id);
+  const { data: au } = await db.auth.admin.getUserById(o.user_id);
+  const r = await ps("/transaction/charge_authorization", {
+    email: au?.user?.email, amount: amt, currency: cur, authorization_code: c.code,
+    reference: "en_" + o.id + "_" + Date.now(), metadata: { order_id: o.id, user_id: o.user_id },
+  });
+  if (!r.status) throw new Error(r.message);
+  return await settle(r.data);
 }
 
 Deno.serve(async (req) => {
@@ -140,22 +161,33 @@ Deno.serve(async (req) => {
     const b = JSON.parse(raw || "{}");
 
     if (b.action === "create") {
-      // Orders are created here so prices, offers and totals come from the server, not the app.
+      // Orders are created here so prices, offers, stock and totals come from the server, not the app.
       const items = (b.items || []).map((i: any) => ({ id: String(i.id), size: String(i.size || ""), qty: Math.floor(Number(i.qty)) }));
       if (!items.length || items.some((i: any) => !(i.qty > 0 && i.qty <= 50))) return json({ error: "Your cart is empty or has an invalid quantity." }, 400);
       const country = String(b.country || ""), cur = DISPLAY[country];
       if (!cur) return json({ error: "We do not deliver to that country yet." }, 400);
       const cust = b.cust || {};
       if (!cust.name || !cust.phone || !cust.street || !cust.city || !cust.state) return json({ error: "Please complete the delivery address." }, 400);
-      const status = ({ card: "awaiting_payment", bank: "awaiting_transfer", whatsapp: "sent" } as any)[String(b.pm || "")];
+      const pm = String(b.pm || "");
+      const status = ({ card: "awaiting_payment", bank: "awaiting_transfer", whatsapp: "sent", card_later: "awaiting_delivery" } as any)[pm];
       if (!status) return json({ error: "Choose a payment method." }, 400);
       const draft = { country, items, coupon: String(b.coupon || "").trim().toUpperCase() };
-      const { data: rows } = await db.from("products").select("id,name,price,stock,cty").in("id", items.map((i: any) => i.id));
+      const { data: rows } = await db.from("products").select("id,name,price,stock,stocks,cty,supplier").in("id", items.map((i: any) => i.id));
       for (const i of items) {
         const p: any = (rows || []).find((x: any) => x.id === i.id);
         if (!p) return json({ error: "A product in your cart is no longer available." }, 400);
         if (p.cty?.length && !p.cty.includes(country)) return json({ error: p.name + " is not sold in your country." }, 400);
-        if (p.stock != null && i.qty > p.stock) return json({ error: "Only " + p.stock + " of " + p.name + " left." }, 400);
+        if (p.supplier && (pm === "whatsapp" || pm === "card_later")) {
+          return json({ error: pm === "whatsapp" ? "WhatsApp orders are only for items we stock ourselves. Pay by card or bank transfer." : "Pay on delivery is only for items we stock ourselves." }, 400);
+        }
+        const lim = p.stocks && i.size && p.stocks[i.size] != null ? Number(p.stocks[i.size]) : (p.stock != null ? Number(p.stock) : null);
+        if (lim != null && i.qty > lim) return json({ error: lim <= 0 ? p.name + " is sold out." : "Only " + lim + " of " + p.name + (i.size ? " (" + i.size + ")" : "") + " left." }, 400);
+      }
+      let card_id: string | null = null;
+      if (pm === "card_later") {
+        const { data: c } = await db.from("cards").select("id").eq("id", String(b.card_id || "")).eq("user_id", u.user.id).maybeSingle();
+        if (!c) return json({ error: "Choose a saved card." }, 400);
+        card_id = c.id;
       }
       const pr = await price(draft, cur);
       const dg = cur === "NGN" || cur === "KES" ? 0 : 2, unit = (base: number) => Math.round(base * pr.k * 10 ** dg) / 10 ** dg;
@@ -164,12 +196,52 @@ Deno.serve(async (req) => {
         items: items.map((i: any) => { const p: any = (rows || []).find((x: any) => x.id === i.id); return { id: i.id, name: p.name, size: i.size, price: unit(Number(p.price)), qty: i.qty }; }),
         total: pr.total, discount: pr.discount, coupon: pr.offer?.code ? draft.coupon : null,
         offer: pr.offer ? { name: pr.offer.name, kind: pr.offer.kind, value: pr.offer.value } : null,
-        country, currency: cur, pm: String(b.pm), cust: { ...cust, email: cust.email || u.user.email }, status, at: Date.now(),
+        country, currency: cur, pm, card_id, cust: { ...cust, email: cust.email || u.user.email }, status, at: Date.now(),
       };
       const { error } = await db.from("orders").insert(order);
       if (error) return json({ error: error.message }, 400);
       if (pr.offer?.code) await db.from("offers").update({ used: Number(pr.offer.used || 0) + 1 }).eq("id", pr.offer.id);
+      for (const i of items) {
+        const p: any = (rows || []).find((x: any) => x.id === i.id);
+        if (p.stocks && i.size && p.stocks[i.size] != null) {
+          p.stocks = { ...p.stocks, [i.size]: Math.max(0, Number(p.stocks[i.size]) - i.qty) };
+          await db.from("products").update({ stocks: p.stocks }).eq("id", p.id);
+        } else if (p.stock != null) {
+          p.stock = Math.max(0, Number(p.stock) - i.qty);
+          await db.from("products").update({ stock: p.stock }).eq("id", p.id);
+        }
+      }
       return json({ order });
+    }
+
+    if (b.action === "received" || b.action === "charge_later" || b.action === "cancel") {
+      const { data: o } = await db.from("orders").select("*").eq("id", b.order_id).maybeSingle();
+      if (!o) return json({ error: "Order not found." }, 404);
+      if (b.action === "received") {
+        if (o.user_id !== u.user.id) return json({ error: "That is not your order." }, 403);
+        if (o.status !== "shipped") return json({ error: "You can confirm delivery once the order is marked as shipped." }, 400);
+        await db.from("orders").update({ status: "delivered", received_at: Date.now() }).eq("id", o.id);
+        let charge: any = null;
+        if (o.pm === "card_later" && !o.paid_at) {
+          try { charge = { paid: await chargeSaved({ ...o, status: "delivered" }) }; } catch (e) { charge = { paid: false, error: String((e as Error).message || e) }; }
+        }
+        return json({ status: "delivered", received_at: Date.now(), charge });
+      }
+      if (!(await isAdmin(u.user.id))) return json({ error: "Admins only." }, 403);
+      if (b.action === "charge_later") {
+        if (o.pm !== "card_later") return json({ error: "This order is not pay-on-delivery." }, 400);
+        return json({ paid: await chargeSaved(o) });
+      }
+      if (o.status !== "cancelled") {
+        for (const i of o.items || []) {
+          const { data: p } = await db.from("products").select("id,stock,stocks").eq("id", i.id).maybeSingle();
+          if (!p) continue;
+          if (p.stocks && i.size && p.stocks[i.size] != null) await db.from("products").update({ stocks: { ...p.stocks, [i.size]: Number(p.stocks[i.size]) + Number(i.qty) } }).eq("id", p.id);
+          else if (p.stock != null) await db.from("products").update({ stock: Number(p.stock) + Number(i.qty) }).eq("id", p.id);
+        }
+        await db.from("orders").update({ status: "cancelled" }).eq("id", o.id);
+      }
+      return json({ status: "cancelled" });
     }
 
     if (!SK) return json({ error: "Card payments are not set up yet." }, 500);

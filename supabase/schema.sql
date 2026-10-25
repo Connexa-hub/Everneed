@@ -101,3 +101,7 @@ create function public.coupon_info(c text) returns jsonb language sql stable sec
 grant execute on function public.coupon_info(text) to anon, authenticated;
 alter table public.orders add column if not exists coupon text, add column if not exists discount numeric not null default 0, add column if not exists offer jsonb;
 drop policy if exists "orders insert" on public.orders;
+
+-- Per-size stock, delivery confirmation and pay-on-delivery (already applied to the connected project)
+alter table public.products add column if not exists stocks jsonb not null default '{}'::jsonb;
+alter table public.orders add column if not exists card_id text, add column if not exists received_at bigint;

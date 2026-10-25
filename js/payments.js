@@ -13,5 +13,6 @@ window.Pay=(function(){
     run:function(o){var t="New "+CFG.name+" order "+o.id.toUpperCase()+"\n\n"+o.items.map(function(i){return i.qty+" x "+i.name+" - "+m(i.price*i.qty)}).join("\n")+"\n\nTotal: "+m(o.total)+"\nName: "+o.cust.name+"\nPhone: "+o.cust.phone+"\nAddress: "+o.cust.addr;
       return{status:"sent",lines:["Tap the button to send your order."],url:"https://wa.me/"+Ctx.get().whatsapp+"?text="+encodeURIComponent(t)}}});
   add({id:"card",label:"Card, bank or USSD",note:"Secure checkout by Paystack",on:function(){return Supa.on()&&!!Ctx.get().paystack},run:function(){return{status:"awaiting_payment",lines:[]}}});
+  add({id:"card_later",label:"Pay when delivered",note:"We charge your saved card after delivery",on:function(){return Supa.on()&&!!Ctx.get().paystack&&S.cards().length>0},run:function(){return{status:"awaiting_delivery",lines:["We will charge your saved card when your order is delivered."]}}});
   return{register:add,methods:function(){return Object.keys(reg).map(function(k){return reg[k]})},run:function(id,o){return reg[id].run(o)}};
 })();

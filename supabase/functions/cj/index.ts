@@ -50,6 +50,45 @@ async function perUsd(cur: string) {
   return x;
 }
 
+const clean = (h: unknown) => String(h || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+const label = (s: unknown) => String(s || "").replace(/[|~"'<>\\]/g, "").trim();
+
+// Search the CJ catalogue.
+async function search(q: string, page: number) {
+  const d = await cj("/product/listV2?keyWord=" + encodeURIComponent(q) + "&page=" + page + "&size=20");
+  const l = d?.content?.[0]?.productList || d?.list || [];
+  return l.map((p: any) => ({ pid: p.id, name: clean(p.nameEn), img: p.bigImage, price: Number(p.sellPrice), listed: p.listedNum }));
+}
+
+// Imports one CJ product into the store: price = (cost + shipping to Nigeria) x USD/NGN x (1 + margin).
+async function importOne(pid: string, col: string) {
+  const { data: ex } = await db.from("products").select("id").eq("supplier", "cj").eq("sup_pid", pid).maybeSingle();
+  if (ex) throw new Error("That product is already imported.");
+  const d = await cj("/product/query?pid=" + encodeURIComponent(pid));
+  const vs = (d.variants || []).slice(0, 40);
+  if (!vs.length) throw new Error("This product has no variants.");
+  const fr = await cj("/logistic/freightCalculate", { startCountryCode: "CN", endCountryCode: "NG", products: [{ vid: vs[0].vid, quantity: 1 }] });
+  const ship = (Array.isArray(fr) ? fr : []).filter((x: any) => x.logisticName).sort((a: any, b: any) => a.logisticPrice - b.logisticPrice)[0];
+  if (!ship) throw new Error("CJ has no shipping to Nigeria for this product.");
+  const cost = Math.min(...vs.map((v: any) => Number(v.variantSellPrice)));
+  const { data: pr } = await db.from("settings").select("data").eq("id", "pricing").maybeSingle();
+  const margin = Number(pr?.data?.margin ?? 50), step = Number(pr?.data?.round || 500), ngn = await perUsd("NGN");
+  const price = Math.max(step, Math.ceil((cost + Number(ship.logisticPrice)) * ngn * (1 + margin / 100) / step) * step);
+  let imgs: string[] = [];
+  try { imgs = JSON.parse(d.productImage || "[]"); } catch (_) { /* single image */ }
+  if (!imgs.length && d.bigImage) imgs = [d.bigImage];
+  const multi = vs.length > 1;
+  const row = {
+    name: clean(d.productNameEn).slice(0, 90), col, price, old: 0, stock: null, cty: ["NG"], img: imgs[0] || "", images: imgs.slice(0, 8),
+    descr: clean(d.description).slice(0, 600), supplier: "cj", sup_pid: pid, sup_cost: cost, sup_ship: Number(ship.logisticPrice),
+    variants: vs.map((v: any) => ({ label: label(v.variantKey || v.variantNameEn || v.vid), vid: v.vid, sku: v.variantSku, cost: Number(v.variantSellPrice) })),
+    opt: multi ? "Option" : null, sizes: multi ? vs.map((v: any) => label(v.variantKey || v.variantNameEn || v.vid)) : [], ship_days: ship.logisticAging || null,
+  };
+  const { data, error } = await db.from("products").insert(row).select("id,name,price").single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 // Sends a paid order to CJ with the buyer's delivery address. Supplier cost and profit go to an admin-only table.
 async function forward(o: any) {
   if (o.track?.cjOrderId) return o.track;
@@ -131,6 +170,11 @@ Deno.serve(async (req) => {
       uid = u.user.id;
       const { data: p } = await db.from("profiles").select("role").eq("id", uid).maybeSingle();
       admin = p?.role === "admin";
+    }
+    if (b.action === "search" || b.action === "import") {
+      if (!admin) return json({ error: "Only the store admin can import products." }, 403);
+      if (b.action === "search") return json({ items: await search(String(b.q || ""), Number(b.page || 1)) });
+      return json({ product: await importOne(String(b.pid), String(b.col || "")) });
     }
     const { data: o } = await db.from("orders").select("*").eq("id", b.order_id).maybeSingle();
     if (!o) return json({ error: "Order not found." }, 404);
