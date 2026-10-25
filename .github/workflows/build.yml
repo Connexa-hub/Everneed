@@ -31,6 +31,12 @@ jobs:
         run: |
           M=android/app/src/main/AndroidManifest.xml
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <application|' $M
+      - name: Add the AdMob app id
+        run: |
+          ID=$(node -e "global.window=global;require('./js/config.js');console.log(CFG.ads.appId)")
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i "s|</application>|    <meta-data android:name=\"com.google.android.gms.ads.APPLICATION_ID\" android:value=\"$ID\"/>\n    </application>|" $M
+          grep -q "com.google.android.gms.ads.APPLICATION_ID" $M
       - name: Generate app icons and splash screens
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0f6b4f' --iconBackgroundColorDark '#0f6b4f' --splashBackgroundColor '#fafaf8' --splashBackgroundColorDark '#0d0f0e'
       - name: Number the build so each one installs over the last

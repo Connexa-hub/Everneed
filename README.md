@@ -65,3 +65,7 @@ Money: Paystack pays out to your bank in naira. CJ is paid from your CJ balance 
 
 ## Updating the app from GitHub
 Every build is signed with the same key (keystore/debug.keystore) and gets a higher version number, so a new APK installs over the old one and keeps its data. Android will not update an app signed with a different key. If your phone still has an older EverNeed build, uninstall it once before installing this one.
+
+## Home feed and ads
+The home screen is a mixed two-column product feed ranked on the device from what the shopper views, adds to the cart and searches, plus closeness (products made in or shipped from their country or region rank higher). A promo or sponsored slot appears after every 8 products. Nothing leaves the phone and no advertising ID is read.
+Google ads (AdMob): create an AdMob account, add the app, then set `ads` in js/config.js (appId, bannerId, enabled:true, test:false) and push. Until then the app uses Google's test ids and shows no ads. AdMob shows a small banner above the tab bar on Home and Shop only; AdMob cannot place ads inside the product grid in this kind of app, so the in-grid slots are your own promos.

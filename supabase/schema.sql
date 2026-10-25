@@ -105,3 +105,6 @@ drop policy if exists "orders insert" on public.orders;
 -- Per-size stock, delivery confirmation and pay-on-delivery (already applied to the connected project)
 alter table public.products add column if not exists stocks jsonb not null default '{}'::jsonb;
 alter table public.orders add column if not exists card_id text, add column if not exists received_at bigint;
+
+-- Product origin and details (already applied to the connected project)
+alter table public.products add column if not exists maker text, add column if not exists maker_addr text, add column if not exists origin text, add column if not exists ships_from text, add column if not exists sku text, add column if not exists weight_g numeric, add column if not exists dims text, add column if not exists material text;

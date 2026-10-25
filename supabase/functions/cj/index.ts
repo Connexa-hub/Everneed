@@ -53,23 +53,62 @@ async function perUsd(cur: string) {
 const clean = (h: unknown) => String(h || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 const label = (s: unknown) => String(s || "").replace(/[|~"'<>\\]/g, "").trim();
 
-// Search the CJ catalogue.
-async function search(q: string, page: number) {
-  const d = await cj("/product/listV2?keyWord=" + encodeURIComponent(q) + "&page=" + page + "&size=20");
+// CJ's live category tree (first level > second level > third level with ids), cached for 12 hours.
+async function categories() {
+  const { data } = await db.from("kv").select("value").eq("key", "cj_categories").maybeSingle();
+  if (data?.value?.exp > Date.now()) return data.value.tree;
+  const d = await cj("/product/getCategory");
+  const tree = (Array.isArray(d) ? d : []).map((a: any) => ({
+    name: clean(a.categoryFirstName),
+    subs: (a.categorySecondList || []).map((b: any) => ({
+      name: clean(b.categorySecondName),
+      subs: (b.categoryThirdList || []).map((c: any) => ({ id: c.categoryId, name: clean(c.categoryName) })),
+    })),
+  }));
+  await db.from("kv").upsert({ key: "cj_categories", value: { exp: Date.now() + 432e5, tree } });
+  return tree;
+}
+
+// Search the CJ catalogue by keyword and/or category id.
+async function search(q: string, cat: string, page: number) {
+  const d = await cj("/product/listV2?page=" + page + "&size=20" + (q ? "&keyWord=" + encodeURIComponent(q) : "") + (cat ? "&categoryId=" + encodeURIComponent(cat) : ""));
   const l = d?.content?.[0]?.productList || d?.list || [];
   return l.map((p: any) => ({ pid: p.id, name: clean(p.nameEn), img: p.bigImage, price: Number(p.sellPrice), listed: p.listedNum }));
 }
 
-// Imports one CJ product into the store: price = (cost + shipping to Nigeria) x USD/NGN x (1 + margin).
-async function importOne(pid: string, col: string) {
+// Matches a CJ category to one of the store's collections, or creates a collection with the CJ name.
+const STOP = ["and", "for", "the", "of"];
+const norm = (s: string) => String(s).toLowerCase().replace(/&/g, " ").replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).map((w) => w.replace(/(es|s)$/, "")).filter((w) => w && !STOP.includes(w));
+async function mapCol(l1: string, l2: string, l3: string) {
+  const { data: cs } = await db.from("collections").select("name");
+  const { data: ps } = await db.from("products").select("col");
+  const names = [...new Set([...(cs || []).map((c: any) => c.name), ...(ps || []).map((p: any) => p.col)])].filter(Boolean) as string[];
+  let best = "", bs = 0;
+  for (const c of [l3, l2, l1].filter(Boolean)) {
+    const a = norm(c);
+    if (!a.length) continue;
+    for (const n of names) {
+      const b = norm(n);
+      const s = a.filter((x) => b.includes(x)).length / Math.max(a.length, b.length);
+      if (s > bs) { bs = s; best = n; }
+    }
+  }
+  if (bs >= 0.5) return best;
+  const name = (l2 || l1 || l3 || "Other").replace(/\s+/g, " ").trim();
+  await db.from("collections").upsert({ name, grp: l1 || null }, { onConflict: "name", ignoreDuplicates: true });
+  return name;
+}
+
+// Imports one CJ product: price = (cost + shipping to Nigeria) x USD/NGN x (1 + margin), collection mapped from the CJ category.
+async function importOne(pid: string, cat: { l1?: string; l2?: string; l3?: string }, colOverride: string) {
   const { data: ex } = await db.from("products").select("id").eq("supplier", "cj").eq("sup_pid", pid).maybeSingle();
-  if (ex) throw new Error("That product is already imported.");
+  if (ex) throw new Error("Already imported.");
   const d = await cj("/product/query?pid=" + encodeURIComponent(pid));
   const vs = (d.variants || []).slice(0, 40);
-  if (!vs.length) throw new Error("This product has no variants.");
+  if (!vs.length) throw new Error("No variants.");
   const fr = await cj("/logistic/freightCalculate", { startCountryCode: "CN", endCountryCode: "NG", products: [{ vid: vs[0].vid, quantity: 1 }] });
   const ship = (Array.isArray(fr) ? fr : []).filter((x: any) => x.logisticName).sort((a: any, b: any) => a.logisticPrice - b.logisticPrice)[0];
-  if (!ship) throw new Error("CJ has no shipping to Nigeria for this product.");
+  if (!ship) throw new Error("No shipping to Nigeria.");
   const cost = Math.min(...vs.map((v: any) => Number(v.variantSellPrice)));
   const { data: pr } = await db.from("settings").select("data").eq("id", "pricing").maybeSingle();
   const margin = Number(pr?.data?.margin ?? 50), step = Number(pr?.data?.round || 500), ngn = await perUsd("NGN");
@@ -77,14 +116,16 @@ async function importOne(pid: string, col: string) {
   let imgs: string[] = [];
   try { imgs = JSON.parse(d.productImage || "[]"); } catch (_) { /* single image */ }
   if (!imgs.length && d.bigImage) imgs = [d.bigImage];
-  const multi = vs.length > 1;
+  const multi = vs.length > 1, col = colOverride || await mapCol(cat.l1 || d.categoryName || "", cat.l2 || "", cat.l3 || "");
   const row = {
     name: clean(d.productNameEn).slice(0, 90), col, price, old: 0, stock: null, cty: ["NG"], img: imgs[0] || "", images: imgs.slice(0, 8),
     descr: clean(d.description).slice(0, 600), supplier: "cj", sup_pid: pid, sup_cost: cost, sup_ship: Number(ship.logisticPrice),
     variants: vs.map((v: any) => ({ label: label(v.variantKey || v.variantNameEn || v.vid), vid: v.vid, sku: v.variantSku, cost: Number(v.variantSellPrice) })),
     opt: multi ? "Option" : null, sizes: multi ? vs.map((v: any) => label(v.variantKey || v.variantNameEn || v.vid)) : [], ship_days: ship.logisticAging || null,
+    maker: clean(d.supplierName || d.brandName || "") || null, origin: "CN", ships_from: "CN", sku: d.productSku || null,
+    weight_g: Number(d.productWeight) || null, material: clean(d.materialNameEn || d.materialKey || "") || null,
   };
-  const { data, error } = await db.from("products").insert(row).select("id,name,price").single();
+  const { data, error } = await db.from("products").insert(row).select("id,name,price,col").single();
   if (error) throw new Error(error.message);
   return data;
 }
@@ -171,10 +212,15 @@ Deno.serve(async (req) => {
       const { data: p } = await db.from("profiles").select("role").eq("id", uid).maybeSingle();
       admin = p?.role === "admin";
     }
-    if (b.action === "search" || b.action === "import") {
+    if (["categories", "search", "import"].includes(b.action)) {
       if (!admin) return json({ error: "Only the store admin can import products." }, 403);
-      if (b.action === "search") return json({ items: await search(String(b.q || ""), Number(b.page || 1)) });
-      return json({ product: await importOne(String(b.pid), String(b.col || "")) });
+      if (b.action === "categories") return json({ tree: await categories() });
+      if (b.action === "search") return json({ items: await search(String(b.q || ""), String(b.cat || ""), Number(b.page || 1)) });
+      const done: any[] = [], failed: any[] = [];
+      for (const pid of (b.pids || []).slice(0, 10)) {
+        try { done.push(await importOne(String(pid), b.cat || {}, String(b.col || ""))); } catch (e) { failed.push({ pid, error: String((e as Error).message || e) }); }
+      }
+      return json({ done, failed });
     }
     const { data: o } = await db.from("orders").select("*").eq("id", b.order_id).maybeSingle();
     if (!o) return json({ error: "Order not found." }, 404);
