@@ -108,3 +108,7 @@ alter table public.orders add column if not exists card_id text, add column if n
 
 -- Product origin and details (already applied to the connected project)
 alter table public.products add column if not exists maker text, add column if not exists maker_addr text, add column if not exists origin text, add column if not exists ships_from text, add column if not exists sku text, add column if not exists weight_g numeric, add column if not exists dims text, add column if not exists material text;
+
+-- Size chart types, product option axes (already applied to the connected project)
+alter table public.size_charts add column if not exists kind text not null default 'clothing';
+alter table public.products add column if not exists axes text[] not null default '{}';

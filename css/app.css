@@ -170,3 +170,10 @@ html,body{overscroll-behavior-y:contain}
 .slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.slot span{position:relative}.slot small{opacity:.7;font-size:11px}.slot b{display:block;font-size:17px;letter-spacing:-.02em}.slot p{margin:2px 0 0;font-size:13px;opacity:.8}
 .slot img+span{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.55)}
 body.ads main{padding-bottom:200px}
+.gsv{width:100%;max-width:340px;display:block;margin:6px auto}
+.gsv .gb path,.gsv .gb circle,.gsv .gb rect{fill:var(--line)}
+.gsv .gb .st{fill:none;stroke:var(--line);stroke-width:14;stroke-linecap:round}
+.gsv .gl line,.gsv .gl path{stroke:var(--ac);stroke-width:2;stroke-dasharray:5 4;fill:none}
+.gsv .gc line{stroke:var(--mut);stroke-width:1}
+.gn{fill:var(--mut);font-size:11px}.gv{fill:var(--ink);font-size:14px;font-weight:700}
+.seg{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}.tbl tr.on td{background:color-mix(in srgb,var(--ac) 14%,transparent);font-weight:700}
