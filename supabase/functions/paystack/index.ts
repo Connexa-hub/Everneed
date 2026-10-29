@@ -110,17 +110,6 @@ async function settle(tx: any) {
       exp: a.exp_month + "/" + a.exp_year, bank: a.bank, code: a.authorization_code,
     }, { onConflict: "code" });
   }
-  // If the admin turned on automatic sending, hand the paid order to the CJ function.
-  try {
-    const { data: s } = await db.from("settings").select("data").eq("id", "cj").maybeSingle();
-    if (s?.data?.auto) {
-      await fetch(Deno.env.get("SUPABASE_URL") + "/functions/v1/cj", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"), "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "forward", order_id: oid }),
-      });
-    }
-  } catch (_) { /* the admin can still send the order by hand */ }
   return true;
 }
 
@@ -160,6 +149,13 @@ Deno.serve(async (req) => {
     if (!u?.user) return json({ error: "Please sign in again." }, 401);
     const b = JSON.parse(raw || "{}");
 
+    if (b.action === "coupon") {
+      const code = String(b.code || "").trim().toUpperCase();
+      const list = code ? await offersFor(String(b.country || ""), code) : [];
+      const o: any = list.find((x: any) => x.code === code);
+      return json({ offer: o ? { id: o.id, name: o.name, kind: o.kind, value: o.value, min_total: o.min_total, scope: o.scope, target: o.target, starts: o.starts, ends: o.ends, cty: o.cty } : null });
+    }
+
     if (b.action === "create") {
       // Orders are created here so prices, offers, stock and totals come from the server, not the app.
       const items = (b.items || []).map((i: any) => ({ id: String(i.id), size: String(i.size || ""), qty: Math.floor(Number(i.qty)) }));
@@ -172,14 +168,11 @@ Deno.serve(async (req) => {
       const status = ({ card: "awaiting_payment", bank: "awaiting_transfer", whatsapp: "sent", card_later: "awaiting_delivery" } as any)[pm];
       if (!status) return json({ error: "Choose a payment method." }, 400);
       const draft = { country, items, coupon: String(b.coupon || "").trim().toUpperCase() };
-      const { data: rows } = await db.from("products").select("id,name,price,stock,stocks,cty,supplier").in("id", items.map((i: any) => i.id));
+      const { data: rows } = await db.from("products").select("id,name,price,stock,stocks,cty").in("id", items.map((i: any) => i.id));
       for (const i of items) {
         const p: any = (rows || []).find((x: any) => x.id === i.id);
         if (!p) return json({ error: "A product in your cart is no longer available." }, 400);
         if (p.cty?.length && !p.cty.includes(country)) return json({ error: p.name + " is not sold in your country." }, 400);
-        if (p.supplier && (pm === "whatsapp" || pm === "card_later")) {
-          return json({ error: pm === "whatsapp" ? "WhatsApp orders are only for items we stock ourselves. Pay by card or bank transfer." : "Pay on delivery is only for items we stock ourselves." }, 400);
-        }
         const lim = p.stocks && i.size && p.stocks[i.size] != null ? Number(p.stocks[i.size]) : (p.stock != null ? Number(p.stock) : null);
         if (lim != null && i.qty > lim) return json({ error: lim <= 0 ? p.name + " is sold out." : "Only " + lim + " of " + p.name + (i.size ? " (" + i.size + ")" : "") + " left." }, 400);
       }
@@ -200,7 +193,7 @@ Deno.serve(async (req) => {
       };
       const { error } = await db.from("orders").insert(order);
       if (error) return json({ error: error.message }, 400);
-      if (pr.offer?.code) await db.from("offers").update({ used: Number(pr.offer.used || 0) + 1 }).eq("id", pr.offer.id);
+      if (pr.offer?.code) await db.rpc("redeem_offer", { p_id: pr.offer.id });
       for (const i of items) {
         const p: any = (rows || []).find((x: any) => x.id === i.id);
         if (p.stocks && i.size && p.stocks[i.size] != null) {
