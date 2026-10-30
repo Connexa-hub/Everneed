@@ -1,0 +1,109 @@
+name: Build Android app
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+# A newer push to the same branch replaces the older run, so only the latest APK is built.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: Install and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Run checks
+        run: npm test
+  database:
+    name: Database tests
+    runs-on: ubuntu-latest
+    # Starts a local Supabase stack, applies every migration, then runs the SQL test suite.
+    # Non-blocking until it has been seen passing once on GitHub.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: test -f supabase/config.toml || supabase init
+      - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,inbucket,realtime,mailpit
+      - name: Run Phase 2 checks
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt || true
+          grep -q "FAIL: 0" /tmp/p2.txt
+      - name: Anonymous reads
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
+  apk:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Check scripts and data
+        run: |
+          for f in js/*.js; do node --check "$f"; done
+          for f in data/*.json; do node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))"; done
+      - run: npm install
+      - name: Prepare app files
+        run: |
+          mkdir www
+          cp -r index.html favicon.svg favicon.png css js data www/
+      - run: npx cap add android
+      - name: Allow camera and microphone
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <application|' $M
+      - name: Add the AdMob app id
+        run: |
+          ID=$(node -e "global.window=global;require('./js/config.js');console.log(CFG.ads.appId)")
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i "s|</application>|    <meta-data android:name=\"com.google.android.gms.ads.APPLICATION_ID\" android:value=\"$ID\"/>\n    </application>|" $M
+          grep -q "com.google.android.gms.ads.APPLICATION_ID" $M
+      - name: Generate app icons and splash screens
+        run: npx @capacitor/assets generate --android --iconBackgroundColor '#0f6b4f' --iconBackgroundColorDark '#0f6b4f' --splashBackgroundColor '#fafaf8' --splashBackgroundColorDark '#0d0f0e'
+      - name: Number the build so each one installs over the last
+        run: |
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          grep -n "versionCode\|versionName" android/app/build.gradle
+      - name: Use the fixed signing key
+        run: |
+          mkdir -p ~/.android
+          cp keystore/debug.keystore ~/.android/debug.keystore
+      - run: npx cap sync android
+      - name: Build installable APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: everneed-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+      # Every push to any branch (not pull requests) publishes a test release you can open on your phone.
+      - name: Publish APK to Releases
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk EverNeed.apk
+          gh release create "build-${{ github.run_number }}" EverNeed.apk --title "EverNeed build ${{ github.run_number }} ($BRANCH)" --notes "Debug APK for testing, built from branch $BRANCH (commit ${GITHUB_SHA::7}). Download EverNeed.apk and install it." --prerelease --target "${{ github.sha }}"
+      - name: Where to find the APK
+        run: |
+          echo "### APK ready" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: \`${{ github.ref_name }}\`, build ${{ github.run_number }}." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Releases tab: **EverNeed build ${{ github.run_number }}**, file EverNeed.apk (open it on your phone)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Or this run's Artifacts section: **everneed-apk**." >> "$GITHUB_STEP_SUMMARY"
