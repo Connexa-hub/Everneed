@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="en" data-mode="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EverNeed design gallery (dev only)</title>
+<link rel="stylesheet" href="css/fonts.css"><link rel="stylesheet" href="css/tokens.css"><link rel="stylesheet" href="css/app.css"><link rel="stylesheet" href="css/components.css">
+<style>
+ body{padding:16px;max-width:1500px;margin:0 auto}.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+ .tile{background:var(--bg);color:var(--text-1);border:1px solid var(--border);border-radius:var(--r-card);padding:14px;overflow:hidden}
+ .tile h4{margin:0 0 10px;font:700 13px var(--font-body);color:var(--text-2)}.tile .rowx{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+ .tile .card{flex:0 0 140px}.rail{display:flex;gap:6px;margin:10px 0}.rail i{flex:1;height:6px;border-radius:9px;background:var(--border)}.rail i.on{background:var(--brand)}
+ .tile input{margin:4px 0}
+</style></head><body>
+<h1 style="margin:0 0 4px">Design gallery</h1><p class="m">Development page. It is not copied into the app build. Every tile is one palette in one mode.</p>
+<div class="tiles" id="tiles"></div>
+<script>
+var P=["emerald","indigo","rose","violet","ocean","gold"],M=["light","dark","amoled"],h="";
+P.forEach(function(p){M.forEach(function(m){
+ h+='<section class="tile" data-palette="'+p+'" data-mode="'+m+'"><h4>'+p+' / '+m+'</h4>'
+ +'<div class="rowx"><button class="btn s">Add to cart</button><button class="btn o s">Save</button><span class="chip on">Fashion</span><span class="chip">Beauty</span><span class="pill info">New</span><span class="pill ok">In stock</span><span class="pill low">3 left</span><span class="pill bad">Rejected</span></div>'
+ +'<input placeholder="Search products and shops" aria-label="Search">'
+ +'<div class="rowx"><a class="card"><div class="ph surface-3"><div class="mono">B</div><i class="tag">\u20A612,500</i><button class="add" aria-label="Add">+</button></div><b>Linen tote bag</b><span class="seller-row"><i class="mini">UF</i>Urban Finds</span></a>'
+ +'<div><span class="store-ring new"><span>UF</span></span> <span class="verified">\u2713</span><div class="pr" style="margin:6px 0 2px">\u20A612,500 <s>\u20A615,000</s></div><span class="st" style="--v:86%">\u2605\u2605\u2605\u2605\u2605</span><br><a class="vf" href="#">View store</a></div></div>'
+ +'<div class="rail"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div><small>Paid, accepted, preparing, delivery</small>'
+ +'<div class="note" style="margin-top:10px"><span class="ni">\u2713</span><span class="nt">Order placed. Sellers have been told.</span></div>'
+ +'<div class="sw"><span><b>AMOLED black</b></span><button type="button" role="switch" aria-checked="true" aria-label="demo"></button></div>'
+ +'<div class="skel-card" style="max-width:120px;margin-top:10px"></div></section>';
+});});
+document.getElementById("tiles").innerHTML=h;
+</script></body></html>
