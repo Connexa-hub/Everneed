@@ -1,4 +1,6 @@
-# Design plan (Phase 2B), revised draft for your review
+# Design plan (Phase 2B)
+
+**Status: approved with the recommended answers (fonts kept, Emerald default, Dribbble as mood only, gallery excluded from the APK).** Final colour values are generated into `css/tokens.css`; where the table below differs (for example light borders, which the contrast check darkened to reach 1.3:1), the generated file wins. See `docs/DESIGN_SYSTEM.md`.
 
 Nothing has been built from this yet. It follows the Phase 2B brief. Section 7 records the review pass and what I changed.
 

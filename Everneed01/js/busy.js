@@ -6,7 +6,7 @@ window.Busy=(function(){
   B.dec=function(){n=Math.max(0,n-1);if(n===0){clearTimeout(t);if(el())el().className=""}};
   document.addEventListener("click",function(e){
     var b=e.target.closest&&e.target.closest("button,[data-act],a.btn,.chip,.tl,.bk,.hs,.pick");
-    if(!b||b.hasAttribute("data-step"))return;
+    if(!b||b.hasAttribute("data-step")||b.hasAttribute("data-tact"))return;
     var now=Date.now();if(now-last<450){e.stopPropagation();e.preventDefault();return}last=now;
   },true);
   setTimeout(function(){B.mute=false},8000);

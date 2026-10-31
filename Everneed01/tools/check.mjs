@@ -65,6 +65,19 @@ const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migra
   }
 })('.');
 
+// 6. Design system rules: no raw colours in component CSS, bundled fonts exist, contrast passes for all 18 themes.
+for (const f of ['css/app.css', 'css/components.css']) {
+  const css = readFileSync(f, 'utf8');
+  for (const m of css.matchAll(/\{([^{}]*)\}/g)) {
+    if (/#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(m[1])) fail(f + ': raw colour in "' + m[1].slice(0, 60) + '..." (use a token from css/tokens.css)');
+  }
+}
+for (const m of readFileSync('css/fonts.css', 'utf8').matchAll(/url\(\.\.\/(fonts\/[^)]+)\)/g)) {
+  try { statSync(m[1]); } catch { fail('css/fonts.css references missing font ' + m[1]); }
+}
+try { execFileSync(process.execPath, ['tools/check-contrast.mjs'], { stdio: 'pipe' }); console.log('ok  contrast (18 themes)'); }
+catch (e) { fail('contrast check failed\n' + e.stdout + e.stderr); }
+
 if (failed) {
   console.error(failed + ' check(s) failed');
   process.exit(1);

@@ -21,6 +21,8 @@ jobs:
       - run: npm install
       - name: Run checks
         run: npm test
+      - name: Tokens are up to date
+        run: node tools/build-tokens.mjs && git diff --exit-code css/tokens.css
   database:
     name: Database tests
     runs-on: ubuntu-latest
@@ -60,7 +62,7 @@ jobs:
       - name: Prepare app files
         run: |
           mkdir www
-          cp -r index.html favicon.svg favicon.png css js data www/
+          cp -r index.html favicon.svg favicon.png css js data fonts www/
       - run: npx cap add android
       - name: Allow camera and microphone
         run: |
