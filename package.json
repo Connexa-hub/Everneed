@@ -1,5 +1,5 @@
 {
-  "name": "everneed",
+  "name": "everneed01",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -9,6 +9,11 @@
     "@capacitor/geolocation": "^6.0.0",
     "@capacitor/local-notifications": "^6.0.0",
     "@capacitor/camera": "^6.0.0",
-    "@capacitor-community/admob": "^6.0.0"
+    "@capacitor-community/admob": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "scripts": {
+    "test": "node tools/check.mjs",
+    "tokens": "node tools/build-tokens.mjs && node tools/check-contrast.mjs"
   }
 }

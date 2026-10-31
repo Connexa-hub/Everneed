@@ -1,3 +1,6 @@
+> **Everneed01**: marketplace rebuild of EverNeed. The build plan is in `docs/EVERNEED_MARKETPLACE_PROMPT.md` (paste Part A plus one Phase block per session).
+> Push to GitHub and get an APK: see `docs/GITHUB_SETUP.md`.
+
 # EverNeed (Stage 1): Android app
 
 Minimalist store app for groceries, electricals, accessories, skincare and more. Starts empty: no sample products.
@@ -23,7 +26,7 @@ Home: every live admin banner plus one generated banner per collection. Collecti
 Bank transfer and WhatsApp work now. Card is a registered provider slot: Stage 3 adds Paystack (tokenized cards, automatic charging from the server).
 
 ## Roadmap
-2 Supabase accounts and shared data · 3 Paystack · 4 CJdropshipping/EPROLO sync · 5 admin dashboard · 6 signed release build for Google Play
+2 Supabase accounts and shared data · 3 Paystack · 4 multi-merchant marketplace (see docs/EVERNEED_MARKETPLACE_PROMPT.md) · 5 admin dashboard · 6 signed release build for Google Play
 
 ## Countries (Stage 1.1)
 `js/config.js` holds one block per country: currency, locale, delivery fee, bank and WhatsApp, sign-in options and Terms/Privacy links. The country is guessed from the device region and timezone, confirmed at sign-up, and changeable in Settings. Products and banners can be limited with `"cty":["NG","GH"]` (empty = everywhere). Phone-code, Google and NIN sign-in are listed per country and go live with Supabase and a verification provider in Stage 2.
@@ -41,7 +44,7 @@ Without keys the app still runs in local mode. Google and NIN sign-in are Stage 
 The `paystack` function (supabase/functions/paystack) is already deployed. To switch it on:
 1. paystack.com, create an account. Copy your **Secret key** (test key `sk_test_...` first) from Settings, API Keys.
 2. Supabase, Edge Functions, Secrets: add `PAYSTACK_SECRET_KEY` with that key.
-3. Paystack, Settings, API Keys & Webhooks: set the webhook URL to `https://krpzbuoxozdyduszzlvb.supabase.co/functions/v1/paystack`.
+3. Paystack, Settings, API Keys & Webhooks: set the webhook URL to `https://zpgasfweaixwsktlueje.supabase.co/functions/v1/paystack`.
 4. In the app: Manage store, Store setup, choose your country, turn **Cards (Paystack)** On, Save.
 Customers then see "Card, bank or USSD" at checkout. The server recomputes every amount from your product prices, saves reusable cards as tokens only, and marks the order paid from Paystack's signed webhook.
 
@@ -51,17 +54,8 @@ Customers then see "Card, bank or USSD" at checkout. The server recomputes every
 - Checkout is two bottom sheets: confirm the delivery address (with the country), then review and pay. A saved address from another country is not reused.
 - Card payments open Paystack's secure pop-up inside the app. Local currencies are NGN, GHS, KES and ZAR; other countries are charged in USD, which Paystack must enable on your account. The server recomputes every amount from product prices, delivery settings and its own exchange rate.
 
-## Suppliers (CJdropshipping)
-Imported products carry `supplier`, `sup_pid`, `sup_cost` (USD cost), `variants` (option label, CJ variant id and SKU) and `ship_days`. Price rule used for the first import: (CJ cost + freight to Nigeria) x 1,400 NGN/USD x 1.5, rounded to the nearest 500. Edit prices in Manage store, Catalog. Orders keep the chosen option, which maps to a CJ variant id for fulfilment.
-Before selling skincare or other regulated goods in Nigeria, check NAFDAC registration and import rules, and check each electronics item's battery shipping limits with CJ.
-
-## Order fulfilment with CJdropshipping
-Flow: the customer pays you (Paystack, or bank transfer you mark paid) -> the order is sent to CJ with the buyer's address -> CJ ships -> the tracking number and status appear on the customer's order screen. Customers never see your supplier cost or profit; the admin order screen does.
-Setup (once):
-1. CJ: My CJ, Authorization, API, generate an API key. Supabase, Edge Functions, Secrets: add `CJ_API_KEY`.
-2. In the app: Admin, Store setup, bottom: Supplier settings. Start with both switches Off and use **Send to CJ** by hand on a few orders. Turn on automatic sending when you trust it. "Pay CJ automatically" spends your CJ balance, so keep it funded.
-3. Optional: CJ webhook to `https://krpzbuoxozdyduszzlvb.supabase.co/functions/v1/cj?hook=1`. Tracking also refreshes when a customer opens their order.
-Money: Paystack pays out to your bank in naira. CJ is paid from your CJ balance in dollars, which you top up yourself. Paystack cannot pay CJ directly.
+## Regulated goods
+Before selling skincare or other regulated goods in Nigeria, check NAFDAC registration and import rules.
 
 ## Updating the app from GitHub
 Every build is signed with the same key (keystore/debug.keystore) and gets a higher version number, so a new APK installs over the old one and keeps its data. Android will not update an app signed with a different key. If your phone still has an older EverNeed build, uninstall it once before installing this one.
@@ -71,6 +65,6 @@ The home screen is a mixed two-column product feed ranked on the device from wha
 Google ads (AdMob): create an AdMob account, add the app, then set `ads` in js/config.js (appId, bannerId, enabled:true, test:false) and push. Until then the app uses Google's test ids and shows no ads. AdMob shows a small banner above the tab bar on Home and Shop only; AdMob cannot place ads inside the product grid in this kind of app, so the in-grid slots are your own promos.
 
 ## Options, size guide and payment flow
-- Products can have colours and sizes. The shopper picks both; sizes that do not exist for the chosen colour (or are out of stock) are greyed out and disabled, and the same goes for colours. Cart lines can be edited from the cart (colour, size, quantity) and keep their options through sign-in and checkout. Stock is tracked per option for products you add yourself. CJ products show every option as available because CJ stock is not tracked yet.
+- Products can have colours and sizes. The shopper picks both; sizes that do not exist for the chosen colour (or are out of stock) are greyed out and disabled, and the same goes for colours. Cart lines can be edited from the cart (colour, size, quantity) and keep their options through sign-in and checkout. Stock is tracked per option for products you add yourself.
 - Size charts have a type (clothing, shoes, bracelet, necklace, utensils or other). The guide draws a matching diagram, updates its callouts when a size is tapped, switches cm and inches, and shows EU, US and UK sizes when the chart has EU, US or UK columns.
-- Card payments: the cart is only cleared once payment succeeds. Cancelling returns to the cart with a "Payment not finished" card (Continue payment or Cancel order). Cancelling an unpaid order puts its stock back. The postal code is optional; a default is filled in for carriers, and a CJ error never stops an order being marked paid.
+- Card payments: the cart is only cleared once payment succeeds. Cancelling returns to the cart with a "Payment not finished" card (Continue payment or Cancel order). Cancelling an unpaid order puts its stock back. The postal code is optional; a default is filled in for carriers.

@@ -24,6 +24,12 @@ async function ps(path: string, body?: unknown) {
   return r.json();
 }
 
+// Per-user rate limit backed by the rate_hit() SQL function (service role only).
+async function allowed(uid: string, action: string, max: number, secs: number) {
+  const { data, error } = await db.rpc("rate_hit", { p_user: uid, p_action: action, p_max: max, p_window_seconds: secs });
+  return !error && data === true;
+}
+
 async function isAdmin(id: string) {
   const { data } = await db.from("profiles").select("role").eq("id", id).maybeSingle();
   return data?.role === "admin";
@@ -45,12 +51,13 @@ async function rate(cur: string) {
 }
 
 // Offers that apply right now: automatic ones, plus the coupon the customer entered.
-async function offersFor(country: string, coupon: string) {
+async function offersFor(country: string, coupon: string, existing = false) {
   const { data: auto } = await db.from("offers").select("*").is("code", null).eq("active", true);
   let list: any[] = auto || [];
   if (coupon) {
     const { data: c } = await db.from("offers").select("*").eq("code", coupon).eq("active", true).maybeSingle();
-    if (c && (c.limit_uses == null || c.used < c.limit_uses)) list = list.concat([c]);
+    // An order that already redeemed its code keeps the discount even when that was the last use.
+    if (c && (existing || c.limit_uses == null || c.used < c.limit_uses)) list = list.concat([c]);
   }
   const now = Date.now();
   return list.filter((o) =>
@@ -85,12 +92,13 @@ async function price(o: any, cur: string) {
     sub += b;
     lines.push({ col: p.col, base: b });
   }
-  const { amount, offer } = best(lines, await offersFor(o.country, o.coupon || ""));
+  const { amount, offer } = best(lines, await offersFor(o.country, o.coupon || "", !!o.id));
   const { data: s } = await db.from("settings").select("data").eq("id", o.country).maybeSingle();
   const k = cur === "NGN" ? 1 : (await rate(cur)) * (1 + Number(s?.data?.fxMarkup || 0) / 100);
   const net = (sub - amount) * k, fee = Number(s?.data?.fee || 0), free = Number(s?.data?.freeFrom || 0);
-  const total = Math.round((net + (fee > 0 && !(free > 0 && net >= free) ? fee : 0)) * 100) / 100;
-  return { total, discount: Math.round(amount * k * 100) / 100, offer, k };
+  const applied = fee > 0 && !(free > 0 && net >= free) ? fee : 0;
+  const total = Math.round((net + applied) * 100) / 100;
+  return { total, discount: Math.round(amount * k * 100) / 100, offer, k, base: amount, fee: applied };
 }
 
 async function settle(tx: any) {
@@ -102,7 +110,8 @@ async function settle(tx: any) {
   if (o.status === "paid" || o.paid_at) return true;
   // o.total and o.currency were set by this function when the payment was started.
   if (!o.currency || tx.currency !== o.currency || tx.amount < Math.round(Number(o.total) * 100)) return false;
-  await db.from("orders").update({ status: o.status === "delivered" ? "delivered" : "paid", ref: tx.reference, paid_at: Date.now() }).eq("id", oid);
+  const { error: ce } = await db.rpc("confirm_payment", { p_order: oid, p_reference: tx.reference, p_actor: null });
+  if (ce) throw new Error(ce.message);
   const a = tx.authorization;
   if (a && a.reusable && a.authorization_code && o.user_id) {
     await db.from("cards").upsert({
@@ -110,17 +119,6 @@ async function settle(tx: any) {
       exp: a.exp_month + "/" + a.exp_year, bank: a.bank, code: a.authorization_code,
     }, { onConflict: "code" });
   }
-  // If the admin turned on automatic sending, hand the paid order to the CJ function.
-  try {
-    const { data: s } = await db.from("settings").select("data").eq("id", "cj").maybeSingle();
-    if (s?.data?.auto) {
-      await fetch(Deno.env.get("SUPABASE_URL") + "/functions/v1/cj", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"), "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "forward", order_id: oid }),
-      });
-    }
-  } catch (_) { /* the admin can still send the order by hand */ }
   return true;
 }
 
@@ -160,6 +158,16 @@ Deno.serve(async (req) => {
     if (!u?.user) return json({ error: "Please sign in again." }, 401);
     const b = JSON.parse(raw || "{}");
 
+    if (b.action === "coupon") {
+      if (!(await allowed(u.user.id, "coupon", 10, 60))) return json({ error: "Too many attempts. Please wait a minute." }, 429);
+      const code = String(b.code || "").trim().toUpperCase().slice(0, 40);
+      if (!code) return json({ offer: null });
+      const { data: c } = await db.from("offers").select("*").eq("code", code).eq("active", true).maybeSingle();
+      if (!c || (c.limit_uses != null && c.used >= c.limit_uses)) return json({ offer: null });
+      const { code: _c, used: _u, at: _a, limit_uses: _l, ...pub } = c;
+      return json({ offer: pub });
+    }
+
     if (b.action === "create") {
       // Orders are created here so prices, offers, stock and totals come from the server, not the app.
       const items = (b.items || []).map((i: any) => ({ id: String(i.id), size: String(i.size || ""), qty: Math.floor(Number(i.qty)) }));
@@ -171,18 +179,8 @@ Deno.serve(async (req) => {
       const pm = String(b.pm || "");
       const status = ({ card: "awaiting_payment", bank: "awaiting_transfer", whatsapp: "sent", card_later: "awaiting_delivery" } as any)[pm];
       if (!status) return json({ error: "Choose a payment method." }, 400);
-      const draft = { country, items, coupon: String(b.coupon || "").trim().toUpperCase() };
-      const { data: rows } = await db.from("products").select("id,name,price,stock,stocks,cty,supplier").in("id", items.map((i: any) => i.id));
-      for (const i of items) {
-        const p: any = (rows || []).find((x: any) => x.id === i.id);
-        if (!p) return json({ error: "A product in your cart is no longer available." }, 400);
-        if (p.cty?.length && !p.cty.includes(country)) return json({ error: p.name + " is not sold in your country." }, 400);
-        if (p.supplier && (pm === "whatsapp" || pm === "card_later")) {
-          return json({ error: pm === "whatsapp" ? "WhatsApp orders are only for items we stock ourselves. Pay by card or bank transfer." : "Pay on delivery is only for items we stock ourselves." }, 400);
-        }
-        const lim = p.stocks && i.size && p.stocks[i.size] != null ? Number(p.stocks[i.size]) : (p.stock != null ? Number(p.stock) : null);
-        if (lim != null && i.qty > lim) return json({ error: lim <= 0 ? p.name + " is sold out." : "Only " + lim + " of " + p.name + (i.size ? " (" + i.size + ")" : "") + " left." }, 400);
-      }
+      const draft = { country, items, coupon: String(b.coupon || "").trim().toUpperCase().slice(0, 40) };
+      if (draft.coupon && !(await allowed(u.user.id, "coupon", 10, 60))) return json({ error: "Too many attempts. Please wait a minute." }, 429);
       let card_id: string | null = null;
       if (pm === "card_later") {
         const { data: c } = await db.from("cards").select("id").eq("id", String(b.card_id || "")).eq("user_id", u.user.id).maybeSingle();
@@ -190,27 +188,13 @@ Deno.serve(async (req) => {
         card_id = c.id;
       }
       const pr = await price(draft, cur);
-      const dg = cur === "NGN" || cur === "KES" ? 0 : 2, unit = (base: number) => Math.round(base * pr.k * 10 ** dg) / 10 ** dg;
-      const order = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), user_id: u.user.id,
-        items: items.map((i: any) => { const p: any = (rows || []).find((x: any) => x.id === i.id); return { id: i.id, name: p.name, size: i.size, price: unit(Number(p.price)), qty: i.qty }; }),
-        total: pr.total, discount: pr.discount, coupon: pr.offer?.code ? draft.coupon : null,
-        offer: pr.offer ? { name: pr.offer.name, kind: pr.offer.kind, value: pr.offer.value } : null,
-        country, currency: cur, pm, card_id, cust: { ...cust, email: cust.email || u.user.email }, status, at: Date.now(),
-      };
-      const { error } = await db.from("orders").insert(order);
+      const { data: order, error } = await db.rpc("create_order", {
+        p_user: u.user.id, p_items: items, p_country: country, p_pm: pm, p_cust: { ...cust, email: cust.email || u.user.email },
+        p_k: pr.k, p_cur: cur, p_discount_base: pr.base,
+        p_offer: pr.offer ? { id: pr.offer.id, code: pr.offer.code || null, name: pr.offer.name, kind: pr.offer.kind, value: pr.offer.value } : null,
+        p_fee: pr.fee, p_card_id: card_id,
+      });
       if (error) return json({ error: error.message }, 400);
-      if (pr.offer?.code) await db.from("offers").update({ used: Number(pr.offer.used || 0) + 1 }).eq("id", pr.offer.id);
-      for (const i of items) {
-        const p: any = (rows || []).find((x: any) => x.id === i.id);
-        if (p.stocks && i.size && p.stocks[i.size] != null) {
-          p.stocks = { ...p.stocks, [i.size]: Math.max(0, Number(p.stocks[i.size]) - i.qty) };
-          await db.from("products").update({ stocks: p.stocks }).eq("id", p.id);
-        } else if (p.stock != null) {
-          p.stock = Math.max(0, Number(p.stock) - i.qty);
-          await db.from("products").update({ stock: p.stock }).eq("id", p.id);
-        }
-      }
       return json({ order });
     }
 
@@ -219,8 +203,9 @@ Deno.serve(async (req) => {
       if (!o) return json({ error: "Order not found." }, 404);
       if (b.action === "received") {
         if (o.user_id !== u.user.id) return json({ error: "That is not your order." }, 403);
-        if (o.status !== "shipped") return json({ error: "You can confirm delivery once the order is marked as shipped." }, 400);
-        await db.from("orders").update({ status: "delivered", received_at: Date.now() }).eq("id", o.id);
+        if (!["shipped", "out_for_delivery"].includes(o.status)) return json({ error: "You can confirm delivery once the order is on its way." }, 400);
+        const { error: re } = await db.rpc("confirm_received_for", { p_order: o.id, p_user: u.user.id });
+        if (re) return json({ error: re.message }, 400);
         let charge: any = null;
         if (o.pm === "card_later" && !o.paid_at) {
           try { charge = { paid: await chargeSaved({ ...o, status: "delivered" }) }; } catch (e) { charge = { paid: false, error: String((e as Error).message || e) }; }
@@ -232,15 +217,8 @@ Deno.serve(async (req) => {
         if (o.pm !== "card_later") return json({ error: "This order is not pay-on-delivery." }, 400);
         return json({ paid: await chargeSaved(o) });
       }
-      if (o.status !== "cancelled") {
-        for (const i of o.items || []) {
-          const { data: p } = await db.from("products").select("id,stock,stocks").eq("id", i.id).maybeSingle();
-          if (!p) continue;
-          if (p.stocks && i.size && p.stocks[i.size] != null) await db.from("products").update({ stocks: { ...p.stocks, [i.size]: Number(p.stocks[i.size]) + Number(i.qty) } }).eq("id", p.id);
-          else if (p.stock != null) await db.from("products").update({ stock: Number(p.stock) + Number(i.qty) }).eq("id", p.id);
-        }
-        await db.from("orders").update({ status: "cancelled" }).eq("id", o.id);
-      }
+      const { error: xe } = await db.rpc("cancel_order_for", { p_order: o.id, p_actor: u.user.id, p_reason: String(b.reason || "Cancelled by admin").slice(0, 300), p_admin: true });
+      if (xe && o.status !== "cancelled") return json({ error: xe.message }, 400);
       return json({ status: "cancelled" });
     }
 

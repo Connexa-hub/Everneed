@@ -1,12 +1,49 @@
 name: Build Android app
 on:
   push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: write
+# A newer push to the same branch replaces the older run, so only the latest APK is built.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
+  test:
+    name: Install and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Run checks
+        run: npm test
+      - name: Tokens are up to date
+        run: node tools/build-tokens.mjs && git diff --exit-code css/tokens.css
+  database:
+    name: Database tests
+    runs-on: ubuntu-latest
+    # Starts a local Supabase stack, applies every migration, then runs the SQL test suite.
+    # Non-blocking until it has been seen passing once on GitHub.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: test -f supabase/config.toml || supabase init
+      - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,inbucket,realtime,mailpit
+      - name: Run Phase 2 checks
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt || true
+          grep -q "FAIL: 0" /tmp/p2.txt
+      - name: Anonymous reads
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
   apk:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +62,7 @@ jobs:
       - name: Prepare app files
         run: |
           mkdir www
-          cp -r index.html favicon.svg favicon.png css js data www/
+          cp -r index.html favicon.svg favicon.png css js data fonts www/
       - run: npx cap add android
       - name: Allow camera and microphone
         run: |
@@ -57,9 +94,18 @@ jobs:
         with:
           name: everneed-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      # Every push to any branch (not pull requests) publishes a test release you can open on your phone.
       - name: Publish APK to Releases
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk EverNeed.apk
-          gh release create "build-${{ github.run_number }}" EverNeed.apk --title "EverNeed build ${{ github.run_number }}" --notes "Debug APK for testing. Download EverNeed.apk and install it." --prerelease --target "${{ github.sha }}"
+          gh release create "build-${{ github.run_number }}" EverNeed.apk --title "EverNeed build ${{ github.run_number }} ($BRANCH)" --notes "Debug APK for testing, built from branch $BRANCH (commit ${GITHUB_SHA::7}). Download EverNeed.apk and install it." --prerelease --target "${{ github.sha }}"
+      - name: Where to find the APK
+        run: |
+          echo "### APK ready" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: \`${{ github.ref_name }}\`, build ${{ github.run_number }}." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Releases tab: **EverNeed build ${{ github.run_number }}**, file EverNeed.apk (open it on your phone)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Or this run's Artifacts section: **everneed-apk**." >> "$GITHUB_STEP_SUMMARY"

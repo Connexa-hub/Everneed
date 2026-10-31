@@ -17,6 +17,7 @@ window.Supa=(function(){
     profile:function(){return api("/rest/v1/profiles?id=eq."+sess.uid+"&select=*").then(function(r){return r[0]||{}})},
     patchProfile:function(p){return api("/rest/v1/profiles?id=eq."+sess.uid,{m:"PATCH",b:p})},
     rpc:function(fn,args){return raw("/rest/v1/rpc/"+fn,{m:"POST",b:args,anon:true})},
+    rpcAuth:function(fn,args){return api("/rest/v1/rpc/"+fn,{m:"POST",b:args})},
     emailOtp:function(email){return raw("/auth/v1/otp",{m:"POST",b:{email:email,create_user:true},anon:true})},
     verifyEmail:function(email,code){return raw("/auth/v1/verify",{m:"POST",b:{type:"email",email:email,token:code},anon:true}).then(setSess)},
     upsert:function(t,o,conf,ignore){return api("/rest/v1/"+t+"?on_conflict="+conf,{m:"POST",b:o,h:{Prefer:(ignore?"resolution=ignore-duplicates":"resolution=merge-duplicates")+",return=representation"}})},
