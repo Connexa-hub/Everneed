@@ -43,7 +43,7 @@ window.Theme=(function(){
       return'<button type="button" class="swatch" role="radio" aria-checked="'+(p===x[0])+'" data-tact="pal" data-v="'+x[0]+'"><span class="dots2"><i style="background:'+x[3]+'"></i><i style="background:'+x[4]+'"></i></span><span><b>'+x[1]+"</b><small class=\"m\">"+esc(x[2])+"</small></span></button>"}).join("")+"</div>";
     var prev='<div class="surface preview"><div class="pv"><div class="pimgx"></div><div><b style="font-family:var(--font-display);font-size:16px">Linen tote bag</b><div class="pr" style="margin:2px 0">\u20A612,500 <s>\u20A615,000</s></div><span class="pill info">Urban Finds</span></div></div><div class="acts"><button class="btn s" type="button">Add to cart</button><button class="btn o s" type="button">Save</button><span class="chip on">Fashion</span></div></div>';
     return'<div class="sec"><h3>Mode</h3></div>'+seg+sw+'<div class="sec"><h3>Colour</h3></div>'+grid+'<div class="sec"><h3>Preview</h3></div>'+prev
-      +'<p class="m sm">Your choice is saved on this phone'+(window.Supa&&Supa.uid&&Supa.uid()?" and to your account.":". Sign in to keep it on every device.")+"</p>";
+      +'<p class="m sm">Your choice is saved on this phone'+(window.Supa&&Supa.uid&&Supa.uid()?" and to your account.":". Sign in to keep it on every device.")+'</p><p class="m sm" style="opacity:.8">'+esc(window.buildLabel?buildLabel():"")+"</p>";
   }
   function paint(){var el=document.getElementById("appr");if(el)el.innerHTML=inner()}
   function page(){return'<div id="appr">'+inner()+"</div>"}

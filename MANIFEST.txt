@@ -75,5 +75,6 @@ tools/build-tokens.mjs
 tools/check-contrast.mjs
 tools/check.mjs
 tools/clean-stale.mjs
+tools/clean-stale.sh
 tools/colors.mjs
 tools/make-manifest.mjs

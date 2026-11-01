@@ -39,7 +39,7 @@ function sheet(h,n){var s=$(n?"#sheet2":"#sheet");if(h==null){s.className="";sto
 function shrink(file,max,cb){var r=new FileReader();r.onload=function(){var i=new Image();i.onload=function(){var k=Math.min(1,max/Math.max(i.width,i.height)),c=document.createElement("canvas");c.width=i.width*k;c.height=i.height*k;c.getContext("2d").drawImage(i,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",.78))};i.src=r.result};r.readAsDataURL(file)}
 function withImg(f,cb){var fl=f.file&&f.file.files[0],up=function(u){if(!u||u.indexOf("data:")!==0||!Supa.on())return cb(u);Supa.upload(u).then(cb,function(e){notify(e.message,"err")})};if(fl)shrink(fl,900,up);else up(f.url?f.url.value.trim():"")}
 function theme(){if(window.Theme)Theme.apply()}
-function legal(){var c=ctx(),l=function(u,t){return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+"</a>":t};return"By continuing you accept the "+l(c.terms,"Terms")+" and "+l(c.privacy,"Privacy Policy")+" for "+esc(c.name)+"."}
+function legal(){var c=ctx(),l=function(u,t){return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+"</a>":t};return"By continuing you accept the "+l(c.terms,"Terms")+" and "+l(c.privacy,"Privacy Policy")+" for "+esc(c.name)+'.<br><span class="m sm" style="opacity:.8">'+esc(window.buildLabel?buildLabel():"")+"</span>"}
 function av(u){return u&&u.photo?'<div class="av"><img alt="" src="'+esc(u.photo)+'"></div>':u?'<div class="av" style="background:'+tint(u.name)+'">'+esc(u.name.slice(0,1).toUpperCase())+"</div>":'<div class="av">'+ico("me",40)+"</div>"}
 var PK={theme:function(){return[["system","System"],["light","Light"],["dark","Dark"]]},
  country:function(){return Object.keys(CFG.countries).map(function(k){return[k,CFG.countries[k].name]})},

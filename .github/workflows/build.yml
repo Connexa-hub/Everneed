@@ -63,6 +63,9 @@ jobs:
         run: |
           mkdir www
           cp -r index.html favicon.svg favicon.png css js data fonts www/
+          # Stamp the real build into the app so Settings and Appearance show which build is installed.
+          echo "window.BUILD={n:${{ github.run_number }},sha:\"${GITHUB_SHA::7}\",branch:\"${{ github.ref_name }}\"};" > www/js/build.js
+          echo "window.buildLabel=function(){var b=window.BUILD||{};return\"Build \"+b.n+\" \\u00B7 \"+b.sha+\" \\u00B7 \"+b.branch};" >> www/js/build.js
       - run: npx cap add android
       - name: Allow camera and microphone
         run: |
@@ -78,7 +81,9 @@ jobs:
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0f6b4f' --iconBackgroundColorDark '#0f6b4f' --splashBackgroundColor '#fafaf8' --splashBackgroundColorDark '#0d0f0e'
       - name: Number the build so each one installs over the last
         run: |
-          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          # versionCode is minutes since 1970, so it always beats an older install, even from a different repository whose run numbers were higher.
+          VC=$(( $(date +%s) / 60 ))
+          sed -i "s/versionCode 1/versionCode $VC/; s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
           grep -n "versionCode\|versionName" android/app/build.gradle
       - name: Use the fixed signing key
         run: |

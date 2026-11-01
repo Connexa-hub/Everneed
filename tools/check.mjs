@@ -1,5 +1,5 @@
 // Static checks run on every push: JS syntax, JSON validity, edge function sanity.
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
@@ -52,16 +52,33 @@ for (const fn of readdirSync('supabase/functions')) {
 const BAN = /\b(cj|cjdropshipping|eprolo|supplier|sup_[a-z]+)\b/i;
 const SKIP = new Set(['node_modules', '.git', 'assets', 'keystore', 'android']);
 const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'tools/check.mjs']);
+const MANIFEST = existsSync('MANIFEST.txt') ? new Set(readFileSync('MANIFEST.txt', 'utf8').split('\n').filter(Boolean)) : null;
+// A second copy of the project inside the repository means a zip was unpacked one level too deep.
+for (const n of readdirSync('.')) {
+  if (SKIP.has(n) || !statSync(n).isDirectory()) continue;
+  if (existsSync(n + '/tools/check.mjs') && existsSync(n + '/package.json')) {
+    fail(`NESTED COPY: the folder "${n}/" is a second copy of the project inside the repository (a zip was unpacked one level too deep). Delete it with: git rm -r ${n}`);
+    SKIP.add(n);   // reported once above instead of line by line
+  }
+}
+// Paths retired in earlier phases. If one exists, an old zip was unpacked on top without deleting what it removed.
+for (const r of ['supabase/functions/cj', 'supabase/schema.sql']) {
+  if (existsSync(r)) fail(`STALE: ${r} was removed from the project in Phase 1 but is still in this repository. Delete it (git rm -r ${r}) or run: node tools/clean-stale.mjs --apply`);
+}
 (function scan(dir) {
   for (const n of readdirSync(dir)) {
     if (SKIP.has(n)) continue;
     const p = dir === '.' ? n : dir + '/' + n;
     if (statSync(p).isDirectory()) { scan(p); continue; }
     if (HISTORY.has(p) || !/\.(js|ts|json|md|html|css|sql|yml)$/.test(p)) continue;
+    const hits = [];
     readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
       if (/"(key|apikey)"|key:"eyJ/.test(line)) return;
-      if (BAN.test(line)) fail(p + ':' + (i + 1) + ' mentions removed dropshipping term');
+      if (BAN.test(line)) hits.push(i + 1);
     });
+    if (!hits.length) continue;
+    if (MANIFEST && !MANIFEST.has(p)) fail(`STALE FILE ${p} mentions removed dropshipping terms (${hits.length} lines) and is not part of this release. Delete it: node tools/clean-stale.mjs --apply`);
+    else for (const l of hits) fail(p + ':' + l + ' mentions removed dropshipping term');
   }
 })('.');
 
