@@ -7,12 +7,13 @@ let failed = 0;
 const fail = (msg) => { console.error('FAIL', msg); failed++; };
 
 // 1. Every browser script must parse.
-for (const f of readdirSync('js').filter((n) => n.endsWith('.js'))) {
+const jsFiles = (d) => readdirSync(d).flatMap((n) => (statSync(d + '/' + n).isDirectory() ? jsFiles(d + '/' + n) : n.endsWith('.js') ? [d + '/' + n] : []));
+for (const f of jsFiles('js')) {
   try {
-    execFileSync(process.execPath, ['--check', join('js', f)], { stdio: 'pipe' });
-    console.log('ok  js/' + f);
+    execFileSync(process.execPath, ['--check', f], { stdio: 'pipe' });
+    console.log('ok  ' + f);
   } catch (e) {
-    fail('js/' + f + '\n' + e.stderr);
+    fail(f + '\n' + e.stderr);
   }
 }
 

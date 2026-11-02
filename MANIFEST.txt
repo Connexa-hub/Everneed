@@ -20,6 +20,7 @@ docs/DESIGN_PLAN.md
 docs/DESIGN_SYSTEM.md
 docs/EVERNEED_MARKETPLACE_PROMPT.md
 docs/GITHUB_SETUP.md
+docs/PHASE3.md
 docs/RLS_MATRIX.md
 favicon.png
 favicon.svg
@@ -35,6 +36,7 @@ fonts/figtree-latin-ext-500-normal.woff2
 fonts/figtree-latin-ext-600-normal.woff2
 gallery.html
 index.html
+js/admin-sellers.js
 js/admin.js
 js/adminx.js
 js/app.js
@@ -46,10 +48,12 @@ js/cards.js
 js/config.js
 js/country.js
 js/guide.js
+js/merchant/merchant.js
 js/opts.js
 js/payments.js
 js/shop.js
 js/store.js
+js/stores.js
 js/supa.js
 js/theme.js
 keystore/debug.keystore
@@ -65,12 +69,14 @@ supabase/migrations/006_marketplace_rls.sql
 supabase/migrations/007_marketplace_functions.sql
 supabase/migrations/008_hardening.sql
 supabase/migrations/009_profile_settings.sql
+supabase/migrations/010_seller_helpers.sql
 supabase/tests/anon_smoke.sql
 supabase/tests/local/concurrency.sh
 supabase/tests/local/mock_supabase.sql
 supabase/tests/local/rebuild.sh
 supabase/tests/phase1_checks.sql
 supabase/tests/phase2_checks.sql
+tests/ui/phase3_ui.py
 tools/build-tokens.mjs
 tools/check-contrast.mjs
 tools/check.mjs

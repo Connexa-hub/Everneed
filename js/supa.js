@@ -26,8 +26,9 @@ window.Supa=(function(){
     list:function(t){return api("/rest/v1/"+t+"?select=*&order=at.desc")},
     insert:function(t,o){return api("/rest/v1/"+t,{m:"POST",b:o,h:{Prefer:"return=representation"}})},
     patch:function(t,id,p){return api("/rest/v1/"+t+"?id=eq."+encodeURIComponent(id),{m:"PATCH",b:p})},
+    patchBy:function(t,col,val,p){return api("/rest/v1/"+t+"?"+col+"=eq."+encodeURIComponent(val),{m:"PATCH",b:p,h:{Prefer:"return=representation"}})},
     del:function(t,id){return api("/rest/v1/"+t+"?id=eq."+encodeURIComponent(id),{m:"DELETE"})},
-    upload:function(dataUrl){var b=atob(dataUrl.split(",")[1]),u=new Uint8Array(b.length),i,path=(sess?sess.uid:"x")+"/"+Date.now()+".jpg";for(i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+    upload:function(dataUrl,folder){var b=atob(dataUrl.split(",")[1]),u=new Uint8Array(b.length),i,path=(folder||(sess?sess.uid:"x"))+"/"+Date.now()+".jpg";for(i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
       Busy.inc();return ready().then(function(){return fetch(U+"/storage/v1/object/media/"+path,{method:"POST",headers:{apikey:K,Authorization:"Bearer "+(sess?sess.access_token:K),"Content-Type":"image/jpeg"},body:u})}).then(function(r){if(!r.ok)throw new Error("Image upload failed");return U+"/storage/v1/object/public/media/"+path}).then(function(v){Busy.dec();return v},function(e){Busy.dec();throw e})}
   };
 })();

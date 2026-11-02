@@ -42,6 +42,8 @@ begin
   perform public.zz_back();
 
   -- admin approves; roles change only through the function ---------------------------------------------------
+  perform public.zz_as(um1); r := r || public.zz_ok('next_slug returns the link a taken name would get', public.next_slug('Urban Finds') = 'urban-finds-1' and public.next_slug('Brand New Shop') = 'brand-new-shop'); perform public.zz_back();
+  perform public.zz_anon(); r := r || public.zz_ok('anon cannot call next_slug', public.zz_try($q$select public.next_slug('x')$q$) like 'ERR%'); perform public.zz_back();
   perform public.zz_as(um1); r := r || public.zz_ok('merchant cannot call approve_store', public.zz_try(format('select public.approve_store(%L)', sA)) like 'ERR%'); perform public.zz_back();
   perform public.zz_as(ua); perform public.approve_store(sA, 'ok'); perform public.approve_store(sB, 'ok'); perform public.zz_back();
   r := r || public.zz_ok('approval makes the owner a merchant', (select role from public.profiles where id = um1) = 'merchant');
