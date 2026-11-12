@@ -115,7 +115,7 @@
           var button=e.target.closest("[data-auth-provider]");if(!button)return;
           var provider=button.getAttribute("data-auth-provider");
           if(!button.classList.contains("is-available")){C.toast(provider.charAt(0).toUpperCase()+provider.slice(1)+" sign-in is not available yet. Use email and password for now.",true);return}
-          var url=CFG.supabase.url.replace(/\/$/,"")+"/auth/v1/authorize?provider="+encodeURIComponent(provider)+"&redirect_to="+encodeURIComponent(location.origin+"/")+"&apikey="+encodeURIComponent(CFG.supabase.key);
+          var url=CFG.supabase.url.replace(/\/$/,"")+"/auth/v1/authorize?provider="+encodeURIComponent(provider)+"&redirect_to="+encodeURIComponent(location.origin+"/sign-in")+"&apikey="+encodeURIComponent(CFG.supabase.key);
           location.href=url;
         });
       }
