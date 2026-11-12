@@ -2,27 +2,43 @@
 
 **Project:** Everneed Supabase `zpgasfweaixwsktlueje`  
 **Inspection date:** 12 Nov 2026  
-**Status:** forensic inventory in progress; original SQL for migrations 011–015 has not yet been recovered.
+**Status:** forensic inventory in progress; original SQL for eight applied migration records is missing from the repository and has not yet been recovered.
 
 ## Safety boundary
 
 This document records read-only observations from the live database. It is **not** a replacement migration chain and must not be used to recreate production by applying inferred DDL. No migration was applied, no schema was changed, and no data was modified during this inspection.
 
-Do not mark 011–015 as recovered until their original SQL is found in a reliable source (for example a developer working copy, backup, CI artifact, or Supabase migration backup) and reconciled against this live inventory.
+Do not mark any of the eight missing migration records as recovered until their original SQL is found in a reliable source (for example a developer working copy, backup, CI artifact, or Supabase migration backup) and reconciled against this live inventory.
 
 ## Confirmed migration history
 
-The Supabase migration history reports these entries:
+A fresh read-only call to the live Supabase migration-history endpoint returned **19 applied records**, not just the five newer records previously highlighted.
 
-| Version | Name |
-|---|---|
-| 20261104011326 | 011_plans_and_limits |
-| 20261111073217 | 012_support_chat_and_waitlist |
-| 20261111073234 | 013_support_chat_hardening |
-| 20261111073320 | 014_chat_start_official_store |
-| 20261111073610 | 015_support_sla_public |
+| Version | Live migration name | SQL file in repo |
+|---|---|---|
+| 20261029014653 | 000_baseline | yes |
+| 20261029014658 | 001_remove_cj | yes |
+| 20261029014913 | 002_hotfix | yes |
+| 20261029044105 | multivendor_foundation | **NO — missing** |
+| 20261029044131 | multivendor_function_grants_hardening | **NO — missing** |
+| 20261029081939 | 003_remove_unrecorded_multivendor | yes |
+| 20261029134730 | signup_profile_fields | **NO — missing** |
+| 20261029184309 | 004_marketplace_core | yes |
+| 20261029184336 | 005_marketplace_backfill_guards | yes |
+| 20261029184403 | 006_marketplace_rls | yes |
+| 20261029184540 | 007_marketplace_functions | yes |
+| 20261030002325 | 008_hardening | yes |
+| 20261031105857 | 009_profile_settings | yes |
+| 20261102105101 | 010_seller_helpers | yes |
+| 20261104011326 | 011_plans_and_limits | **NO — missing** |
+| 20261111073217 | 012_support_chat_and_waitlist | **NO — missing** |
+| 20261111073234 | 013_support_chat_hardening | **NO — missing** |
+| 20261111073320 | 014_chat_start_official_store | **NO — missing** |
+| 20261111073610 | 015_support_sla_public | **NO — missing** |
 
-All five are recorded as applied live. Their matching SQL files are absent from the repository's `supabase/migrations/` directory (which currently contains 000–010). The old `shared/sql/011_website_sync.sql` is only a partial waitlist/site-sync script and is not equivalent to the five applied migrations.
+The repository currently contains the eleven files numbered 000–010. The live database has **eight additional applied migration records whose SQL files are absent**: multivendor_foundation, multivendor_function_grants_hardening, signup_profile_fields, and 011–015. The earlier recovery note focused on 011–015; this expanded inventory corrects that incomplete scope.
+
+The old shared/sql/011_website_sync.sql is only a partial waitlist/site-sync script and is not equivalent to any of the missing migration records. No original SQL for the eight missing records has been recovered yet.
 
 ## Live schema evidence
 
@@ -78,7 +94,7 @@ These definitions are evidence of current live behavior, not proof of the exact 
 
 ## Recovery checklist
 
-1. Search the developer's original working copies, exported project ZIPs, CI artifacts and backup locations for the exact 011–015 SQL files.
+1. Search the developer's original working copies, exported project ZIPs, CI artifacts and backup locations for the exact SQL files for all eight missing records.
 2. Compare each recovered file with the live definitions, including table constraints, indexes, policies, grants, triggers, helper functions and seed/configuration rows.
 3. Preserve exact historical files where available. If an original cannot be recovered, do not fabricate its historical contents; instead design a clearly labelled forward baseline/reconciliation strategy for a fresh database and document its limitations.
 4. Test the complete migration chain against a disposable database/project before proposing any production change.
@@ -86,4 +102,4 @@ These definitions are evidence of current live behavior, not proof of the exact 
 
 ## Current conclusion
 
-Migration drift remains open. This record improves the evidence available for recovery but does not close the drift or make a fresh database reproducible yet.
+Migration drift remains open across eight missing applied SQL files. The current GitHub repository exposes only main and web-portal; the previous everneed01 branch is no longer present. A Library search did not surface a usable Everneed source archive. No original SQL has been recovered in this pass. This record improves the evidence but does not close drift or make a fresh database reproducible.
