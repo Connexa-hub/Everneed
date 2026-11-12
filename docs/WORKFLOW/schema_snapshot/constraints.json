@@ -1,0 +1,1421 @@
+{
+  "source": "read-only catalog query",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "inspection_date": "2026-11-12",
+  "warning": "Evidence only; not migration SQL. Re-export and compare before baseline acceptance.",
+  "data": [
+    {
+      "table_name": "audit_log",
+      "name": "audit_log_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "banners",
+      "name": "banners_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "canned_replies",
+      "name": "canned_replies_body_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(body) >= 1 AND char_length(body) <= 1000)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "canned_replies",
+      "name": "canned_replies_scope_check",
+      "type": "CHECK",
+      "definition": "CHECK (scope = ANY (ARRAY['admin'::text, 'seller'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "canned_replies",
+      "name": "canned_replies_owner_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (owner) REFERENCES profiles(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "canned_replies",
+      "name": "canned_replies_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "cards",
+      "name": "cards_user_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "cards",
+      "name": "cards_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "cards",
+      "name": "cards_code_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (code)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "collections",
+      "name": "collections_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "collections",
+      "name": "collections_name_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (name)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversation_members",
+      "name": "conversation_members_role_check",
+      "type": "CHECK",
+      "definition": "CHECK (role = ANY (ARRAY['buyer'::text, 'seller'::text, 'user'::text, 'admin'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversation_members",
+      "name": "conversation_members_conversation_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversation_members",
+      "name": "conversation_members_user_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversation_members",
+      "name": "conversation_members_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (conversation_id, user_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversations",
+      "name": "conversations_kind_check",
+      "type": "CHECK",
+      "definition": "CHECK (kind = ANY (ARRAY['support'::text, 'store'::text, 'seller_admin'::text, 'admin_user'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversations",
+      "name": "conversations_priority_check",
+      "type": "CHECK",
+      "definition": "CHECK (priority >= 0 AND priority <= 3)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversations",
+      "name": "conversations_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['open'::text, 'escalated'::text, 'resolved'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversations",
+      "name": "conversations_assignee_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (assignee) REFERENCES profiles(id) ON DELETE SET NULL",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversations",
+      "name": "conversations_created_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversations",
+      "name": "conversations_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversations",
+      "name": "conversations_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE SET NULL",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "conversations",
+      "name": "conversations_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "deliveries",
+      "name": "deliveries_mode_check",
+      "type": "CHECK",
+      "definition": "CHECK (mode = ANY (ARRAY['direct'::text, 'hub'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "deliveries",
+      "name": "deliveries_proof_check",
+      "type": "CHECK",
+      "definition": "CHECK (proof = ANY (ARRAY['code_verified'::text, 'customer_confirmed'::text, 'admin_override'::text, 'auto_confirmed'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "deliveries",
+      "name": "deliveries_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['pending'::text, 'dispatched'::text, 'delivered'::text, 'failed'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "deliveries",
+      "name": "deliveries_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "deliveries",
+      "name": "deliveries_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "deliveries",
+      "name": "deliveries_order_id_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (order_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "disputes",
+      "name": "disputes_reason_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(reason) >= 5 AND char_length(reason) <= 1000)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "disputes",
+      "name": "disputes_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['open'::text, 'investigating'::text, 'resolved'::text, 'rejected'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "disputes",
+      "name": "disputes_opened_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (opened_by) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "disputes",
+      "name": "disputes_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "disputes",
+      "name": "disputes_resolved_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (resolved_by) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "disputes",
+      "name": "disputes_seller_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (seller_order_id) REFERENCES seller_orders(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "disputes",
+      "name": "disputes_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "kv",
+      "name": "kv_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (key)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "ledger_entries",
+      "name": "ledger_entries_kind_check",
+      "type": "CHECK",
+      "definition": "CHECK (kind = ANY (ARRAY['sale'::text, 'commission'::text, 'rental'::text, 'refund'::text, 'payout'::text, 'adjustment'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "ledger_entries",
+      "name": "ledger_entries_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['pending'::text, 'available'::text, 'paid'::text, 'reversed'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "ledger_entries",
+      "name": "ledger_entries_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "ledger_entries",
+      "name": "ledger_entries_seller_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (seller_order_id) REFERENCES seller_orders(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "ledger_entries",
+      "name": "ledger_entries_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "ledger_entries",
+      "name": "ledger_entries_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "messages",
+      "name": "messages_body_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(body) >= 1 AND char_length(body) <= 2000)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "messages",
+      "name": "messages_kind_check",
+      "type": "CHECK",
+      "definition": "CHECK (kind = ANY (ARRAY['text'::text, 'system'::text, 'note'::text, 'shield'::text, 'order_card'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "messages",
+      "name": "messages_sender_role_check",
+      "type": "CHECK",
+      "definition": "CHECK (sender_role = ANY (ARRAY['buyer'::text, 'seller'::text, 'user'::text, 'admin'::text, 'system'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "messages",
+      "name": "messages_conversation_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "messages",
+      "name": "messages_sender_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (sender_id) REFERENCES profiles(id) ON DELETE SET NULL",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "messages",
+      "name": "messages_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "notifications",
+      "name": "notifications_user_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "notifications",
+      "name": "notifications_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "offers",
+      "name": "offers_kind_check",
+      "type": "CHECK",
+      "definition": "CHECK (kind = ANY (ARRAY['percent'::text, 'fixed'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "offers",
+      "name": "offers_value_check",
+      "type": "CHECK",
+      "definition": "CHECK (value > 0::numeric)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "offers",
+      "name": "offers_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "offers",
+      "name": "offers_code_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (code)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_item_fees",
+      "name": "order_item_fees_order_item_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_item_fees",
+      "name": "order_item_fees_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (order_item_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_items",
+      "name": "order_items_qty_check",
+      "type": "CHECK",
+      "definition": "CHECK (qty > 0)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_items",
+      "name": "order_items_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_items",
+      "name": "order_items_product_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_items",
+      "name": "order_items_seller_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (seller_order_id) REFERENCES seller_orders(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_items",
+      "name": "order_items_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE RESTRICT",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_items",
+      "name": "order_items_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_secrets",
+      "name": "order_secrets_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "order_secrets",
+      "name": "order_secrets_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (order_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "orders",
+      "name": "orders_payment_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (payment_status = ANY (ARRAY['awaiting_payment'::text, 'awaiting_transfer'::text, 'payment_reported'::text, 'awaiting_delivery'::text, 'sent'::text, 'paid'::text, 'partially_refunded'::text, 'refunded'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "orders",
+      "name": "orders_route_check",
+      "type": "CHECK",
+      "definition": "CHECK (route = ANY (ARRAY['direct'::text, 'hub'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "orders",
+      "name": "orders_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['new'::text, 'awaiting_payment'::text, 'awaiting_transfer'::text, 'payment_reported'::text, 'awaiting_delivery'::text, 'sent'::text, 'placed'::text, 'paid'::text, 'confirmed'::text, 'preparing'::text, 'ready_for_delivery'::text, 'out_for_delivery'::text, 'shipped'::text, 'delivered'::text, 'cancelled'::text, 'disputed'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "orders",
+      "name": "orders_user_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "orders",
+      "name": "orders_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "payouts",
+      "name": "payouts_amount_check",
+      "type": "CHECK",
+      "definition": "CHECK (amount > 0::numeric)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "payouts",
+      "name": "payouts_recorded_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (recorded_by) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "payouts",
+      "name": "payouts_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "payouts",
+      "name": "payouts_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "payouts",
+      "name": "payouts_reference_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (reference)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "product_private",
+      "name": "product_private_compliance_ref_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(compliance_ref) <= 80)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "product_private",
+      "name": "product_private_product_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "product_private",
+      "name": "product_private_reviewed_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (reviewed_by) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "product_private",
+      "name": "product_private_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (product_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "products",
+      "name": "products_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['draft'::text, 'pending_review'::text, 'published'::text, 'rejected'::text, 'archived'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "products",
+      "name": "products_text_caps",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(name) <= 160 AND char_length(COALESCE(descr, ''::text)) <= 5000)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "products",
+      "name": "products_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE RESTRICT",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "products",
+      "name": "products_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "profiles",
+      "name": "profiles_role_check",
+      "type": "CHECK",
+      "definition": "CHECK (role = ANY (ARRAY['customer'::text, 'merchant'::text, 'admin'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "profiles",
+      "name": "profiles_settings_size",
+      "type": "CHECK",
+      "definition": "CHECK (pg_column_size(settings) <= 2000)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "profiles",
+      "name": "profiles_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "profiles",
+      "name": "profiles_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "refunds",
+      "name": "refunds_amount_check",
+      "type": "CHECK",
+      "definition": "CHECK (amount > 0::numeric)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "refunds",
+      "name": "refunds_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['requested'::text, 'approved'::text, 'processed'::text, 'rejected'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "refunds",
+      "name": "refunds_opened_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (opened_by) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "refunds",
+      "name": "refunds_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "refunds",
+      "name": "refunds_resolved_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (resolved_by) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "refunds",
+      "name": "refunds_seller_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (seller_order_id) REFERENCES seller_orders(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "refunds",
+      "name": "refunds_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "reviews",
+      "name": "reviews_rating_check",
+      "type": "CHECK",
+      "definition": "CHECK (rating >= 1 AND rating <= 5)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "reviews",
+      "name": "reviews_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "reviews",
+      "name": "reviews_product_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "reviews",
+      "name": "reviews_user_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "reviews",
+      "name": "reviews_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "reviews",
+      "name": "reviews_user_id_product_id_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (user_id, product_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "seller_orders",
+      "name": "seller_orders_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text, 'preparing'::text, 'ready'::text, 'handover_pending'::text, 'at_hub'::text, 'consolidated'::text, 'out_for_delivery'::text, 'delivered'::text, 'cancelled'::text, 'issue'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "seller_orders",
+      "name": "seller_orders_order_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "seller_orders",
+      "name": "seller_orders_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE RESTRICT",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "seller_orders",
+      "name": "seller_orders_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "seller_orders",
+      "name": "seller_orders_order_id_store_id_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (order_id, store_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "settings",
+      "name": "settings_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "size_charts",
+      "name": "size_charts_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_account_name_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(account_name) <= 120)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_account_number_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(account_number) <= 20)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_bank_name_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(bank_name) <= 80)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_business_name_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(business_name) <= 120)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_decision_check",
+      "type": "CHECK",
+      "definition": "CHECK (decision = ANY (ARRAY['approved'::text, 'rejected'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_id_ref_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(id_ref) <= 60)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_id_type_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(id_type) <= 40)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_plan_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (plan_id) REFERENCES store_plans(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_reviewed_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (reviewed_by) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_applications",
+      "name": "store_applications_store_id_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (store_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_payments",
+      "name": "store_payments_amount_check",
+      "type": "CHECK",
+      "definition": "CHECK (amount > 0::numeric)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_payments",
+      "name": "store_payments_method_check",
+      "type": "CHECK",
+      "definition": "CHECK (method = ANY (ARRAY['paystack'::text, 'bank'::text, 'admin_recorded'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_payments",
+      "name": "store_payments_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['pending'::text, 'paid'::text, 'failed'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_payments",
+      "name": "store_payments_recorded_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (recorded_by) REFERENCES auth.users(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_payments",
+      "name": "store_payments_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_payments",
+      "name": "store_payments_subscription_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (subscription_id) REFERENCES store_subscriptions(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_payments",
+      "name": "store_payments_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_payments",
+      "name": "store_payments_reference_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (reference)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_plans",
+      "name": "store_plans_commission_discount_check",
+      "type": "CHECK",
+      "definition": "CHECK (commission_discount >= 0::numeric)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_plans",
+      "name": "store_plans_period_check",
+      "type": "CHECK",
+      "definition": "CHECK (period = 'monthly'::text)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_plans",
+      "name": "store_plans_price_check",
+      "type": "CHECK",
+      "definition": "CHECK (price >= 0::numeric)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_plans",
+      "name": "store_plans_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_private",
+      "name": "store_private_commission_override_check",
+      "type": "CHECK",
+      "definition": "CHECK (commission_override IS NULL OR commission_override >= 0::numeric AND commission_override <= 60::numeric)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_private",
+      "name": "store_private_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_private",
+      "name": "store_private_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (store_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_subscriptions",
+      "name": "store_subscriptions_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['trialing'::text, 'active'::text, 'past_due'::text, 'expired'::text, 'cancelled'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_subscriptions",
+      "name": "store_subscriptions_plan_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (plan_id) REFERENCES store_plans(id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_subscriptions",
+      "name": "store_subscriptions_store_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_subscriptions",
+      "name": "store_subscriptions_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "store_subscriptions",
+      "name": "store_subscriptions_store_id_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (store_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_about_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(about) <= 2000)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_categories_check",
+      "type": "CHECK",
+      "definition": "CHECK (cardinality(categories) <= 12)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_name_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(name) >= 2 AND char_length(name) <= 80)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'rejected'::text, 'suspended'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_tagline_check",
+      "type": "CHECK",
+      "definition": "CHECK (char_length(tagline) <= 120)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_owner_id_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_owner_id_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (owner_id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "stores",
+      "name": "stores_slug_key",
+      "type": "UNIQUE",
+      "definition": "UNIQUE (slug)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "support_queue",
+      "name": "support_queue_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['waiting'::text, 'active'::text, 'closed'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "support_queue",
+      "name": "support_queue_claimed_by_fkey",
+      "type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (claimed_by) REFERENCES profiles(id) ON DELETE SET NULL",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "support_queue",
+      "name": "support_queue_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "support_rules",
+      "name": "support_rules_action_check",
+      "type": "CHECK",
+      "definition": "CHECK (action = ANY (ARRAY['escalate'::text, 'tag'::text, 'shield'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "support_rules",
+      "name": "support_rules_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "support_settings",
+      "name": "support_settings_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (key)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "waitlist",
+      "name": "waitlist_role_check",
+      "type": "CHECK",
+      "definition": "CHECK (role = ANY (ARRAY['shopper'::text, 'seller'::text, 'both'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "waitlist",
+      "name": "waitlist_status_check",
+      "type": "CHECK",
+      "definition": "CHECK (status = ANY (ARRAY['new'::text, 'invited'::text, 'joined'::text, 'unsubscribed'::text]))",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    },
+    {
+      "table_name": "waitlist",
+      "name": "waitlist_pkey",
+      "type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (id)",
+      "validated": true,
+      "deferrable": false,
+      "initially_deferred": false
+    }
+  ]
+}
