@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — PR #6 branch sync merged; WEB-F07 migration recovery inventory started.
+**Last updated:** 12 Nov 2026 — PR #7 merged; PR #8 branch sync merged; migration inventory expanded to all 19 live records.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -24,7 +24,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 Update this table when you change a status.
 
 ## Next up (in order)
-1. `WEB-F07` Recover and commit live migrations 011 to 015 before any further database changes.
+1. `WEB-F07` Recover and commit all eight missing applied migration SQL files (three earlier entries plus 011–015) before any further database changes.
 2. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
 3. `WEB-F11` Create the first admin account (owner action).
 4. `WEB-F09` Schedule and verify the background jobs, after the migration history is safely recovered.
@@ -42,7 +42,7 @@ Update this table when you change a status.
 | WEB-F04 | CI: syntax check, file references, global names | P0 | DONE | `.github/workflows/web-checks.yml`, `tools/check.mjs` | Claude | web-portal | `npm test` and token consistency passed; full Install/test, Database tests and APK build all passed on released main run `43147699406`. Database job remains configured `continue-on-error: true` and is not a release gate yet. |
 | WEB-F05 | Deploy on Cloudflare Pages | P0 | DONE | Cloudflare Pages project `everneed`, GitHub integration | owner | main | Git integration and production branch `main` verified; successful deployment confirmed on merge commit `c816c1b`. |
 | WEB-F06 | Release confirmed app and website changes from `web-portal` to `main` through reviewed PRs | P0 | DONE | git, GitHub Actions, Cloudflare Pages | owner + project coordinator | web-portal | PR #3 merged 12 Nov 2026 as `0bca163`; main run `43147699406` passed Install and test, Database tests and APK. The database job is currently non-blocking by workflow configuration. |
-| WEB-F07 | Recover and commit live migrations 011 to 015 into `supabase/migrations/` | P0 | IN PROGRESS | live DB, `DB_CONTRACT.md`, `MIGRATION_RECOVERY.md` | ChatGPT coordinator | web-portal | Read-only catalog inventory recorded in `MIGRATION_RECOVERY.md`; original SQL still missing. Do not fabricate or replay production migrations. Retire `shared/sql/011_website_sync.sql` only after verified replacement. |
+| WEB-F07 | Recover and commit live migrations 011 to 015 into `supabase/migrations/` | P0 | IN PROGRESS | live DB, `DB_CONTRACT.md`, `MIGRATION_RECOVERY.md` | ChatGPT coordinator | web-portal | Read-only history now confirms 19 live records; eight applied SQL files are missing from the repo. Original SQL not recovered; search developer copies/backups/CI artifacts next. Do not fabricate or replay production migrations. Retire `shared/sql/011_website_sync.sql` only after verified replacement. |
 | WEB-F08 | Remove `keystore/` from git and rotate the key | P0 | NEEDS OWNER | `keystore/`, `.github/workflows/build.yml` | owner | | Debug key is committed and CI ships a debug build. Use GitHub Secrets. |
 | WEB-F09 | Schedule background jobs (install `pg_cron`, add a migration) | P0 | TODO | `run_scheduled_jobs`, `release_earnings`, `expire_rentals`, `support_sla_sweep` | | | Nothing runs on a timer today, so earnings never release and rentals never expire. |
 | WEB-F10 | Turn on leaked-password protection | P1 | NEEDS OWNER | Supabase Auth settings | owner | | One toggle in the dashboard. |
