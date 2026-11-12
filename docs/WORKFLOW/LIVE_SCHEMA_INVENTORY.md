@@ -3,7 +3,7 @@
 **Project:** Everneed Supabase `zpgasfweaixwsktlueje`  
 **Inspection date:** 12 Nov 2026  
 **Environment:** Existing live project; read-only inspection only  
-**Status:** Initial catalog inventory captured. This is evidence for a future clean baseline, not executable migration SQL.
+**Status:** Historical initial catalog inventory. The migration-recovery work in `docs/WORKFLOW/MIGRATION_RECOVERY.md` supersedes the earlier missing-migration conclusion. This file remains read-only evidence for the live schema; it is not executable migration SQL.
 
 ## Safety and interpretation
 
