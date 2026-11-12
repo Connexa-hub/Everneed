@@ -189,7 +189,61 @@ Create or extend a shared API/status contract before app parity work so web and 
 - Complete legal/privacy review for each country before enabling identity/biometric checks or seller payouts there.
 - Nigeria is the initial market. Additional countries are enabled through configuration and operational readiness, not by assuming all providers work globally.
 
-## 10. Web-first delivery sequence
+
+## 13. Customer and seller terms, policies and privacy consent
+
+Legal acceptance is a first-class onboarding requirement and must be separated by account purpose.
+
+### Normal customer account
+- During normal customer sign-up/sign-in onboarding, present the applicable Customer Terms of Service, Customer Privacy Notice and any required regional consumer, cookie, communications or data-processing notices.
+- Sign-in alone must not silently imply acceptance of new terms. Capture acceptance at account creation or when a material policy update requires renewed consent.
+- Explain the purposes for profile, contact, delivery address, location, order, payment and notification data in plain language.
+- Marketing consent must be optional, separate from essential service communications, and revocable.
+- Keep a durable record of the exact policy/version, locale/region, timestamp, account and consent action. Do not store only a mutable boolean.
+
+### Seller account/store
+- Before seller application submission, require the applicable Seller Terms, Seller Agreement/Marketplace Rules, Seller Privacy Notice and relevant fee, payout, fulfilment, prohibited-goods, returns/refunds and dispute policies.
+- Present seller obligations separately from customer terms. A user may be both a customer and seller; accepting one set must not automatically accept the other.
+- Where a seller is a business, collect the required legal/business identity and authorised representative acknowledgement for the applicable jurisdiction.
+- Show policy versions and provide access to the accepted copies from the seller portal. Material seller policy changes may require re-acceptance before further selling activity.
+- Record acceptance evidence with policy ID/version, jurisdiction, locale, timestamp, actor/account and consent method. Retain records under an approved retention schedule.
+
+### Country/region policy resolution
+- Resolve the applicable policy pack from the user's declared country/region and, where legally required, business establishment or customer residence. Do not rely on IP-derived location alone to decide legal jurisdiction.
+- Maintain a centrally managed policy catalogue with country/region, policy type, language/locale, effective date, version, publication status and required acceptance flags.
+- If no approved policy pack exists for a jurisdiction, do not silently show another country's terms or enable restricted seller onboarding there. Show a clear unsupported-region message and allow customer account access only where legally approved.
+- Provide accessible policy links before consent and store the actual immutable policy version or content hash used at acceptance.
+- Obtain qualified legal review for every market before launch. These specifications are product requirements, not legal advice or a substitute for jurisdiction-specific counsel.
+
+## 14. Verification-driven store activation gate
+
+Admin application approval and permission to make a store live are separate decisions.
+
+- Admin approval means the application has passed the platform's application review; it does not mean identity, face/liveness, phone or business-address verification is complete.
+- When an approved seller selects **Make Store Live**, the server must evaluate all mandatory verification requirements for the seller's jurisdiction, store risk tier and current policy.
+- If any required check is missing, skipped, pending, expired or needs attention, block activation and route the seller to the relevant verification screen(s), showing exactly what remains.
+- The gate must be enforced by a server-side activation RPC/function and database policy/state transition. Hiding or disabling a frontend button is not sufficient.
+- A successful admin approval must never override an incomplete mandatory verification check. Admins may review/resolve verification outcomes only through authorised, audited procedures; any permitted exception must be explicit, jurisdictionally lawful, time-bound and recorded. No generic admin bypass.
+- Keep separate states such as `application_status=approved`, `verification_status=incomplete|pending|passed|failed` and `store_status=not_live|activation_blocked|live|suspended`. Exact schema mapping must reuse or safely migrate the existing contract after inspection.
+- Once all mandatory checks pass, the seller may retry **Make Store Live**. The server re-evaluates current status and policy immediately before activation; it must not trust a stale client result.
+- If verification later expires, is revoked or a material risk event occurs, apply the configured restriction/suspension policy and notify the seller. Do not silently keep a non-compliant store live where law or platform policy requires suspension.
+- The seller portal must explain the distinction between application approval and live-store eligibility.
+
+## 15. Seller verification intelligence and notification engine
+
+Build a policy-driven notification and workflow engine to help sellers complete verification. It must be helpful and explainable, not an opaque or discriminatory scoring system.
+
+- Trigger events from real state changes: application approved, store activation attempted/blocked, verification started, provider callback received, document rejected/expiring, phone unverified, policy changed, or a seller action required.
+- Generate a personalised checklist showing required, completed, pending, skipped and failed checks for that seller's country and store.
+- Send timely in-portal notifications and, where the user has consented and channels are configured, email/SMS/push reminders. Respect quiet hours, notification preferences, rate limits and opt-outs for non-essential messages.
+- Explain the exact reason for each reminder, the action needed, the accepted evidence and the next step. Link directly to the relevant secure verification screen.
+- Use scheduled reminders with configurable cadence and stop reminders immediately after the requirement is satisfied, waived through a lawful audited exception, or the seller opts out of optional reminders.
+- Escalate operationally stuck provider checks to support/admin queues; do not repeatedly ask sellers to resubmit while a provider review is pending.
+- Never infer identity, fraud, eligibility or verification success from behavioural analytics or an AI model. Verification decisions must come from approved providers or authorised human review under documented policy.
+- Any risk-based prioritisation must be explainable, tested for disparate impact, human-reviewable and subject to privacy/legal approval. Do not use protected traits or proxies.
+- Store notification delivery and acknowledgement history, but do not place identity numbers, document images, face data or sensitive verification payloads in notification text, analytics events or logs.
+
+## 16. Web-first delivery sequence
 
 1. Shopper app-handoff route with verified-download configuration.
 2. Seller entry routing: signed-out, existing seller, draft applicant and new applicant.
@@ -204,10 +258,14 @@ Create or extend a shared API/status contract before app parity work so web and 
 11. Staging end-to-end tests and responsive/mobile checks.
 12. Only after web acceptance, implement mobile parity using shared contracts.
 
-## 11. Acceptance criteria
+## 17. Acceptance criteria
 
 - Customer Shop route never exposes a web cart/checkout and shows only verified app download links.
 - Seller entry handles signed-out, existing store, saved draft and new applicant correctly.
+- Customer and seller legal agreements are distinct; country/region policy selection and versioned consent records work.
+- An admin-approved application cannot make a store live until all mandatory jurisdiction-specific verification checks pass.
+- Store activation is blocked server-side when verification is incomplete, skipped, pending, expired or failed; seller is routed to the missing verification tasks.
+- Verification reminder rules are event-driven, explainable, rate-limited and stop when requirements are satisfied.
 - Onboarding is navigable, keyboard accessible, mobile responsive and resumes saved drafts.
 - Category choices and store-name uniqueness are server-backed.
 - Location permission is optional; manual correction/fallback works.
@@ -222,7 +280,7 @@ Create or extend a shared API/status contract before app parity work so web and 
 - RLS tests prove one seller cannot read or mutate another seller's private data, documents or store.
 - Tests run on staging only until explicitly promoted; no live customer data is used for development.
 
-## 12. Explicitly pending dependencies
+## 18. Explicitly pending dependencies
 
 - Approved geocoding provider and country/region dataset.
 - SMS/OTP provider, sender registration and country coverage.
@@ -230,4 +288,7 @@ Create or extend a shared API/status contract before app parity work so web and 
 - Private proof-of-address storage and admin review policy.
 - Four approved plan definitions and billing/payment behaviour.
 - Verified Google Play, other platform and GitHub release destinations.
-- Country-specific seller terms, privacy notice and document acceptance rules.
+- Country-specific customer and seller terms, privacy notices, consumer/seller obligations and document acceptance rules, legally reviewed and versioned.
+- Policy catalogue and immutable consent/acceptance audit records.
+- Server-enforced verification-to-live activation gate and audited admin review/exception policy.
+- Event-driven verification notification rules, channel providers, consent and cadence configuration.
