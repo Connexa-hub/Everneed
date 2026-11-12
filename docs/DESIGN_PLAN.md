@@ -2,7 +2,7 @@
 
 **Status: approved with the recommended answers (fonts kept, Emerald default, Dribbble as mood only, gallery excluded from the APK).** Final colour values are generated into `css/tokens.css`; where the table below differs (for example light borders, which the contrast check darkened to reach 1.3:1), the generated file wins. See `docs/DESIGN_SYSTEM.md`.
 
-Nothing has been built from this yet. It follows the Phase 2B brief. Section 7 records the review pass and what I changed.
+**Implementation status note (12 Nov 2026):** This was the approved Phase 2B design plan. The shared theme engine and generated token system are now implemented; `docs/DESIGN_SYSTEM.md` and the shipped theme assets are the current implementation reference. The original plan below remains the design rationale and mobile layout direction. Section 7 records the review pass and what I changed.
 
 ## 1. Subject and audience
 - **Who:** Nigerian mobile shoppers (also Ghana, Kenya, South Africa, UK, US shoppers later) and small sellers who run a shop from their phone.
