@@ -36,6 +36,10 @@
     verifySignupOtp:function(e,token){return window.Supa.verifySignup(e,token)},
     resendSignupOtp:function(e){return window.Supa.resendSignup(e)},
     authSettings:function(){return raw("/auth/v1/settings",{anon:1})},
+    /* The signed-in Auth user (email, created_at, last_sign_in_at, user_metadata such as name, full_name, avatar_url from Google). */
+    user:function(){return api("/auth/v1/user")},
+    /* Merge keys into the signed-in user's own metadata, for example {welcomed_at:"2026-11-12T10:00:00Z"}. Existing keys stay. */
+    setUserData:function(d){return api("/auth/v1/user",{m:"PUT",b:{data:d}})},
     out:function(){sess=null;try{localStorage.removeItem(KEY)}catch(e){}},
     get:function(p){return api("/rest/v1/"+p)},
     insert:function(t,o){return api("/rest/v1/"+t,{m:"POST",b:o,h:REP})},
