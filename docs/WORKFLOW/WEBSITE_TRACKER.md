@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — WEB-F18 Sitekey correction in progress; staging secret reported added by owner; production remains untouched.
+**Last updated:** 12 Nov 2026 — WEB-F18 public Sitekey corrected on web-portal; owner reports staging secret added; end-to-end verification pending; production remains untouched.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
