@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — public RPC security hardening started; production remains untouched.
+**Last updated:** 12 Nov 2026 — public RPC hardening verified on staging; authenticated SECURITY DEFINER audit started; production remains untouched.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -161,7 +161,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ---
 
 ## Change log (newest first)
-| 12 Nov 2026 | ChatGPT coordinator | WEB-F16: added migration 016 with per-IP/per-email rate limiting, keyed pseudonymous subjects, consistent guest ID validation, closed-session protection, empty search_path and explicit RPC grants. Staging migration run 43241479974 passed; read-only checks confirm migration 016, pepper and function ACLs. Added SQL regression tests and wired them into CI. Production remains untouched; full local DB test rerun still pending. |
+| 12 Nov 2026 | ChatGPT coordinator | WEB-F17 claimed. Full CI run `43241839136` confirmed the WEB-F16 public RPC regression tests, Phase 2 checks, anonymous reads, web checks and APK build all pass. WEB-F16 marked DONE for staging; production remains untouched and `STAGING_READY=false`. Began read-only audit of all 38 authenticated-callable public SECURITY DEFINER routines. |
 | Date | Who | What |
 |---|---|---|
 | 12 Nov 2026 | ChatGPT coordinator | Staging reset run `43234686076` succeeded. Removed redundant `016_signup_profile_fields.sql` and its no-op staging history row. All 19 migrations were compared to live stored SQL; executable bodies match after comment/format normalization. Schema, policy and RLS parity verified; four function differences are comments only. Migration checker run `43237645367` passed after fixing version-prefix sorting. WEB-F07/F07b marked DONE. Live Everneed01 was not reset. |
