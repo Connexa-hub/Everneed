@@ -3,7 +3,7 @@
 Read this before touching anything. Several AIs and the owner push to this repo. These rules keep it clean.
 
 ## The 8 rules
-1. **Pull first, every time.** Before you read or edit, fetch the latest of your working branch and `main`. If `main` moved, bring it into your branch first. Never work from memory of an earlier session.
+1. **Pull first, every time.** All development happens on `web-portal`. Fetch the latest `web-portal` before reading or editing, and inspect `main` for release changes. If `main` contains a hotfix not yet on `web-portal`, bring it across with a reviewed PR from `main` to `web-portal`; do not force-push or edit `main` directly.
 2. **One task, one claim.** Open `WEBSITE_TRACKER.md`, find your task ID, change its status to `IN PROGRESS`, fill `Owner` and `Branch`, and push that one-line change **before** you start. If a task is already `IN PROGRESS` by someone else, pick another.
 3. **Small commits.** One concern per commit. Message format: `area: what` (for example `web/admin: orders list`). Never mass-reformat a file.
 4. **Never rewrite a file you did not read in this session.** Read it, change the smallest part, push using the file's current SHA so a concurrent change is rejected rather than overwritten.
@@ -12,14 +12,24 @@ Read this before touching anything. Several AIs and the owner push to this repo.
 7. **Do not mark a task `DONE` until it is verified.** Verified means: CI is green, you checked the screen at phone width and desktop width, and the owner (or you, with evidence) confirmed it works against the real database.
 8. **Leave the tracker true.** When you finish, update the row (status, commit, notes) and the `Last updated` line. If you find something broken or missing, add a row. Do not hide it.
 
-## Branches
+## Branches and release flow
 | Branch | Purpose |
 |---|---|
-| `main` | What is released. Kept identical to `web-portal` after each merge. |
-| `web-portal` | Website work in progress. Cloudflare Pages deploys from here (or `main`, owner's choice). |
-| `everneed01` | App marketplace work. |
+| `web-portal` | The single development and integration branch for **both the app and website**. All developers and AIs edit, test and confirm work here. |
+| `main` | The reviewed release/production branch. It receives confirmed changes from `web-portal` through pull requests. Cloudflare Pages production deploys from `main`. |
 
-Website AIs work on `web-portal`. App AIs work on `everneed01`. Anything both need goes to `shared/` and is announced in the tracker.
+There is one codebase and one shared project workflow: the app and website are both maintained in this repository and on `web-portal`, then included together in `main`. Do not create, use or refer to a separate app-development branch. The retired `everneed01` branch is not part of the workflow.
+
+### Required release cycle
+1. Claim a task in `WEBSITE_TRACKER.md` and work only on `web-portal`.
+2. Run relevant checks and build the app/site preview from `web-portal`.
+3. Confirm the change against the real database where applicable; request owner confirmation for user-visible or account-sensitive changes.
+4. Update the tracker with evidence, commit SHA and any remaining limitations.
+5. Open a pull request from `web-portal` into `main`.
+6. Merge only after required CI checks pass and the change is confirmed. Cloudflare production deploys from `main`.
+7. If a production hotfix is made on `main`, open a PR from `main` back into `web-portal` so the development branch does not lose it.
+
+Never claim the branches are identical unless their commit histories confirm it. They are expected to differ between releases.
 
 ## Statuses
 | Status | Meaning |
@@ -35,7 +45,7 @@ Website AIs work on `web-portal`. App AIs work on `everneed01`. Anything both ne
 - [ ] I pulled and read the files I changed in this session.
 - [ ] Every script I touched passes `node --check` (CI also does this).
 - [ ] All user text is escaped (`Core.esc`) before it goes into `innerHTML`.
-- [ ] It works at 360px wide and at desktop width. No sideways scroll.
+- [ ] The website works at 360px wide and at desktop width; the Android app build/install and key flows are checked where relevant. No sideways scroll.
 - [ ] It works in light, dark and AMOLED.
 - [ ] If it talks to the database, the call is listed in `DB_CONTRACT.md` and RLS lets the right role do it.
 - [ ] The tracker row is updated.
