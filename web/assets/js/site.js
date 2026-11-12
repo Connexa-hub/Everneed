@@ -92,7 +92,7 @@
       stage.addEventListener("click",function(e){
         var back=e.target.closest("[data-auth-back]"),next=e.target.closest("[data-auth-next]"),resend=e.target.closest("[data-auth-resend]");
         if(back){if(state.verifying){state.verifying=false;formEl.setAttribute("data-mode",up?"up":"in");state.step=up?3:0}else state.step=Math.max(0,state.step-1);render();return}
-        if(resend){resend.disabled=true;Supa.resendSignupOtp(state.email).then(function(){C.toast("A new confirmation code has been sent.")}).catch(function(err){C.toast(err.message||"We couldn’t resend the code. Try again shortly.",true)}).finally(function(){resend.disabled=false});return}
+        if(resend){resend.disabled=true;Supa.resendSignup(state.email).then(function(){C.toast("A new confirmation code has been sent.")}).catch(function(err){C.toast(err.message||"We couldn’t resend the code. Try again shortly.",true)}).finally(function(){resend.disabled=false});return}
         if(next){
           var el=stage.querySelector("#auth-current"),value=el.value.trim();
           if(!el.reportValidity())return;
@@ -136,7 +136,7 @@
       var code=String(d.otp||"").trim();
       if(!/^\d{6}$/.test(code)){C.toast("Enter the 6-digit code from your email.",true);return}
       if(b)b.disabled=true;
-      Supa.verifySignupOtp(String(d.email||state.email||"").trim(),code).then(function(){
+      Supa.verifySignup(String(d.email||state.email||"").trim(),code).then(function(){
         return Supa.profile().catch(function(){return{}});
       }).then(function(profile){
         C.reset();location.href="/"+roleRoute(profile);
