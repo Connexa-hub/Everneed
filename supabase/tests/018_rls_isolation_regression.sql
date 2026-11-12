@@ -70,6 +70,13 @@ begin
   insert into public.stores(owner_id,name,about,status,country,state,city)
   values(v_seller_a,'Q01 Store A','Isolation fixture','draft','NG','Lagos','Ikeja')
   returning id into v_store_a;
+  v_result := public.zz_q01_try(format('update public.stores set status=%L where id=%L','approved',v_store_a));
+  if v_result='ok' and exists(select 1 from public.stores where id=v_store_a and status='approved') then
+    raise exception 'Seller approved own store';
+  end if;
+  if (select status from public.stores where id=v_store_a)<>'draft' then
+    raise exception 'Seller A store status changed before admin approval';
+  end if;
   perform public.zz_q01_back();
 
   perform public.zz_q01_as(v_seller_b);
@@ -129,6 +136,7 @@ begin
 
   select id into v_seller_order_a from public.seller_orders where order_id=v_order_a_id and store_id=v_store_a;
   select id into v_seller_order_b from public.seller_orders where order_id=v_order_b_id and store_id=v_store_b;
+  update public.seller_orders set released=true where id in (v_seller_order_a,v_seller_order_b);
 
   -- Service-owned financial fixtures; clients only receive scoped SELECT access.
   -- confirm_payment creates the sale and commission ledger entries for each seller order.
@@ -157,6 +165,8 @@ begin
 
   -- Seller A may see only released seller-order and financial rows for Store A.
   perform public.zz_q01_as(v_seller_a);
+  select count(*) into v_count from public.seller_orders where id=v_seller_order_a;
+  if v_count<>1 then raise exception 'Seller A cannot read own released seller order'; end if;
   select count(*) into v_count from public.seller_orders where id=v_seller_order_b;
   if v_count<>0 then raise exception 'Seller A can read Seller B seller order'; end if;
   select count(*) into v_count from public.ledger_entries where store_id=v_store_b;
@@ -174,9 +184,9 @@ begin
   select count(*) into v_count from public.products where id=v_draft_b;
   if v_count<>0 then raise exception 'Seller A can read Seller B draft product'; end if;
 
-  v_result := public.zz_q01_try(format('update public.stores set status=%L where id=%L','approved',v_store_b));
+  v_result := public.zz_q01_try(format('update public.stores set status=%L where id=%L','suspended',v_store_b));
   select status into v_status from public.stores where id=v_store_b;
-  if v_status<>'approved' then raise exception 'Seller B store fixture status unexpectedly changed'; end if;
+  if v_status<>'approved' then raise exception 'Seller A changed Seller B store status'; end if;
   v_result := public.zz_q01_try(format('update public.products set status=%L where id=%L','draft',v_product_b));
   select status into v_status from public.products where id=v_product_b;
   if v_status<>'published' then raise exception 'Seller A changed Seller B product status'; end if;
