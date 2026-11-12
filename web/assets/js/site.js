@@ -91,7 +91,7 @@
       activeAuth={showVerify:function(){state.verifying=true;state.step=0;formEl.setAttribute("data-mode","verify");render()},state:state};formEl.__authState=state;formEl.__authRender=render;
       stage.addEventListener("click",function(e){
         var back=e.target.closest("[data-auth-back]"),next=e.target.closest("[data-auth-next]"),resend=e.target.closest("[data-auth-resend]");
-        if(back){if(state.verifying){state.verifying=false;formEl.setAttribute("data-mode",up?"up":"in");state.step=up?3:0}else state.step=Math.max(0,state.step-1);render();return}
+        if(back){if(state.verifying){state.verifying=false;formEl.setAttribute("data-mode",up?"up":"in");state.step=up?1:0}else state.step=Math.max(0,state.step-1);render();return}
         if(resend){resend.disabled=true;Supa.resendSignup(state.email).then(function(){C.toast("A new confirmation code has been sent.")}).catch(function(err){C.toast(err.message||"We couldn’t resend the code. Try again shortly.",true)}).finally(function(){resend.disabled=false});return}
         if(next){
           var el=stage.querySelector("#auth-current"),value=el.value.trim();
