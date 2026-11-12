@@ -22,7 +22,7 @@ Everneed has two databases. Both the website and the app are meant to use the sa
 - `everneed.pages.dev` (the bare production address) and **any other address, including a custom domain**, use **live**. A new domain can never land on staging by accident.
 - A yellow "STAGING: test data only" ribbon appears at the bottom of every staging page.
 
-**Staging is currently switched off.** `STAGING_READY` in `shared/config.js` is `false`, so every address still uses live, exactly as before. The staging project exists but its migration history is currently inconsistent from the earlier partial setup. It is not ready for app or website testing until the guarded clean rebuild below succeeds. Do not flip the switch before step 5.
+**Staging is currently switched off.** `STAGING_READY` in `shared/config.js` is `false`, so every address still uses live, exactly as before. The guarded clean rebuild succeeded on 12 Nov 2026 and the 19-migration SQL chain was verified against live history. Do not flip the switch until the Auth, storage, test-user and preview setup below is complete.
 
 ## Turning staging on (one time)
 Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
@@ -30,7 +30,7 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
 1. **Get the connection string.** Supabase dashboard, project `Everneed-staging`, press **Connect**, choose **Session pooler**, copy the URI. Reset the database password first if you do not have it (Project settings, Database). Use the pooler string, not the direct one: GitHub's runners cannot reach the direct address.
 2. **Add it to GitHub as a secret.** Repository Settings, Secrets and variables, Actions, New repository secret. Name: `STAGING_DB_URL`. Value: the string with your password filled in. Never paste it into a file, a chat or an issue.
 3. **Clean-rebuild staging once (destructive to staging only).** Actions tab, choose **Reset staging database**, Run workflow, branch `web-portal`, and confirm `RESET_STAGING`. The workflow requires the `STAGING_DB_URL` secret, checks for the exact staging project ref `vjiadqygpyebpisxslbx`, rejects the live ref, then runs the Supabase CLI remote reset and replays the repository migrations. It never runs automatically on a push. This clears staging's old test schema/data; do not use it for live.
-4. **Verify the result.** Confirm the workflow finishes successfully and lists all 19 migrations in order. Then ask Claude to compare staging with live (tables, functions, policies, row-level security, seeded plans and support rules). The comparison is read-only. This is the replay proof for `WEB-F07b`.
+4. **Verify the result.** Completed 12 Nov 2026: workflow run `43234686076` succeeded, all 19 migration files were replayed, and executable SQL was compared with the 19 stored live migration statements. Public columns, policies and RLS-enabled table sets match live. The temporary duplicate signup catch-up migration has been removed from the repository; its no-op staging history row is being reconciled. This completes `WEB-F07b`.
 5. **Flip the switch.** In a pull request, change `STAGING_READY` to `true` in `shared/config.js`. After the merge, preview builds use staging.
 6. **Staging settings that migrations do not carry:**
    - Auth: set the Site URL and add the redirect URL `https://web-portal.everneed.pages.dev/**` under Authentication, URL configuration.
