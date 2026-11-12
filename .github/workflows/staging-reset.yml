@@ -78,7 +78,7 @@ jobs:
         shell: bash
         env:
           STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
-        run: supabase db reset --remote="$STAGING_DB_URL" --yes
+        run: supabase db reset --remote="$STAGING_DB_URL" --no-seed --yes
 
       - name: Verify migration history after rebuild
         shell: bash
