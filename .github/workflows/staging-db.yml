@@ -63,18 +63,18 @@ jobs:
         shell: bash
         env:
           STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
-        run: supabase migration list --db-url "$STAGING_DB_URL" || true
+        run: supabase migration list --remote="$STAGING_DB_URL" || true
 
       - name: Apply pending migrations
         if: steps.guard.outputs.run == 'true'
         shell: bash
         env:
           STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
-        run: supabase db push --db-url "$STAGING_DB_URL" --include-all --yes
+        run: supabase db push --remote="$STAGING_DB_URL" --include-all --yes
 
       - name: Show the result
         if: steps.guard.outputs.run == 'true'
         shell: bash
         env:
           STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
-        run: supabase migration list --db-url "$STAGING_DB_URL"
+        run: supabase migration list --remote="$STAGING_DB_URL"
