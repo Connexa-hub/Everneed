@@ -113,7 +113,7 @@
     };
     return page;
   }
-  V.login=function(p){if(Supa.uid())return Supa.profile().then(function(profile){return{redirect:"/"+roleRoute(profile)}}).catch(function(){return{redirect:"/#/account"}});return authPage(p[0]==="new")};
+  V.login=function(p){var up=p[0]==="new";if(Supa.uid()){Supa.profile().then(function(profile){location.href="/"+roleRoute(profile)}).catch(function(){location.href="/#/account"})}return authPage(up)};
   V.account=function(){
     var me=C.me()||{},name=esc(me.name||me.full_name||"there");
     return pub('<section class="sec"><div class="w" style="max-width:760px">'
