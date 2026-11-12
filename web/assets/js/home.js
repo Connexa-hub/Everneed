@@ -9,16 +9,16 @@
   function marquee(){var w=CFG.collections.concat(["Fashion","Home","Beauty"]).map(function(c){return"<span>"+ic(CI[c]||"tag",22)+"<b>"+esc(c)+"</b></span>"}).join("");return'<div class="mq" aria-hidden="true"><div>'+w+w+"</div></div>"}
   function html(){var P=Theme.palettes;return`
 <section class="h-hero night"><div class="w"><div class="hero-copy">
-<span class="pillx"><i></i>Now onboarding sellers</span>
-<h1 class="h1x">Open a store. Let Everneed handle the rest.</h1>
-<p class="lead">Storefront, orders, delivery codes and payouts in one place. Your products reach shoppers in the Everneed app.</p>
-<div class="row cta"><a class="btn" href="#/login/new">Open your store${ic("arrow",18,2)}</a><button class="btn o" data-act="scrollto" data-t="#showcase">See how it works${ic("chevd",18,2)}</button></div>
-<p class="sm" style="margin-top:14px">Free to apply. Commission only when you sell.</p></div>
+<span class="pillx"><i></i>A marketplace built around trusted stores</span>
+<h1 class="h1x">One marketplace. Many stores. One Everneed account.</h1>
+<p class="lead">Discover independent stores, shop with confidence in the Everneed app, or grow your business with your own store on Everneed.</p>
+<div class="row cta"><a class="btn" href="#/shop">Explore the app${ic("arrow",18,2)}</a><a class="btn o" href="#/sell">For sellers${ic("chevd",18,2)}</a></div>
+<p class="sm" style="margin-top:14px">One account for customers and sellers. Seller tools require approval.</p></div>
 <div class="hero-stage">${phone("home")}<div class="float f1"><span class="itile">${ic("bag",18)}</span><span><b>New order #1042</b><br><small>Palm oil 1L x2 · ₦9,000</small></span></div><div class="float f2"><span class="itile">${ic("check",18)}</span><span><b>Code confirmed</b><br><small>Earnings moved to pending</small></span></div></div></div></section>
 ${marquee()}
 <section class="sx" id="showcase"><div class="w"><h2 class="h2x rv">Run your whole store from your phone.</h2><p class="lead rv">Tap through the real flow. This is the same experience sellers get in the Everneed app.</p>
 <div class="sc rv" id="sc"><div class="sct">${TAB.map(function(t,i){return'<button class="'+(i===0?"on":"")+'"><span class="itile">'+ic(t[3],22)+"</span><span><b>"+t[1]+"</b><p>"+t[2]+'</p><span class="pgb"><i></i></span></span></button>'}).join("")}</div><div class="phwrap">${phone("setup")}</div></div></div></section>
-<section class="sx alt"><div class="w"><h2 class="h2x rv">Built for the way sellers work.</h2><div class="feat">${FEAT.map(function(f){return'<div class="fc rv"><span class="itile">'+ic(f[0],24)+"</span><h3>"+f[1]+"</h3><p>"+f[2]+"</p></div>"}).join("")}</div></div></section>
+<section class="sx alt"><div class="w"><h2 class="h2x rv">One platform. Experiences for every role.</h2><div class="feat">${FEAT.map(function(f){return'<div class="fc rv"><span class="itile">'+ic(f[0],24)+"</span><h3>"+f[1]+"</h3><p>"+f[2]+"</p></div>"}).join("")}</div></div></section>
 <section class="sx night"><div class="w sc2"><div class="rv"><h2 class="h2x">Looks like your brand. Works in any light.</h2><p class="lead">Six colour palettes plus light, dark and AMOLED modes, the same ones in the app. Pick one and the whole experience follows.</p>
 <div class="tg" id="tmode" style="margin-top:24px"><button class="on" data-th="mode" data-v="dark">${ic("moon",16)}Dark</button><button data-th="mode" data-v="light">${ic("sun",16)}Light</button><button data-th="mode" data-v="amoled">${ic("phone",16)}AMOLED</button></div>
 <div class="swgrid2" id="tpal">${P.map(function(x,i){return'<button data-th="pal" data-v="'+x[0]+'" class="'+(i===0?"on":"")+'"><span class="dots2"><i style="background:'+x[3]+'"></i><i style="background:'+x[4]+'"></i></span>'+x[1]+"</button>"}).join("")}</div></div>
@@ -34,7 +34,7 @@ ${marquee()}
 <div class="card res rv"><small>Sales</small><div class="bigd" id="cs"></div><div class="split2"><i id="cb" style="background:var(--brand)"></i><i id="cb2" style="background:var(--accent)"></i></div><div class="row" style="justify-content:space-between"><span>Commission <b id="cf"></b></span><span>You receive <b id="cn"></b></span></div></div></div></section>
 <section class="sx night"><div class="w"><div class="stats2"><div class="rv"><span class="itile">${ic("tag",24)}</span><b data-count="5">0</b><small>steps to apply</small></div><div class="rv"><span class="itile">${ic("truck",24)}</span><b data-count="2">0</b><small>ways to deliver</small></div><div class="rv"><span class="itile">${ic("globe",24)}</span><b data-count="6">0</b><small>countries, local currency</small></div><div class="rv"><span class="itile">${ic("lock",24)}</span><b data-count="4">0</b><small>digits prove each delivery</small></div></div></div></section>
 <section class="sx"><div class="w"><h2 class="h2x rv">Questions</h2><div class="rv" style="margin-top:24px;max-width:760px">${FAQ.map(function(q){return"<details><summary>"+q[0]+"</summary><p>"+q[1]+"</p></details>"}).join("")}</div></div></section>
-<section class="sx alt"><div class="w"><div class="band rv"><h2 class="h2x" style="max-width:none;margin:auto">Ready to sell?</h2><p>Create your seller account and start your application today.</p><a class="btn" href="#/login/new">Open your store${ic("arrow",18,2)}</a></div></div></section>`}
+<section class="sx alt"><div class="w"><div class="band rv"><h2 class="h2x" style="max-width:none;margin:auto">Ready to join Everneed?</h2><p>Create an account first. You can explore seller opportunities later if they are right for you.</p><a class="btn" href="#/login/new">Create your account${ic("arrow",18,2)}</a></div></div></section>`}
   function counters(el){var n=+el.getAttribute("data-count"),t0=null;function f(t){if(!t0)t0=t;var p=Math.min(1,(t-t0)/900);el.textContent=Math.round(n*p);if(p<1)requestAnimationFrame(f)}requestAnimationFrame(f)}
   function init(){
     Mock.init(document);Mock.resetWeb();Mock.web($("#bf"),"portal");

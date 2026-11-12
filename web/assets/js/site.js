@@ -33,12 +33,71 @@
   F.wl=function(f,d){var b=f.querySelector("button"),req,args={p_email:d.email,p_name:d.name||null,p_role:d.role,p_country:d.country,p_interest:d.interest||null,p_source:"website"};if(CFG.env==="staging"){try{if(!wlWidget)throw new Error("Security check is still loading");args.token=wlWidget.take()}catch(e){b.disabled=false;C.toast(e.message,true);return}req=Supa.fn("public-forms",Object.assign({action:"waitlist"},args))}else req=Supa.rpcAnon("join_waitlist",args);b.disabled=true;
     req.then(function(){if(wlWidget)wlWidget.reset();document.getElementById("wlmsg").innerHTML='<div class="note"><span><b>You’re on the list.</b>We’ll email you when your country opens.</span></div>';f.reset();b.disabled=false})
     .catch(function(e){if(wlWidget)wlWidget.reset();b.disabled=false;C.toast(e.message||"Could not join the list. Please try again.",true)})};
-  /* Sign in / create seller account */
-  var mode="in";
-  V.login=function(p){if(Supa.uid()){var me=C.me();return{redirect:me&&me.role==="admin"?"#/admin":"#/portal"}}mode=p[0]==="new"?"up":"in";var up=mode==="up";
-    return pub('<section class="sec"><div class="w" style="max-width:460px"><h1 style="font-size:2.4rem">'+(up?"Open your store":"Sign in")+'</h1><p class="lead" style="font-size:1rem">'+(up?"Create a seller account. You’ll apply for your store next.":"Seller and admin sign in.")+'</p><div class="card" style="margin-top:24px"><form data-form="auth">'+(up?'<label class="lb">Your name<input name="name" required autocomplete="name"></label>':"")+'<label class="lb">Email<input type="email" name="email" required autocomplete="email"></label><label class="lb">Password<input type="password" name="pw" required minlength="8" autocomplete="'+(up?"new-password":"current-password")+'"></label><button class="btn wide" style="margin-top:18px">'+(up?"Create account":"Sign in")+'</button></form><p class="sm" style="margin-top:14px">'+(up?'Have an account? <a href="#/login"><u>Sign in</u></a>':'New here? <a href="#/login/new"><u>Open a store</u></a>')+"</p></div></div></section>","",up?"Open a store":"Sign in")};
-  F.auth=function(f,d){var b=f.querySelector("button");b.disabled=true;
-    var p=mode==="up"?Supa.signUp(d.email,d.pw,{name:d.name}):Supa.signIn(d.email,d.pw);
-    p.then(function(r){if(r&&r.confirm){b.disabled=false;C.toast("Check your email to confirm, then sign in.");location.hash="#/login";return}C.reset();location.hash="#/portal";location.reload()})
-     .catch(function(e){b.disabled=false;C.toast(e.message||"Could not sign in",true)})};
+  /* Unified Everneed account access: customer, seller and admin share one sign-in entry point. */
+  function roleRoute(profile){
+    var role=String(profile&&profile.role||"customer").toLowerCase();
+    if(role==="admin")return "#/admin";
+    if(role==="merchant"||role==="seller")return "#/portal";
+    return "#/account";
+  }
+  function authPage(up){
+    var title=up?"Create your Everneed account":"Welcome back";
+    var intro=up?"One account for Everneed. You can shop in the app or apply to open a store later.":"Sign in to continue to your Everneed account.";
+    var form='<form data-form="auth" data-mode="'+(up?"up":"in")+'">'
+      +(up?'<label class="lb">Your name<input name="name" required maxlength="120" autocomplete="name" placeholder="Your full name"></label>':"")
+      +'<label class="lb">Email address<input type="email" name="email" required autocomplete="email" placeholder="you@example.com"></label>'
+      +'<label class="lb">Password<input type="password" name="pw" required minlength="8" autocomplete="'+(up?"new-password":"current-password")+'" placeholder="At least 8 characters"></label>'
+      +(up?'<label class="lb">Confirm password<input type="password" name="pw2" required minlength="8" autocomplete="new-password" placeholder="Enter your password again"></label>':"")
+      +'<button class="btn wide" style="margin-top:22px" type="submit">'+(up?"Create account":"Sign in")+'</button></form>';
+    var switcher=up
+      ?'Already have an account? <a href="#/login"><u>Sign in</u></a>'
+      :'New to Everneed? <a href="#/login/new"><u>Create an account</u></a>';
+    return pub('<section class="sec auth-sec"><div class="w auth-wrap">'
+      +'<div class="auth-aside"><span class="pillx"><i></i>One account. More possibilities.</span>'
+      +'<h1 class="h2x">'+(up?"Join Everneed":"Your Everneed account")+'</h1>'
+      +'<p class="lead">'+(up?"Create a regular account first. You do not need a store or seller status to join.":"Your account works across Everneed. The tools you can access depend on your verified permissions.")+'</p>'
+      +'<ul class="auth-points"><li><b>Customers</b><span>Create an account and use the mobile app to shop.</span></li>'
+      +'<li><b>Sellers</b><span>Use the same account to apply for and manage a store.</span></li>'
+      +'<li><b>Platform team</b><span>Authorized administrators use this same secure sign-in.</span></li></ul></div>'
+      +'<div class="card auth-card"><div class="auth-mark">EVERNEED ACCOUNT</div><h2>'+title+'</h2><p class="auth-intro">'+intro+'</p>'+form
+      +'<p class="auth-switch">'+switcher+'</p><p class="auth-small">Seller and administrator tools are shown only when your account has the required backend permissions.</p>'
+      +'<a class="auth-seller" href="#/sell">Interested in selling? Learn about opening a store</a></div>'
+      +'</div></section>',"",up?"Create account":"Sign in");
+  }
+  V.login=function(p){
+    if(Supa.uid()){
+      return Supa.profile().then(function(profile){return{redirect:roleRoute(profile)}}).catch(function(){return{redirect:"#/account"}});
+    }
+    return authPage(p[0]==="new");
+  };
+  V.account=function(){
+    var me=C.me()||{},name=esc(me.name||"there");
+    return pub('<section class="sec"><div class="w" style="max-width:760px">'
+      +'<span class="pillx"><i></i>Your Everneed account</span><h1 style="margin-top:18px">You’re in, '+name+'.</h1>'
+      +'<p class="lead">Your Everneed account is ready. Shopping takes place in the Everneed mobile app, while store tools are available to sellers with the appropriate access.</p>'
+      +'<div class="g2" style="margin-top:28px"><div class="card"><h3>Shop with Everneed</h3><p>Discover products from independent stores in the mobile app. The website will show official download options when they are published.</p><a class="btn" style="margin-top:16px" href="#/shop">About the app</a></div>'
+      +'<div class="card"><h3>Open a store</h3><p>Interested in selling? Start with your existing Everneed account. Store approval is a separate process.</p><a class="btn o" style="margin-top:16px" href="#/portal/apply">Explore seller application</a></div></div>'
+      +'<div class="row" style="margin-top:24px"><button class="btn o" data-act="out">Sign out</button></div></div></section>',"","My account");
+  };
+  V.shop=function(){
+    return pub('<section class="sec"><div class="w" style="max-width:760px"><span class="pillx"><i></i>Everneed mobile app</span>'
+      +'<h1 style="margin-top:18px">The marketplace lives in the app.</h1>'
+      +'<p class="lead">Browse stores, discover products, manage your cart and place orders in the Everneed mobile app. We will publish official download links here when a release is available.</p>'
+      +'<div class="note" style="margin-top:24px"><span><b>App release information</b>Official download options are not being displayed until they are verified and publicly available.</span></div>'
+      +'<div class="row" style="margin-top:22px"><a class="btn" href="#/login/new">Create an account</a><a class="btn o" href="#/sell">For sellers</a></div></div></section>',"","Shop in the app");
+  };
+  F.auth=function(f,d){
+    var b=f.querySelector("button"),mode=d.mode||f.getAttribute("data-mode")||"in";
+    if(mode==="up"&&String(d.pw||"")!==String(d.pw2||"")){C.toast("Your passwords do not match.",true);return}
+    b.disabled=true;
+    var req=mode==="up"?Supa.signUp(String(d.email||"").trim(),d.pw,{name:String(d.name||"").trim()}):Supa.signIn(String(d.email||"").trim(),d.pw);
+    req.then(function(r){
+      if(mode==="up"&&r&&r.confirm){b.disabled=false;C.toast("Account created. Check your email to confirm your address, then sign in.");location.hash="#/login";return}
+      return Supa.profile().then(function(profile){
+        C.reset();location.hash=roleRoute(profile);location.reload();
+      }).catch(function(){
+        C.reset();location.hash="#/account";location.reload();
+      });
+    }).catch(function(e){b.disabled=false;C.toast(e.message||"Could not complete that request. Please try again.",true)});
+  };
 })();
