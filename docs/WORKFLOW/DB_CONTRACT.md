@@ -77,20 +77,20 @@ Important gap: the seller app currently presents application and product managem
 | Function | Who | Web screen | Status |
 |---|---|---|---|
 | `chat_start`, `chat_send`, `chat_read`, `chat_set`, `chat_escalate` | members | Inbox (all roles), store chat page | DONE |
-| `support_guest_open`, `support_guest_ping`, `support_guest_close` | server only (`service_role`) | `public-forms` Edge Function, after Turnstile for open | DONE (staging boundary) |
+| `support_guest_open`, `support_guest_ping`, `support_guest_close` | server only (`service_role`) | `public-forms` Edge Function, after Turnstile for open | PARTIAL (staging; secret pending) |
 | `support_sla_public`, `support_tier`, `store_reply_stats` | anyone / system | Support widget, store pages | PARTIAL (verify each in `chat.js`) |
 | `support_sla_sweep()`, `chat_triage()` | scheduled / trigger | not scheduled yet | BLOCKED |
 
 ### Website
 | Function | Who | Web screen | Status |
 |---|---|---|---|
-| `join_waitlist(...)` | server only (`service_role`) | `public-forms` Edge Function, after Turnstile | DONE (staging boundary) |
+| `join_waitlist(...)` | server only (`service_role`) | `public-forms` Edge Function, after Turnstile | PARTIAL (staging; secret pending) |
 
 ### Public RPC security controls (migration 016; staging verified, production pending owner approval)
 - Guest support RPCs validate visitor IDs consistently (20–64 URL-safe characters); the frontend currently generates 24 random bytes with Web Crypto and keeps the identifier out of URLs.
 - Guest session creation, heartbeat and close calls are rate-limited by the Supabase-provided `X-Forwarded-For` request header. Waitlist joins are limited by both client IP and normalized email. Limits are transaction-serialized to prevent concurrent-request races.
 - Rate-limit identifiers are keyed pseudonyms using a random pepper held in the RLS-protected `kv` table; raw IP/email values are not persisted in `rate_limits`.
-- Migration 018 revokes direct `PUBLIC`, `anon` and `authenticated` EXECUTE on `join_waitlist` and all three guest-support write RPCs; only `service_role` can call them. The browser must call `public-forms`, which validates Cloudflare Turnstile for waitlist and guest-open requests before invoking the RPCs. Guest ping/close are proxied through the same Edge Function and require the unguessable visitor ID. The two aggregate-only read RPCs remain public.
+- Migration 018 revokes direct `PUBLIC`, `anon` and `authenticated` EXECUTE on `join_waitlist` and all three guest-support write RPCs; only `service_role` can call them. The browser must call `public-forms`; once `TURNSTILE_SECRET_KEY` is configured, it validates Cloudflare Turnstile for waitlist and guest-open requests before invoking the RPCs. Guest ping/close are proxied through the same Edge Function and require the unguessable visitor ID. The two aggregate-only read RPCs remain public.
 - Closed guest sessions cannot be reopened using the same identifier. Guest ping/close calls cannot mutate malformed identifiers.
 - The two public SECURITY DEFINER aggregate-read warnings (`support_sla_public`, `store_reply_stats`) are intentional. The four write-oriented guest/waitlist RPCs are no longer directly executable by API roles after migration 018.
 
