@@ -21,7 +21,8 @@
     patch:function(t,id,p){return api("/rest/v1/"+t+"?id=eq."+encodeURIComponent(id),{m:"PATCH",b:p,h:REP})},
     patchBy:function(t,c,v,p){return api("/rest/v1/"+t+"?"+c+"=eq."+encodeURIComponent(v),{m:"PATCH",b:p,h:REP})},
     rpc:function(f,a){return api("/rest/v1/rpc/"+f,{m:"POST",b:a||{}})},
-    rpcAnon:function(f,a){return raw("/rest/v1/rpc/"+f,{m:"POST",b:a||{},anon:1})},\n    fn:function(n,b){return api("/functions/v1/"+n,{m:"POST",b:b||{}})},
+    rpcAnon:function(f,a){return raw("/rest/v1/rpc/"+f,{m:"POST",b:a||{},anon:1})},
+    fn:function(n,b){return api("/functions/v1/"+n,{m:"POST",b:b||{}})},
     profile:function(){return api("/rest/v1/profiles?id=eq."+sess.uid+"&select=*").then(function(r){return r[0]||{}})},
     patchProfile:function(p){return api("/rest/v1/profiles?id=eq."+sess.uid,{m:"PATCH",b:p})},
     upload:function(file,folder){if(file.size>4e6)return Promise.reject(new Error("Image is larger than 4 MB"));
