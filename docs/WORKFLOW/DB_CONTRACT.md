@@ -3,7 +3,7 @@
 Snapshot taken **12 Nov 2026** from the live database. This contract applies to the app and website because they are parts of the same Everneed platform and use the shared Supabase backend. The function map records known website and app call sites, with app coverage distinguished as static source evidence versus live/device verification. Do not assume a function is app-integrated merely because it exists in the database.
 If you change the database, update this file in the same commit. Status words are defined in `AI_PROTOCOL.md`.
 
-A second database, **staging** (`Everneed-staging`, ref `vjiadqygpyebpisxslbx`), exists for testing. Live is the only database described below. How the two relate, and how a change moves between them, is in `ENVIRONMENTS.md`.
+A second database, **staging** (`Everneed-staging`, ref `vjiadqygpyebpisxslbx`), is the development and test environment. It is kept production-compatible at the schema, migration, policy and backend-contract level, while using separate test Auth users and test data. It is not a connection to the live production database. Live is the only database described below. How the two relate, and how a change moves between them, is in `ENVIRONMENTS.md`.
 
 ## Branch and database workflow
 - App and website changes are developed together on `web-portal` and released together to `main` through a reviewed pull request.
