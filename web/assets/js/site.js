@@ -33,7 +33,7 @@
   F.wl=function(f,d){var b=f.querySelector("button"),req,args={p_email:d.email,p_name:d.name||null,p_role:d.role,p_country:d.country,p_interest:d.interest||null,p_source:"website"};if(CFG.env==="staging"){try{if(!wlWidget)throw new Error("Security check is still loading");args.token=wlWidget.take()}catch(e){b.disabled=false;C.toast(e.message,true);return}req=Supa.fn("public-forms",Object.assign({action:"waitlist"},args))}else req=Supa.rpcAnon("join_waitlist",args);b.disabled=true;
     req.then(function(){if(wlWidget)wlWidget.reset();document.getElementById("wlmsg").innerHTML='<div class="note"><span><b>You’re on the list.</b>We’ll email you when your country opens.</span></div>';f.reset();b.disabled=false})
     .catch(function(e){if(wlWidget)wlWidget.reset();b.disabled=false;C.toast(e.message||"Could not join the list. Please try again.",true)})};
-  /* Unified Everneed account access: customer, seller and admin share one sign-in entry point. */
+  /* Unified Everneed account access: welcoming shopping story + progressive account steps. */
   function roleRoute(profile){
     var role=String(profile&&profile.role||"customer").toLowerCase();
     if(role==="admin")return "#/admin";
@@ -41,28 +41,68 @@
     return "#/account";
   }
   function authPage(up){
-    var title=up?"Create your Everneed account":"Welcome back";
-    var intro=up?"One account for Everneed. You can shop in the app or apply to open a store later.":"Sign in to continue to your Everneed account.";
-    var form='<form data-form="auth" data-mode="'+(up?"up":"in")+'">'
-      +(up?'<label class="lb">Your name<input name="name" required maxlength="120" autocomplete="name" placeholder="Your full name"></label>':"")
-      +'<label class="lb">Email address<input type="email" name="email" required autocomplete="email" placeholder="you@example.com"></label>'
-      +'<label class="lb">Password<input type="password" name="pw" required minlength="8" autocomplete="'+(up?"new-password":"current-password")+'" placeholder="At least 8 characters"></label>'
-      +(up?'<label class="lb">Confirm password<input type="password" name="pw2" required minlength="8" autocomplete="new-password" placeholder="Enter your password again"></label>':"")
-      +'<button class="btn wide" style="margin-top:22px" type="submit">'+(up?"Create account":"Sign in")+'</button></form>';
-    var switcher=up
-      ?'Already have an account? <a href="#/login"><u>Sign in</u></a>'
-      :'New to Everneed? <a href="#/login/new"><u>Create an account</u></a>';
-    return pub('<section class="sec auth-sec"><div class="w auth-wrap">'
-      +'<div class="auth-aside"><span class="pillx"><i></i>One account. More possibilities.</span>'
-      +'<h1 class="h2x">'+(up?"Join Everneed":"Your Everneed account")+'</h1>'
-      +'<p class="lead">'+(up?"Create a regular account first. You do not need a store or seller status to join.":"Your account works across Everneed. The tools you can access depend on your verified permissions.")+'</p>'
-      +'<ul class="auth-points"><li><b>Customers</b><span>Create an account and use the mobile app to shop.</span></li>'
-      +'<li><b>Sellers</b><span>Use the same account to apply for and manage a store.</span></li>'
-      +'<li><b>Platform team</b><span>Authorized administrators use this same secure sign-in.</span></li></ul></div>'
-      +'<div class="card auth-card"><div class="auth-mark">EVERNEED ACCOUNT</div><h2>'+title+'</h2><p class="auth-intro">'+intro+'</p>'+form
-      +'<p class="auth-switch">'+switcher+'</p><p class="auth-small">Seller and administrator tools are shown only when your account has the required backend permissions.</p>'
-      +'<a class="auth-seller" href="#/sell">Interested in selling? Learn about opening a store</a></div>'
-      +'</div></section>',"",up?"Create account":"Sign in");
+    var steps=up?["Your details","Email address","Create password","Confirm password"]:["Email address","Your password"];
+    var state={step:0,name:"",email:"",pw:"",pw2:""};
+    function field(label,name,type,placeholder,autocomplete,value){
+      return '<label class="auth-field"><span>'+label+'</span><input id="auth-current" name="current" type="'+type+'" value="'+esc(value||"")+'" placeholder="'+placeholder+'" autocomplete="'+autocomplete+'" '+(type==="email"?'inputmode="email"':'')+' required></label>';
+    }
+    function panel(){
+      var i=state.step,content="",hint="";
+      if(up){
+        if(i===0){content=field("What should we call you?","name","text","Your full name","name",state.name);hint="Use the name you want associated with your Everneed account."}
+        if(i===1){content=field("Your email address","email","email","you@example.com","email",state.email);hint="We’ll use this to sign you in and send account updates."}
+        if(i===2){content=field("Create a password","pw","password","At least 8 characters","new-password",state.pw);hint="Use at least 8 characters. Choose something only you know."}
+        if(i===3){content=field("Confirm your password","pw2","password","Enter the same password again","new-password",state.pw2);hint="One last check, then your account is ready."}
+      }else{
+        if(i===0){content=field("Email address","email","email","you@example.com","email",state.email);hint="Enter the email linked to your Everneed account."}
+        if(i===1){content=field("Password","pw","password","Your password","current-password",state.pw);hint="Your account, your stores and your shopping access in one place."}
+      }
+      var last=i===steps.length-1;
+      return '<div class="auth-progress" aria-label="Step '+(i+1)+' of '+steps.length+'"><div class="auth-progress-top"><span>'+steps[i]+'</span><span>'+String(i+1).padStart(2,"0")+' / '+String(steps.length).padStart(2,"0")+'</span></div><div class="auth-progress-track"><i style="width:'+((i+1)/steps.length*100)+'%"></i></div></div>'
+        +'<div class="auth-step" key="'+i+'"><span class="auth-step-kicker">'+(up?"CREATE YOUR ACCOUNT":"SIGN IN SECURELY")+'</span><h2>'+(up?["Let’s get to know you.","Where can we reach you?","Keep your account secure.","Ready to join Everneed?"][i]:["Welcome back.","Good to have you back."][i])+'</h2><p class="auth-intro">'+hint+'</p>'+content
+        +'<div class="auth-step-actions">'+(i>0?'<button class="btn o" type="button" data-auth-back>Back</button>':'<a class="auth-back-link" href="#/">Back to Everneed</a>')
+        +(last?'<button class="btn auth-primary" type="submit">'+(up?"Create my account":"Sign in")+' <span aria-hidden="true">→</span></button>':'<button class="btn auth-primary" type="button" data-auth-next>Continue <span aria-hidden="true">→</span></button>')+'</div></div>';
+    }
+    var switcher=up?'Already have an account? <a href="#/login">Sign in</a>':'New to Everneed? <a href="#/login/new">Create an account</a>';
+    var form='<form class="auth-form" data-form="auth" data-mode="'+(up?"up":"in")+'" novalidate>'
+      +'<input type="hidden" name="name"><input type="hidden" name="email"><input type="hidden" name="pw"><input type="hidden" name="pw2">'
+      +'<div id="auth-stage" aria-live="polite">'+panel()+'</div></form>';
+    var html='<section class="auth-experience"><div class="auth-glow auth-glow-a"></div><div class="auth-glow auth-glow-b"></div><div class="w auth-layout">'
+      +'<div class="auth-story"><a class="auth-eyebrow" href="#/"> <span class="auth-brand-dot"></span> EVERNEED <span>·</span> ONE MARKETPLACE</a>'
+      +'<div class="auth-story-copy"><span class="auth-overline">DISCOVER MORE. SHOP FROM MANY STORES.</span><h1>'+(up?'Your next favourite store is just around the corner.':'Everything you love, from stores you can trust.')+'</h1><p>Everneed brings independent stores and shoppers together in one easy-to-use marketplace. Discover products, explore stores and shop in the Everneed mobile app.</p>'
+      +'<div class="auth-benefits"><div><b>01</b><span><strong>Many stores</strong><small>One place to discover them</small></span></div><div><b>02</b><span><strong>One Everneed account</strong><small>For shopping and selling</small></span></div><div><b>03</b><span><strong>Shopping made simple</strong><small>Orders and delivery in one app</small></span></div></div></div>'
+      +'<div class="auth-showcase" aria-label="Everneed marketplace preview"><div class="auth-orbit orbit-one"></div><div class="auth-orbit orbit-two"></div><div class="auth-market-card"><div class="auth-market-top"><span class="auth-mini-logo">e</span><span>Discover stores</span><span class="auth-live-dot"></span></div><div class="auth-market-hero"><small>THE EVERNEED MARKETPLACE</small><b>Find your<br>everyday favourites.</b><span>Explore stores near you <i>↗</i></span></div><div class="auth-store-row"><div class="auth-store-icon store-amber">A</div><div><b>Everyday Finds</b><small>Fashion · Home · More</small></div><span class="auth-follow">Explore</span></div><div class="auth-store-row"><div class="auth-store-icon store-mint">G</div><div><b>Green Basket</b><small>Groceries · Essentials</small></div><span class="auth-follow">Explore</span></div><div class="auth-market-foot"><span>✦</span> One marketplace. Many independent stores.</div></div><div class="auth-float auth-float-one"><span>✦</span><b>One account</b><small>Many possibilities</small></div><div class="auth-float auth-float-two"><span class="auth-check">✓</span><b>Shop with confidence</b></div></div>'
+      +'<div class="auth-story-foot"><span>SHOPPERS · SELLERS · ONE COMMUNITY</span><a href="#/sell">Discover selling on Everneed ↗</a></div></div>'
+      +'<div class="auth-entry"><div class="auth-entry-head"><span class="auth-entry-mark">e</span><div><b>'+(up?'Create your account':'Welcome back')+'</b><small>'+(up?'Your Everneed journey starts here.':'Sign in to continue to Everneed.')+'</small></div></div>'
+      +'<div class="auth-entry-card">'+form+'<p class="auth-switch">'+switcher+'</p><p class="auth-trust"><span>⌑</span> Your account access is protected. Seller and admin tools appear only with the required approval.</p></div>'
+      +'<p class="auth-legal">By continuing, you agree to Everneed’s account terms and privacy practices.</p></div></div></section>';
+    var page=pub(html,"",up?"Create account":"Sign in");
+    page.after=function(){
+      var stage=document.getElementById("auth-stage"),formEl=document.querySelector('[data-form="auth"]');
+      function sync(){["name","email","pw","pw2"].forEach(function(k){var el=formEl.querySelector('[name="'+k+'"]');if(el)el.value=state[k]})}
+      function render(){stage.innerHTML=panel();var input=stage.querySelector("#auth-current");if(input)input.focus({preventScroll:true})}
+      stage.addEventListener("click",function(e){
+        var back=e.target.closest("[data-auth-back]"),next=e.target.closest("[data-auth-next]");
+        if(back){state.step=Math.max(0,state.step-1);render();return}
+        if(next){
+          var input=stage.querySelector("#auth-current"),value=input.value.trim();
+          if(!input.reportValidity())return;
+          if(up&&state.step===0)state.name=value;
+          if((up&&state.step===1)||(!up&&state.step===0)){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){input.setCustomValidity("Enter a valid email address.");input.reportValidity();input.setCustomValidity("");return}state.email=value.toLowerCase()}
+          if((up&&state.step===2)||(!up&&state.step===1)){if(value.length<8){input.setCustomValidity("Use at least 8 characters.");input.reportValidity();input.setCustomValidity("");return}state.pw=value}
+          state.step++;sync();render();
+        }
+      });
+      stage.addEventListener("keydown",function(e){if(e.key==="Enter"&&stage.querySelector("[data-auth-next]")){e.preventDefault();stage.querySelector("[data-auth-next]").click()}});
+      formEl.addEventListener("submit",function(e){
+        var input=stage.querySelector("#auth-current"),value=input?input.value:"";
+        if(up&&state.step===3){if(value!==state.pw){e.preventDefault();C.toast("Your passwords do not match.",true);return}state.pw2=value}
+        if(!up&&state.step===1)state.pw=value;
+        if(up&&state.step===2)state.pw=value;
+        sync();
+      });
+    };
+    return page;
   }
   V.login=function(p){
     if(Supa.uid()){
@@ -71,7 +111,7 @@
     return authPage(p[0]==="new");
   };
   V.account=function(){
-    var me=C.me()||{},name=esc(me.name||"there");
+    var me=C.me()||{},name=esc(me.name||me.full_name||"there");
     return pub('<section class="sec"><div class="w" style="max-width:760px">'
       +'<span class="pillx"><i></i>Your Everneed account</span><h1 style="margin-top:18px">You’re in, '+name+'.</h1>'
       +'<p class="lead">Your Everneed account is ready. Shopping takes place in the Everneed mobile app, while store tools are available to sellers with the appropriate access.</p>'
@@ -87,17 +127,18 @@
       +'<div class="row" style="margin-top:22px"><a class="btn" href="#/login/new">Create an account</a><a class="btn o" href="#/sell">For sellers</a></div></div></section>',"","Shop in the app");
   };
   F.auth=function(f,d){
-    var b=f.querySelector("button"),mode=d.mode||f.getAttribute("data-mode")||"in";
+    var b=f.querySelector('button[type="submit"]'),mode=d.mode||f.getAttribute("data-mode")||"in";
     if(mode==="up"&&String(d.pw||"")!==String(d.pw2||"")){C.toast("Your passwords do not match.",true);return}
-    b.disabled=true;
+    if(!d.email||!d.pw||(mode==="up"&&!d.name)){C.toast("Please complete the required account details.",true);return}
+    if(b)b.disabled=true;
     var req=mode==="up"?Supa.signUp(String(d.email||"").trim(),d.pw,{name:String(d.name||"").trim()}):Supa.signIn(String(d.email||"").trim(),d.pw);
     req.then(function(r){
-      if(mode==="up"&&r&&r.confirm){b.disabled=false;C.toast("Account created. Check your email to confirm your address, then sign in.");location.hash="#/login";return}
+      if(mode==="up"&&r&&r.confirm){if(b)b.disabled=false;C.toast("Account created. Check your email to confirm your address, then sign in.");location.hash="#/login";return}
       return Supa.profile().then(function(profile){
         C.reset();location.hash=roleRoute(profile);location.reload();
       }).catch(function(){
         C.reset();location.hash="#/account";location.reload();
       });
-    }).catch(function(e){b.disabled=false;C.toast(e.message||"Could not complete that request. Please try again.",true)});
+    }).catch(function(e){if(b)b.disabled=false;C.toast(e.message||"Could not complete that request. Please try again.",true)});
   };
 })();
