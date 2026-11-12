@@ -1,23 +1,23 @@
 /* Seller portal: dashboard, store setup (5 steps), products. Same tables and rules as the app; the database decides what is allowed. */
 (function(){
   var C=Core,esc=C.esc,V=C.V,A=C.A,F=C.F,enc=encodeURIComponent,q=function(p){return Supa.get(p)};
-  var P={uid:null,store:null,priv:null,app:null,prods:[],pn:{},notes:[],ok:false,step:1};
+  var P={uid:null,store:null,priv:null,app:null,prods:[],pn:{},notes:[],checks:[],rules:[],ok:false,step:1};
   var PST={draft:"Draft",pending_review:"In review",published:"Live",rejected:"Needs changes",archived:"Archived"};
   var STEPS=["Your store","About and location","Delivery","Payout","Business"],IDT=["NIN","Driver's licence","International passport","Voter's card","CAC registration"];
   function clean(v,n){return String(v==null?"":v).replace(/\s+/g," ").trim().slice(0,n||200)}
   function area(v,n){return String(v==null?"":v).replace(/\r/g,"").trim().slice(0,n||2000)}
   function need(l){for(var i=0;i<l.length;i++){if(!l[i][0]){C.toast(l[i][1],true);return true}}return false}
   function fail(e){C.toast(e&&e.message||"That did not work",true)}
-  function load(force){if(P.ok&&!force&&P.uid===Supa.uid())return Promise.resolve();var step=P.step;P={uid:Supa.uid(),store:null,priv:null,app:null,prods:[],pn:{},notes:[],ok:false,step:step};
+  function load(force){if(P.ok&&!force&&P.uid===Supa.uid())return Promise.resolve();var step=P.step;P={uid:Supa.uid(),store:null,priv:null,app:null,prods:[],pn:{},notes:[],checks:[],rules:[],ok:false,step:step};
     return q("stores?select=*&owner_id=eq."+enc(P.uid)).then(function(r){P.store=r&&r[0]||null;if(!P.store)return;var id=enc(P.store.id);
       return Promise.all([q("store_private?select=*&store_id=eq."+id),q("store_applications?select=*&store_id=eq."+id),q("products?select=*&store_id=eq."+id+"&order=at.desc"),q("product_private?select=product_id,review_note,compliance_ref")]).then(function(a){P.priv=a[0][0]||null;P.app=a[1][0]||null;P.prods=a[2]||[];(a[3]||[]).forEach(function(x){P.pn[x.product_id]=x})})})
-      .then(function(){return q("notifications?select=*&order=created_at.desc&limit=15")}).then(function(n){P.notes=n||[];P.ok=true})}
+      .then(function(){return q("notifications?select=*&order=created_at.desc&limit=15")}).then(function(n){P.notes=n||[];if(!P.store)return;return Promise.all([q("store_verification_checks?select=*&store_id=eq."+enc(P.store.id)),q("seller_verification_rules?select=*&country=eq."+enc(P.store.country||"NG")+"&enabled=eq.true")]).then(function(v){P.checks=v[0]||[];P.rules=v[1]||[]})}).then(function(){P.ok=true})}
   function pill(l,c){return'<span class="pill '+(c||"")+'">'+esc(l)+"</span>"}
   function notes(){return P.notes.length?'<div class="sech"><h3>Messages from Everneed</h3></div>'+P.notes.map(function(n){return'<div class="rw"><span><b>'+esc(n.title)+"</b><small>"+esc(n.body||"")+"</small></span><small>"+C.ago(n.created_at)+"</small></div>"}).join(""):""}
   V.portal=function(p){if(!Supa.uid())return{redirect:"#/login"};var sub=p[0]||"";
     return load(sub==="").then(function(){var h;
       if(sub==="appearance")h='<h1 style="font-size:2.2rem">Appearance</h1><div id="apprw" style="margin-top:20px">'+C.appearance()+"</div>";
-      else if(sub==="apply")h=wizard();
+      else if(sub==="apply")h=wizard();\n      else if(sub==="verification")h=verification();
       else if(!P.store)h=intro();
       else if(sub==="products"&&P.store.status==="approved")h=plist();
       else if(sub==="product"&&P.store.status==="approved")h=pform(p[1]);
@@ -29,10 +29,19 @@
     if(st==="pending")return'<h1 style="font-size:2.2rem">'+esc(s.name)+'</h1><div class="note"><span><b>Under review</b>We are checking your store. We’ll message you here with a decision.</span></div>'+notes();
     if(st==="rejected")return'<h1 style="font-size:2.2rem">'+esc(s.name)+'</h1><div class="note err"><span><b>Your application needs changes</b>'+esc(pn||"Please review your details and send it again.")+'</span></div><a class="btn" href="#/portal/apply">Edit and resubmit</a>'+notes();
     if(st==="suspended")return'<h1 style="font-size:2.2rem">'+esc(s.name)+'</h1><div class="note err"><span><b>Your store is suspended</b>'+esc(pn||"Please contact Everneed support.")+"</span></div>"+notes();
-    var c={published:0,pending_review:0,draft:0,rejected:0};P.prods.forEach(function(x){if(c[x.status]!=null)c[x.status]++});
+    if(st==="approved"&&s.activation_status!=="live")return activationCard();\n    var c={published:0,pending_review:0,draft:0,rejected:0};P.prods.forEach(function(x){if(c[x.status]!=null)c[x.status]++});
     var fix=P.prods.filter(function(x){return x.status==="rejected"}).map(function(x){var n=P.pn[x.id];return'<a class="rw" href="#/portal/product/'+enc(x.id)+'"><span><b>'+esc(x.name)+"</b><small>"+esc(n&&n.review_note||"Needs changes")+"</small></span><span>Fix</span></a>"}).join("");
     return'<div class="sech"><h1 style="font-size:2.2rem">'+esc(s.name)+'</h1>'+pill("Live","ok")+'</div><div class="kpis"><div><b>'+c.published+"</b><small>Live products</small></div><div><b>"+c.pending_review+"</b><small>In review</small></div><div><b>"+c.draft+"</b><small>Drafts</small></div><div><b>"+c.rejected+"</b><small>Need changes</small></div></div>"
       +(fix?'<div class="sech"><h3>Needs your attention</h3></div>'+fix:"")+'<div class="row"><a class="btn" href="#/portal/product/new">Add product</a><a class="btn o" href="#/portal/products">All products</a></div>'+notes()}
+
+  function checkLabel(k){return({phone:"Phone number",identity:"Identity document",face_liveness:"Face and liveness",business_address:"Business/store address"})[k]||k.replace(/_/g," ")}
+  function checkStatus(k){var x=P.checks.filter(function(c){return c.check_type===k})[0];return x&&x.status||"not_started"}
+  function activationCard(){var done=P.rules.filter(function(r){return !r.required||checkStatus(r.check_type)==="verified"}).length,required=P.rules.filter(function(r){return r.required}).length;
+    return'<div class="sech"><div><p class="eyebrow">APPLICATION APPROVED</p><h1 style="font-size:2.2rem">'+esc(P.store.name)+'</h1></div>'+pill("Not live","info")+'</div><div class="card" style="margin-top:18px;max-width:760px"><h2 style="font-size:1.5rem">One more step before your store goes live</h2><p class="m">Everneed has approved your application. Your store is not public yet. Complete the required verification checks for '+esc(CFG.countries[P.store.country]||P.store.country)+'. Admin application approval does not replace identity and business verification.</p><div class="kpis"><div><b>'+done+'/'+required+'</b><small>Requirements complete</small></div><div><b>'+esc(P.store.activation_status||"verification_required")+'</b><small>Store activation</small></div></div><div class="rw"><span><b>Verification checklist</b><small>Some checks may need an approved provider or manual review.</small></span><a href="#/portal/verification">View checklist</a></div><button class="btn" type="button" data-act="activate" style="margin-top:18px">Check if my store can go live</button></div>'+notes()}
+  function verification(){if(!P.store)return C.empty("No store application","Start your store application first.");var rows=P.rules.map(function(r){var st=checkStatus(r.check_type),cls=st==="verified"?"ok":st==="pending"?"info":st==="needs_attention"||st==="expired"?"bad":"";
+      return'<div class="rw"><span><b>'+esc(checkLabel(r.check_type))+(r.required?' · Required':' · Optional')+'</b><small>'+esc(r.help_text||"Complete this check to continue.")+'</small></span>'+pill(st.replace(/_/g," "),cls)+'</div>'}).join("");
+    return'<div class="sech"><div><p class="eyebrow">SELLER VERIFICATION</p><h1 style="font-size:2.2rem">Verify your store</h1></div>'+pill(P.store.activation_status==="live"?"Live":"Not live",P.store.activation_status==="live"?"ok":"info")+'</div><div class="card" style="max-width:760px;margin-top:18px"><p class="m">Your application review and seller verification are separate. Complete each required check below. Skipping a required check leaves your store not verified and prevents it from going live.</p>'+(rows||C.empty("Verification is not configured for this region","Contact Everneed support. Your store cannot be activated until regional requirements are configured."))+'<p class="sm" style="margin-top:14px">Verification providers are not connected in this staging build. No check will be marked verified until a trusted provider or authorised review records the result.</p><button class="btn" type="button" data-act="activate" style="margin-top:18px">Recheck activation eligibility</button><a class="btn o" href="#/portal" style="margin:18px 0 0 8px">Back to dashboard</a></div>'+notes()}
+  A.activate=function(){if(!P.store)return;Supa.rpc("request_store_activation",{p_store:P.store.id}).then(function(r){var x=r&&r.data!==undefined?r.data:r;if(x&&x.activated){C.toast("Your store is now live.");return load(true)}var missing=x&&x.missing_checks||[];C.toast(missing.length?"Verification is still required: "+missing.map(checkLabel).join(", "):"Activation is not available yet.",true);return load(true)}).then(again).catch(fail)};
   /* Products */
   function plist(){var l=P.prods.map(function(x){var n=P.pn[x.id],cls=x.status==="published"?"ok":x.status==="rejected"?"bad":x.status==="pending_review"?"info":"";
       var acts=(x.status==="draft"||x.status==="rejected"?'<button class="btn s" data-act="psub" data-id="'+esc(x.id)+'">Submit for review</button>':"")+(x.status!=="archived"?'<button class="btn o s" data-act="parch" data-id="'+esc(x.id)+'">Archive</button>':'<button class="btn o s" data-act="prest" data-id="'+esc(x.id)+'">Restore</button>');
