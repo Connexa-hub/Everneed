@@ -1,5 +1,7 @@
 # Production authentication setup
 
+> **Owner-friendly walkthrough:** see [Account creation, email verification and social sign-in](../OWNER_GUIDES/ACCOUNT_SIGN_IN_EMAIL_AND_OAUTH.md) for the step-by-step user journey and dashboard instructions. This file is the shorter technical checklist.
+
 This checklist is for the Everneed website and the shared Supabase Auth service. The website already implements email/password signup, six-digit signup verification, resend-code handling, password visibility, and provider-aware social buttons. Supabase remains the identity and verification system; an external email provider only delivers its messages.
 
 ## 1. Transactional email delivery
