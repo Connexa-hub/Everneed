@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — Added WEB-M10 web-to-app shopping handoff requirement; no code or production settings changed.
+**Last updated:** 12 Nov 2026 — WEB-ENV01 staging readiness audit: migrations, media bucket and storage policies verified; preview remains on live until owner settings and E2E checks are complete.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -11,7 +11,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 9 | 1 | 0 | 0 | 5 | 5 | 20 |
+| Foundation (F) | 9 | 1 | 1 | 0 | 4 | 5 | 20 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
@@ -24,7 +24,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 Update this table when you change a status.
 
 ## Next up (in order)
-1. Complete server-verified Cloudflare Turnstile for public waitlist and guest support (WEB-F18; waiting for the owner to add the staging secret).
+1. Finish staging environment activation (WEB-ENV01); then complete Turnstile end-to-end verification (WEB-F18).
 2. `WEB-F08` Finish owner-side Android signing setup: generate the replacement debug keystore locally and add its base64 value as GitHub Actions secret `ANDROID_DEBUG_KEYSTORE_BASE64`.
 3. `WEB-F10` Enable leaked-password protection on staging and confirm the intended Auth settings.
 4. `WEB-F11` Create the first admin account (owner action) so admin flows can be tested.
@@ -43,7 +43,7 @@ Update this table when you change a status.
 | WEB-F06 | Release confirmed app and website changes from `web-portal` to `main` through reviewed PRs | P0 | DONE | git, GitHub Actions, Cloudflare Pages | owner + project coordinator | web-portal | PR #3 merged 12 Nov 2026 as `0bca163`; main run `43147699406` passed Install and test, Database tests and APK. The database job is currently non-blocking by workflow configuration. |
 | WEB-F07 | Recover the eight missing applied migration SQL files into `supabase/migrations/` | P0 | DONE | live `supabase_migrations.schema_migrations`, `DB_CONTRACT.md`, `MIGRATION_RECOVERY.md` | Claude (at owner's request) | web-portal | Recovered verbatim from the live migration table (commits `c9b9e1c`, `9ba80b1`, `504dbd3`, `0aaf8be`). Sizes match the stored SQL. Renamed `002a`, `002b`, `003a` to `0030`, `0031`, `0040` (`9c4174c`) because the Supabase CLI skips file names with letters in the number; git hashes identical, so content unchanged. All 19 live records now have a file. `.github/workflows/migrations-check.yml` enforces the naming and order. Not DONE until F07b passes. `shared/sql/011_website_sync.sql` is superseded by `012`; retire it under X07 after F07b. |
 | WEB-F07b | Prove the migration chain: replay the recovered history on an empty database and compare all stored SQL | P0 | DONE | `supabase/migrations/`, `supabase_migrations.schema_migrations`, `.github/workflows/staging-reset.yml` | ChatGPT coordinator | web-portal | Reset run `43234686076` succeeded against staging only. The redundant `016_signup_profile_fields.sql` was removed because `0030_signup_profile_fields.sql` already maps to live version `20261029134730`. All 19 repository migrations were compared with live stored statements; executable SQL matches after comment/whitespace normalization. Staging/live columns, policies and RLS sets match; four function-definition differences are comments only. The no-op `016` metadata row was safely removed from staging; staging and repository now both contain the same 19 migration versions. Live remains unchanged with its 19 original migration records. |
-| WEB-ENV01 | Turn on the staging environment (project `Everneed-staging`, ref `vjiadqygpyebpisxslbx`, created, empty) | P0 | NEEDS OWNER | `.github/workflows/staging-db.yml`, `shared/config.js` (`STAGING_READY=false`), `ENVIRONMENTS.md` | owner | web-portal | Owner: (1) copy the Session pooler connection string, (2) add it as GitHub secret `STAGING_DB_URL`, (3) run the "Staging database" workflow. Then Claude compares staging with live, and a PR flips `STAGING_READY` to `true`. Until then every address uses live, as before. Staging also needs Auth redirect URLs, the `media` bucket check and test users (`ENVIRONMENTS.md`). |
+| WEB-ENV01 | Turn on the staging environment (project `Everneed-staging`, ref `vjiadqygpyebpisxslbx`) | P0 | IN PROGRESS | `.github/workflows/staging-db.yml`, `shared/config.js` (`STAGING_READY=false`), `ENVIRONMENTS.md` | ChatGPT coordinator | web-portal | Verified 12 Nov: project ACTIVE_HEALTHY; migrations 000–018 present; `media` bucket and all six storage policies match live; `public-forms` ACTIVE v2 with JWT verification; staging has 0 Auth users/profiles. Clean rebuild already passed (run `43234686076`), so do not repeat it. Owner setup still required: Auth Site URL/redirect `https://web-portal.everneed.pages.dev/**`, verify `TURNSTILE_SECRET_KEY` (owner reports added; value/presence cannot be read here), configure Paystack test secrets and deploy `paystack`, create test admin + two sellers. Then run preview E2E checks before a reviewed PR flips `STAGING_READY=true`. Production remains untouched. |
 | WEB-F08 | Remove committed debug keystore and protect CI signing identity | P0 | NEEDS OWNER | `.github/workflows/build.yml`, GitHub Actions secrets | owner | web-portal | Removed `keystore/debug.keystore` from web-portal and changed CI to require `ANDROID_DEBUG_KEYSTORE_BASE64`; `.gitignore` now blocks keystore files. Owner must generate the replacement key locally and add the GitHub secret before the next APK build. Old test APKs must be uninstalled once before installing the new signing identity. |
 | WEB-F09 | Schedule background jobs (install `pg_cron`, add a migration) | P0 | TODO | `run_scheduled_jobs`, `release_earnings`, `expire_rentals`, `support_sla_sweep` | | | Nothing runs on a timer today, so earnings never release and rentals never expire. Next available migration slot is 018; migrations 016 and 017 hardened public and authenticated RPC boundaries on staging. Test on staging first. |
 | WEB-F10 | Turn on leaked-password protection | P1 | NEEDS OWNER | Supabase Auth settings | owner | | One toggle in the dashboard. Do it on staging too. |
