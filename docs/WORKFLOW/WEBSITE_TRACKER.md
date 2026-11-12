@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — APP-02 hardened; all CI jobs passed for commit `2a2796c`.
+**Last updated:** 12 Nov 2026 — PR #6 branch sync merged; WEB-F07 migration recovery inventory started.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -11,7 +11,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 5 | 1 | 0 | 0 | 3 | 6 | 15 |
+| Foundation (F) | 5 | 1 | 1 | 0 | 3 | 5 | 15 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
@@ -19,7 +19,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
 | Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **24** | **8** | **0** | **0** | **3** | **54** | **89** |
+| **All** | **24** | **8** | **1** | **0** | **3** | **53** | **89** |
 
 Update this table when you change a status.
 
@@ -42,7 +42,7 @@ Update this table when you change a status.
 | WEB-F04 | CI: syntax check, file references, global names | P0 | DONE | `.github/workflows/web-checks.yml`, `tools/check.mjs` | Claude | web-portal | `npm test` and token consistency passed; full Install/test, Database tests and APK build all passed on released main run `43147699406`. Database job remains configured `continue-on-error: true` and is not a release gate yet. |
 | WEB-F05 | Deploy on Cloudflare Pages | P0 | DONE | Cloudflare Pages project `everneed`, GitHub integration | owner | main | Git integration and production branch `main` verified; successful deployment confirmed on merge commit `c816c1b`. |
 | WEB-F06 | Release confirmed app and website changes from `web-portal` to `main` through reviewed PRs | P0 | DONE | git, GitHub Actions, Cloudflare Pages | owner + project coordinator | web-portal | PR #3 merged 12 Nov 2026 as `0bca163`; main run `43147699406` passed Install and test, Database tests and APK. The database job is currently non-blocking by workflow configuration. |
-| WEB-F07 | Export live migrations 011 to 015 into `supabase/migrations/` | P0 | TODO | live DB, `DB_CONTRACT.md` | | | Drift: chat, support, waitlist, plans exist only live. Delete `shared/sql/011_website_sync.sql` once exported. |
+| WEB-F07 | Recover and commit live migrations 011 to 015 into `supabase/migrations/` | P0 | IN PROGRESS | live DB, `DB_CONTRACT.md`, `MIGRATION_RECOVERY.md` | ChatGPT coordinator | web-portal | Read-only catalog inventory recorded in `MIGRATION_RECOVERY.md`; original SQL still missing. Do not fabricate or replay production migrations. Retire `shared/sql/011_website_sync.sql` only after verified replacement. |
 | WEB-F08 | Remove `keystore/` from git and rotate the key | P0 | NEEDS OWNER | `keystore/`, `.github/workflows/build.yml` | owner | | Debug key is committed and CI ships a debug build. Use GitHub Secrets. |
 | WEB-F09 | Schedule background jobs (install `pg_cron`, add a migration) | P0 | TODO | `run_scheduled_jobs`, `release_earnings`, `expire_rentals`, `support_sla_sweep` | | | Nothing runs on a timer today, so earnings never release and rentals never expire. |
 | WEB-F10 | Turn on leaked-password protection | P1 | NEEDS OWNER | Supabase Auth settings | owner | | One toggle in the dashboard. |
@@ -161,7 +161,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## Change log (newest first)
 | Date | Who | What |
 |---|---|---|
-| 12 Nov 2026 | Project workflow | PR #3 merged as `0bca163`; `web-portal` is the only development branch for app and website, `main` is reviewed release/Cloudflare production. All three release CI jobs passed on main run `43147699406`. |\n| 12 Nov 2026 | Project coordinator | Hardened legacy local sign-in so it cannot grant admin; all CI jobs passed on `web-portal` commit `2a2796c`. |
+| 12 Nov 2026 | Project workflow | PR #6 merged as `dfeaf27`; `web-portal` is synchronized with the released `main` history. All three PR6 CI jobs passed. |\n| 12 Nov 2026 | Project coordinator | Started WEB-F07 recovery: confirmed live migration versions 011–015, captured read-only table/function/RLS/trigger evidence in `MIGRATION_RECOVERY.md`, and marked drift IN PROGRESS. No live DB changes. |\n| 12 Nov 2026 | Project workflow | PR #3 merged as `0bca163`; `web-portal` is the development branch for app and website, `main` is reviewed release/Cloudflare production. All three release CI jobs passed on main run `43147699406`. |\n| 12 Nov 2026 | Project coordinator | Hardened legacy local sign-in so it cannot grant admin; all CI jobs passed on `web-portal` commit `2a2796c`. |
 | 12 Nov 2026 | Project workflow | Static Android app audit recorded in `DB_CONTRACT.md`; app backlog APP-02 to APP-11 added. No database migrations applied. |\n| 12 Nov 2026 | Project workflow | Synced existing `main` checker and roadmap fixes into `web-portal` through PR #2. |
 | 12 Nov 2026 | Claude | Created tracker, protocol and database contract. Merged `web-portal` into `main`. Added `shell.css`, `boot.js`, `web-checks.yml`, `_headers`. |
 | 12 Nov 2026 | owner | Fixed `mock.js` and store chat syntax errors; added Cloudflare packaging workflow. |
