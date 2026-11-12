@@ -48,7 +48,6 @@ declare
   v_order_b_id text;
   v_seller_order_a text;
   v_seller_order_b text;
-  v_chat jsonb;
   v_chat_id uuid;
   v_result text;
   v_count integer;
@@ -140,8 +139,7 @@ begin
 
   -- Buyer A starts a private support conversation. Buyer B is not a member.
   perform public.zz_q01_as(v_buyer_a);
-  v_chat := public.chat_start('support',null,null,'Q01 private support',null,null);
-  v_chat_id := (v_chat->>'id')::uuid;
+  v_chat_id := public.chat_start('support',null,null,'Q01 private support',null,null);
   perform public.zz_q01_back();
 
   -- Buyer isolation: order, order items and delivery secrets must not cross buyer boundaries.
