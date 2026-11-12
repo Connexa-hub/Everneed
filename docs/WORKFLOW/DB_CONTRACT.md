@@ -107,14 +107,17 @@ Repo folder: `supabase/migrations/`. **Next migration number: do not assign unti
 
 | # | Name | In repo | Applied live |
 |---|---|---|---|
-| 000 to 010 | original schema, RLS, orders, hub, ledger, etc. | yes | yes |
+| 000 to 010 | numbered migrations present in repo | yes | yes |
+| — | multivendor_foundation (20261029044105) | **NO — recovery in progress** | yes |
+| — | multivendor_function_grants_hardening (20261029044131) | **NO — recovery in progress** | yes |
+| — | signup_profile_fields (20261029134730) | **NO — recovery in progress** | yes |
 | 011 | plans_and_limits | **NO — recovery in progress** | yes (20261104011326) |
 | 012 | support_chat_and_waitlist | **NO — recovery in progress** | yes (20261111073217) |
 | 013 | support_chat_hardening | **NO — recovery in progress** | yes (20261111073234) |
 | 014 | chat_start_official_store | **NO — recovery in progress** | yes (20261111073320) |
 | 015 | support_sla_public | **NO — recovery in progress** | yes (20261111073610) |
 
-**Drift:** 011 to 015 exist only in the live database. Task `WEB-F07` is IN PROGRESS. A read-only forensic inventory is recorded in `docs/WORKFLOW/MIGRATION_RECOVERY.md`; it is evidence, not a substitute migration chain. Until the original SQL is recovered and reconciled, a rebuilt database would lose chat, support, waitlist and plans. `shared/sql/011_website_sync.sql` is an older partial copy and is not equivalent.
+**Drift:** Eight applied SQL files are missing from the repository: `multivendor_foundation`, `multivendor_function_grants_hardening`, `signup_profile_fields`, and 011–015. Task `WEB-F07` is IN PROGRESS. A read-only forensic inventory of all 19 live migration records is recorded in `docs/WORKFLOW/MIGRATION_RECOVERY.md`; it is evidence, not a substitute migration chain. Until original SQL is recovered and reconciled, a rebuilt database is not reproducible from this repository. `shared/sql/011_website_sync.sql` is an older partial copy and is not equivalent.
 
 ## Live facts that matter
 - Data is **empty** (0 profiles, 0 products, 0 orders). No admin account exists yet (`WEB-F11`).
