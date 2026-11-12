@@ -132,7 +132,8 @@ begin
   select id into v_seller_order_b from public.seller_orders where order_id=v_order_b_id and store_id=v_store_b;
 
   -- Service-owned financial fixtures; clients only receive scoped SELECT access.
-  -- confirm_payment creates the sale and commission ledger entries for each seller order.\n  insert into public.payouts(store_id,amount,currency,reference,method)
+  -- confirm_payment creates the sale and commission ledger entries for each seller order.
+  insert into public.payouts(store_id,amount,currency,reference,method)
   values(v_store_a,100,'NGN','Q01-PAYOUT-A','bank_transfer'),
         (v_store_b,200,'NGN','Q01-PAYOUT-B','bank_transfer');
   perform public.zz_q01_back();
