@@ -17,6 +17,8 @@
     }catch(e){}
   }
   saveHashSession();
+  function captureAuthCallback(){try{var h=location.hash.replace(/^#/,"");if(!h||h.indexOf("access_token=")<0)return;var p=new URLSearchParams(h),access=p.get("access_token"),refresh=p.get("refresh_token"),expires=Number(p.get("expires_in")||3600),uid=null;if(access){try{var part=access.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");uid=JSON.parse(atob(part)).sub||null}catch(e){}save({access_token:access,refresh_token:refresh,expires_in:expires,user:{id:uid}});history.replaceState(null,"",location.pathname+location.search)}}catch(e){}}
+  captureAuthCallback();
   function raw(path,o){o=o||{};var h={apikey:K,"Content-Type":"application/json",Authorization:"Bearer "+((!o.anon&&sess&&sess.access_token)||K)};for(var k in (o.h||{}))h[k]=o.h[k];
     return fetch(U+path,{method:o.m||"GET",headers:h,body:o.b===undefined?undefined:JSON.stringify(o.b)}).then(function(r){return r.text().then(function(t){var j=null;try{j=t?JSON.parse(t):null}catch(e){}
       if(!r.ok)throw new Error((j&&(j.msg||j.message||j.error_description||j.error))||"Request failed ("+r.status+")");return j})})}
