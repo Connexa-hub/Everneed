@@ -62,7 +62,7 @@
         ["watch","Accessories","https://images.rawpixel.com/image_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTA5L3NtYWxsZGVzaWduY29tcGFueTAxX21lbnNfd2F0Y2hfaXNvbGF0ZWRfd2hpdGVfYmFja2dyb3VuZF81NmQwNmEzMS01YWRkLTRlZjYtOGY1My01MjY5NDg0NmVjMWFfMS5qcGc.jpg"],
         ["sneaker","Fashion","https://productshotai.app/images/productshot/free-image-tools/remove-background/workbench/default-after.webp"]
       ];
-      return '<div class="auth-product-wave" aria-label="Real product showcase"><svg class="auth-wave-connector" viewBox="0 0 900 120" preserveAspectRatio="none" aria-hidden="true"><path d="M8 62 C110 62 120 12 225 12 S340 108 450 108 S565 12 675 12 S790 62 892 62"/></svg>'+items.map(function(x,i){return '<div class="auth-product-tile product-'+x[0]+'"><div class="auth-product-art"><img src="'+x[2]+'" alt="'+x[1]+' product" loading="eager" decoding="async"></div><span>'+x[1]+'</span></div>'}).join("")+'</div>';
+      return '<div class="auth-product-showcase"><h1 class="auth-showcase-title">Everyday finds</h1><div class="auth-product-wave" aria-label="Real product showcase"><svg class="auth-wave-connector" viewBox="0 0 900 120" preserveAspectRatio="none" aria-hidden="true"><path d="M8 62 C110 62 120 12 225 12 S340 108 450 108 S565 12 675 12 S790 62 892 62"/></svg>'+items.map(function(x,i){return '<div class="auth-product-tile product-'+x[0]+'"><div class="auth-product-art"><img src="'+x[2]+'" alt="'+x[1]+' product" loading="eager" decoding="async"></div><span class="auth-product-tag">'+x[1]+'</span></div>'}).join("")+'</div></div>';
     }
     function panel(){
       if(state.verifying){
@@ -85,7 +85,7 @@
       var last=i===steps.length-1;
       return '<div class="auth-progress"><div class="auth-progress-top"><span>'+steps[i]+'</span><span>'+String(i+1).padStart(2,"0")+' / '+String(steps.length).padStart(2,"0")+'</span></div><div class="auth-progress-track"><i style="width:'+((i+1)/steps.length*100)+'%"></i></div></div>'
         +'<div class="auth-step"><span class="auth-step-kicker">'+(up?"CREATE YOUR ACCOUNT":"YOUR EVERNEED ACCOUNT")+'</span><h2>'+(up?["Let’s get started.","Where should we reach you?","Secure your account.","Everything look right?"][i]:["Welcome back.","Enter your password."][i])+'</h2><p class="auth-intro">'+hint+'</p>'+content
-        +'<div class="auth-step-actions">'+(i>0?'<button class="btn o" type="button" data-auth-back>Back</button>':'<a class="auth-back-link" href="/">Back to Everneed</a>')
+        +'<div class="auth-step-actions">'+(i>0?'<button class="btn o" type="button" data-auth-back>Back</button>':'<span class="auth-action-spacer" aria-hidden="true"></span>')
         +(last?'<button class="btn auth-primary" type="submit">'+(up?"Create account":"Sign in")+' <span aria-hidden="true">→</span></button>':'<button class="btn auth-primary" type="button" data-auth-next>Continue <span aria-hidden="true">→</span></button>')+'</div></div>';
     }
     var switcher=up?'Already have an account? <a href="/sign-in">Sign in</a>':'New to Everneed? <a href="/create-account">Create an account</a>';
