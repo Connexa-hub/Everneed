@@ -128,6 +128,8 @@ The following read-only snapshots are now tracked under `docs/WORKFLOW/schema_sn
 - `routine-and-grant-metadata.json`: metadata for 84 routines, 939 table/view grant rows, schema-usage facts, function ACLs, and search-path settings (function bodies excluded).
 - `default-privileges.json`: public-schema default privileges and sequence grants. Current defaults grant broad table privileges and function EXECUTE to client roles; do not reproduce without security review.
 - `triggers-and-trigger-functions.json`: nine non-internal trigger definitions and their trigger-function bodies.
+- `auth-dependencies.json`: the application-owned `auth.users` signup trigger and `public.on_signup()` dependency.
+- `advisor-findings.json`: current Supabase security/performance advisor output; see `docs/WORKFLOW/SUPABASE_ADVISOR_REVIEW.md` for interpretation.
 
 The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_REVIEW.md`. It is a review checklist, not a security certification. The live project remains unchanged.
 
