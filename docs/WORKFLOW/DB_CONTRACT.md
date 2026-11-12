@@ -86,6 +86,14 @@ Important gap: the seller app currently presents application and product managem
 |---|---|---|---|
 | `join_waitlist(...)` | anyone (anon) | Early access form | DONE |
 
+### Public RPC security controls (migration 016; staging verified, production pending owner approval)
+- Guest support RPCs validate visitor IDs consistently (20–64 URL-safe characters); the frontend currently generates 24 random bytes with Web Crypto and keeps the identifier out of URLs.
+- Guest session creation, heartbeat and close calls are rate-limited by the Supabase-provided `X-Forwarded-For` request header. Waitlist joins are limited by both client IP and normalized email. Limits are transaction-serialized to prevent concurrent-request races.
+- Rate-limit identifiers are keyed pseudonyms using a random pepper held in the RLS-protected `kv` table; raw IP/email values are not persisted in `rate_limits`.
+- Public RPCs use an empty function search path and explicit `anon`/`authenticated` EXECUTE grants; internal helper EXECUTE is revoked from API roles. Public SLA and store-response RPCs remain intentional, aggregate-only read surfaces.
+- Closed guest sessions cannot be reopened using the same identifier. Guest ping/close calls cannot mutate malformed identifiers.
+- The six anonymous SECURITY DEFINER warnings are intentionally retained for these public features; do not remove access blindly. Continue negative tests and review the function bodies/ACLs whenever these RPCs change.
+
 ### Helpers (used by policies and other functions, not called from the browser)
 `is_admin`, `my_role`, `on_signup`, `rate_hit`, `chat_member`, `chat_guard`, `chat_escalate_core`, `cancel_order_for`, `confirm_received_for`, `support_sla_minutes`, `run_scheduled_jobs`.
 
@@ -99,13 +107,13 @@ Policy counts in brackets.
 - **Support:** `conversations` (2), `conversation_members` (1), `messages` (1), `canned_replies` (2), `support_queue` (1), `support_rules` (1), `support_settings` (1)
 - **System:** `notifications` (2), `audit_log` (1), `settings` (3), `waitlist` (1), `kv` (0), `rate_limits` (0)
 
-`kv` and `rate_limits` have RLS on with no policies on purpose: only definer functions touch them.
+`kv` and `rate_limits` have RLS on with no policies on purpose: only privileged functions touch them. Migration 016 stores a random rate-limit pepper in `kv`; API roles cannot read it. Public rate-limit subjects are keyed pseudonyms, not raw IP addresses or email addresses.
 
 ### Public views
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 016.**
+Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 017.**
 
 | File | Live version | In repo | Applied live |
 |---|---|---|---|
@@ -122,6 +130,7 @@ Repo folder: `supabase/migrations/`. **Files replay in plain filename order, whi
 | `013_support_chat_hardening` | 20261111073234 | **yes, recovered 12 Nov 2026** | yes |
 | `014_chat_start_official_store` | 20261111073320 | **yes, recovered 12 Nov 2026** | yes |
 | `015_support_sla_public` | 20261111073610 | **yes, recovered 12 Nov 2026** | yes |
+| `016_public_rpc_security_hardening` | 016 (repo sequence) | **yes, added 12 Nov 2026** | **staging only; live not applied** |
 
 **How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters.
 
