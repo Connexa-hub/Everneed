@@ -103,18 +103,18 @@ Policy counts in brackets.
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. These are what a public web storefront should read.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. **Next number: 016.**
+Repo folder: `supabase/migrations/`. **Next migration number: do not assign until the recovered history is reconciled.**
 
 | # | Name | In repo | Applied live |
 |---|---|---|---|
 | 000 to 010 | original schema, RLS, orders, hub, ledger, etc. | yes | yes |
-| 011 | plans_and_limits | **NO** | yes |
-| 012 | support_chat_and_waitlist | **NO** | yes |
-| 013 | chat_hardening | **NO** | yes |
-| 014 | chat_start_official_store | **NO** | yes |
-| 015 | sla_public | **NO** | yes |
+| 011 | plans_and_limits | **NO — recovery in progress** | yes (20261104011326) |
+| 012 | support_chat_and_waitlist | **NO — recovery in progress** | yes (20261111073217) |
+| 013 | support_chat_hardening | **NO — recovery in progress** | yes (20261111073234) |
+| 014 | chat_start_official_store | **NO — recovery in progress** | yes (20261111073320) |
+| 015 | support_sla_public | **NO — recovery in progress** | yes (20261111073610) |
 
-**Drift:** 011 to 015 exist only in the live database. Task `WEB-F07` exports them into the repo. Until then a rebuilt database would lose chat, support, waitlist and plans. `shared/sql/011_website_sync.sql` is an older partial copy and is superseded.
+**Drift:** 011 to 015 exist only in the live database. Task `WEB-F07` is IN PROGRESS. A read-only forensic inventory is recorded in `docs/WORKFLOW/MIGRATION_RECOVERY.md`; it is evidence, not a substitute migration chain. Until the original SQL is recovered and reconciled, a rebuilt database would lose chat, support, waitlist and plans. `shared/sql/011_website_sync.sql` is an older partial copy and is not equivalent.
 
 ## Live facts that matter
 - Data is **empty** (0 profiles, 0 products, 0 orders). No admin account exists yet (`WEB-F11`).
