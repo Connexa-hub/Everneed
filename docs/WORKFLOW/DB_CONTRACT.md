@@ -11,8 +11,8 @@ If you change the database, update this file in the same commit. Status words ar
 
 ## How the app and website talk to the database
 - Browser client: `shared/supa.js` (`Supa.get`, `insert`, `patch`, `rpc`, `rpcAnon`, `upload`). Public anon key in `shared/config.js`.
-- Row Level Security is **on for every table**. The browser never has more rights than the signed-in user.
-- Anything that moves money or changes an order/store state is a **SECURITY DEFINER function** that checks the caller. The app and website call the function; clients never write those protected tables directly.
+- Row Level Security is **on for every public table**. RLS controls rows, but SQL object grants and function EXECUTE privileges are separate controls; review all three. The browser should never receive privileges beyond its intended role and policies.
+- Money movement and protected order/store transitions are implemented through privileged database functions and guards. Do not assume every SECURITY DEFINER routine has the same authorization pattern: the live inventory found 84 application routines, 58 SECURITY DEFINER functions, and six SECURITY DEFINER functions with PUBLIC EXECUTE. Their caller checks, ACLs, search paths, and exposed-schema reachability must be reviewed individually. The app and website should use approved RPCs rather than writing protected tables directly.
 - Payments: edge function `paystack` (HMAC-verified webhook, `verify_jwt` off by design). Not yet called by the website; app integration must be verified during the app audit.
 
 ## Android app call-site audit (static, 12 Nov 2026)
@@ -99,8 +99,8 @@ Policy counts in brackets.
 
 `kv` and `rate_limits` have RLS on with no policies on purpose: only definer functions touch them.
 
-### Public views (no RLS; they expose safe columns only)
-`public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. These are what a public web storefront should read.
+### Public views
+`public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
 Repo folder: `supabase/migrations/`. **Next migration number: do not assign until the recovered history is reconciled.**
@@ -119,16 +119,28 @@ Repo folder: `supabase/migrations/`. **Next migration number: do not assign unti
 
 **Drift:** Eight applied SQL files are missing from the repository: `multivendor_foundation`, `multivendor_function_grants_hardening`, `signup_profile_fields`, and 011–015. Task `WEB-F07` is IN PROGRESS. A read-only forensic inventory of all 19 live migration records is recorded in `docs/WORKFLOW/MIGRATION_RECOVERY.md`; it is evidence, not a substitute migration chain. Until original SQL is recovered and reconciled, a rebuilt database is not reproducible from this repository. `shared/sql/011_website_sync.sql` is an older partial copy and is not equivalent.
 
+## Baseline recovery evidence added (12 Nov 2026)
+
+The following read-only snapshots are now tracked under `docs/WORKFLOW/schema_snapshot/`:
+
+- `columns.json`, `constraints.json`, `policies-and-indexes.json`: table-column metadata, constraints, indexes, RLS policies, and RLS flags.
+- `views-storage-sequences.json`: five view definitions and security-invoker options, six storage-object policies, and three application-owned sequences.
+- `routine-and-grant-metadata.json`: metadata for 84 routines, 939 table/view grant rows, schema-usage facts, function ACLs, and search-path settings (function bodies excluded).
+- `default-privileges.json`: public-schema default privileges and sequence grants. Current defaults grant broad table privileges and function EXECUTE to client roles; do not reproduce without security review.
+- `triggers-and-trigger-functions.json`: nine non-internal trigger definitions and their trigger-function bodies.
+
+The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_REVIEW.md`. It is a review checklist, not a security certification. The live project remains unchanged.
+
 ## Live facts that matter
-- Data is **empty** (0 profiles, 0 products, 0 orders). No admin account exists yet (`WEB-F11`).
+- Core commerce tables currently have 0 profiles, 0 products, and 0 orders; this does **not** mean the whole database is empty. Support/configuration data exists: `support_settings` (1), `support_rules` (8), `support_queue` (1), and `canned_replies` (7), totaling 17 rows that must be preserved. No admin account exists yet (`WEB-F11`).
 - Extensions `pg_cron` and `pg_net` are **not installed**, so nothing runs on a schedule (`WEB-F09`). The functions that need a schedule: `release_earnings`, `expire_rentals`, `support_sla_sweep`, `run_scheduled_jobs`.
 - Security advisor: leaked-password protection is off (`WEB-F10`, owner dashboard setting).
 - Edge function: `paystack` v4, ACTIVE.
-- Storage bucket used by uploads: `media` (public read).
+- Storage bucket used by uploads: `media` (public read, 5 MiB maximum, JPEG/PNG/WebP/GIF). Public read does not imply public write; the six `storage.objects` policies are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`.
 
 ## How to add a database change
 1. Read the table or function you are changing in the live database first.
-2. Write `supabase/migrations/016_<name>.sql` (idempotent where possible: `create or replace`, `if not exists`).
-3. Apply it, then check the Supabase security advisor.
-4. Add a row to the migration log and update the function map above.
-5. Update the tracker rows that depend on it.
+2. Do **not** assign the next migration number until the eight missing historical SQL files are recovered or a separately approved reconstructed fresh-install baseline strategy is established.
+3. Write and test the proposed migration on a disposable database first; run database tests and security advisors, then compare the result with the intended schema/security contract.
+4. Commit the reviewed migration and update this contract and the project tracker in the same PR.
+5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline.
