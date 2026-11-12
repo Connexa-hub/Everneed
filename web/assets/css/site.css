@@ -354,3 +354,7 @@ body.auth-page #root{min-height:100svh}
  .auth-product-art{animation:none!important;transform:none!important}
  .auth-social-button{transition:none}
 }
+
+.auth-social-button.is-available[data-auth-provider="facebook"] .auth-social-icon{color:#1877f2}
+.auth-social-button.is-available[data-auth-provider="apple"] .auth-social-icon{color:#111}
+.auth-social-button.is-available[data-auth-provider="google"] .auth-social-icon{color:inherit}
