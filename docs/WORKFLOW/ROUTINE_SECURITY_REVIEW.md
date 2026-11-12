@@ -161,8 +161,8 @@ The staging catalog was inspected after migration 016 and all 38 public SECURITY
 - `support_sla_sweep` denies every non-admin authenticated-role invocation, including a missing-subject claim, while preserving service-role/cron execution.
 - `supabase/tests/017_authenticated_rpc_security.sql` adds regression checks for the identified boundary cases, protected admin RPC access, empty search paths and PUBLIC/anonymous grants.
 
-Staging application and the full CI rerun are still pending. The test database run must prove the new negative cases before WEB-F17 can be marked DONE.
+Staging migration run `43244981357` succeeded. Database test run `43245491269` passed both public RPC and authenticated RPC regression suites, Phase 2 checks and anonymous read smoke tests. Migration-file checks, web checks and Android APK build passed on commit `6018cb0418efc1f7eb700555b24afb28f795136c`. A staging catalog query confirmed both migration versions 016 and 017 are recorded, all 38 authenticated-callable public SECURITY DEFINER functions have `search_path=""`, and none has PUBLIC EXECUTE. WEB-F16 and WEB-F17 are complete for staging only.
 
 ## Current decision
 
-Keep the live Everneed01 database untouched. Migrations 016 and 017 are staging-only candidates; do not apply either to production without the owner's explicit approval. No live privileges, functions, policies, tables or data have been changed.
+Keep the live Everneed01 database untouched. Migrations 016 and 017 are applied and verified on staging only; do not apply either to production without the owner's explicit approval. No live privileges, functions, policies, tables or data have been changed. `STAGING_READY=false` remains until Auth redirect URLs, storage bucket verification, staging test users, and end-to-end staging checks are complete.

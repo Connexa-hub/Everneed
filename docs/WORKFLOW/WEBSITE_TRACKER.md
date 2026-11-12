@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — public RPC hardening verified on staging; authenticated SECURITY DEFINER audit started; production remains untouched.
+**Last updated:** 12 Nov 2026 — migrations 016 and 017 applied and regression-tested on staging; CI and Android APK build passed; production remains untouched.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -24,12 +24,12 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 Update this table when you change a status.
 
 ## Next up (in order)
-1. `WEB-F16` Harden public guest-support and waitlist RPCs, add negative tests, and verify on staging. Production remains unchanged until owner approval. The owner has already added `STAGING_DB_URL`.
-2. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
-3. `WEB-F11` Create the first admin account (owner action).
-4. `WEB-F09` Schedule and verify the background jobs. Needs a migration numbered 016, tested on staging first.
-5. `APP-06` and `WEB-S05`/`WEB-S06`: seller order queue on both clients (the first real money flow).
-6. `APP-10` Run real-device app smoke tests and record the results.
+1. `WEB-Q01` Run buyer/seller/admin negative-access tests on staging, especially seller A versus seller B and buyer order privacy.
+2. Add server-verified Cloudflare Turnstile to public support and waitlist endpoints; never trust a client-only CAPTCHA result.
+3. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
+4. `WEB-F10` Enable leaked-password protection on staging and confirm the intended Auth settings.
+5. `WEB-F11` Create the first admin account (owner action) so admin flows can be tested.
+6. `APP-06` and `WEB-S05`/`WEB-S06`: build seller order queue and payout visibility; then run `APP-10` real-device smoke tests.
 
 ---
 
@@ -46,13 +46,15 @@ Update this table when you change a status.
 | WEB-F07b | Prove the migration chain: replay the recovered history on an empty database and compare all stored SQL | P0 | DONE | `supabase/migrations/`, `supabase_migrations.schema_migrations`, `.github/workflows/staging-reset.yml` | ChatGPT coordinator | web-portal | Reset run `43234686076` succeeded against staging only. The redundant `016_signup_profile_fields.sql` was removed because `0030_signup_profile_fields.sql` already maps to live version `20261029134730`. All 19 repository migrations were compared with live stored statements; executable SQL matches after comment/whitespace normalization. Staging/live columns, policies and RLS sets match; four function-definition differences are comments only. The no-op `016` metadata row was safely removed from staging; staging and repository now both contain the same 19 migration versions. Live remains unchanged with its 19 original migration records. |
 | WEB-ENV01 | Turn on the staging environment (project `Everneed-staging`, ref `vjiadqygpyebpisxslbx`, created, empty) | P0 | NEEDS OWNER | `.github/workflows/staging-db.yml`, `shared/config.js` (`STAGING_READY=false`), `ENVIRONMENTS.md` | owner | web-portal | Owner: (1) copy the Session pooler connection string, (2) add it as GitHub secret `STAGING_DB_URL`, (3) run the "Staging database" workflow. Then Claude compares staging with live, and a PR flips `STAGING_READY` to `true`. Until then every address uses live, as before. Staging also needs Auth redirect URLs, the `media` bucket check and test users (`ENVIRONMENTS.md`). |
 | WEB-F08 | Remove `keystore/` from git and rotate the key | P0 | NEEDS OWNER | `keystore/`, `.github/workflows/build.yml` | owner | | Debug key is committed and CI ships a debug build. Use GitHub Secrets. |
-| WEB-F09 | Schedule background jobs (install `pg_cron`, add a migration) | P0 | TODO | `run_scheduled_jobs`, `release_earnings`, `expire_rentals`, `support_sla_sweep` | | | Nothing runs on a timer today, so earnings never release and rentals never expire. Next available migration slot is 018; migration 016 hardened public RPCs and 017 hardens authenticated RPC boundaries. Test on staging first. |
+| WEB-F09 | Schedule background jobs (install `pg_cron`, add a migration) | P0 | TODO | `run_scheduled_jobs`, `release_earnings`, `expire_rentals`, `support_sla_sweep` | | | Nothing runs on a timer today, so earnings never release and rentals never expire. Next available migration slot is 018; migrations 016 and 017 hardened public and authenticated RPC boundaries on staging. Test on staging first. |
 | WEB-F10 | Turn on leaked-password protection | P1 | NEEDS OWNER | Supabase Auth settings | owner | | One toggle in the dashboard. Do it on staging too. |
 | WEB-F11 | Create the first admin account | P0 | NEEDS OWNER | `profiles` (0 rows) | owner | | Sign up on the site, then set `role='admin'` for that profile. Needed to test every admin task. |
 | WEB-F12 | Fix stale hint in admin waitlist empty state | P3 | TODO | `admin.js` | | | It tells people to apply `shared/sql/011_website_sync.sql`, but the table already exists. |
 | WEB-F13 | Split dense one-line JS into readable modules | P2 | TODO | `core.js`, `portal.js`, `chat.js` | | | One file per PR. Never reformat in the same commit as a behaviour change. |
 | WEB-F14 | Content-Security-Policy | P3 | TODO | `_headers` | | | Only after F13. Inline scripts and styles must be removed first. |
 | WEB-F15 | Real URLs instead of `#/` routes (+ `_redirects`) | P2 | TODO | `core.js` router | | | Needed for SEO and shareable store links. |
+| WEB-F16 | Harden public guest-support and waitlist RPCs | P0 | DONE | migration `016_public_rpc_security_hardening`, `supabase/tests/016_public_rpc_security_hardening.sql` | ChatGPT coordinator | web-portal | Applied to staging; public RPC regression tests passed in run `43245491269`. Six intended public RPCs remain callable; helpers are not callable by API roles. Production untouched. |
+| WEB-F17 | Audit and harden authenticated-callable SECURITY DEFINER RPCs | P0 | DONE (staging) | migration `017_authenticated_rpc_boundary_hardening`, `supabase/tests/017_authenticated_rpc_security.sql` | ChatGPT coordinator | web-portal | Reviewed all 38 functions. Staging migration run `43244981357` succeeded; SQL regression tests passed in `43245491269`; catalog check confirms 38/38 empty search paths and zero PUBLIC EXECUTE. CI web, migration and APK workflows passed on `6018cb0`. Production untouched. |
 
 ## M. Public site
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
@@ -161,7 +163,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ---
 
 ## Change log (newest first)
-| 12 Nov 2026 | ChatGPT coordinator | WEB-F17: completed the first-pass static audit of all 38 authenticated-callable public SECURITY DEFINER routines. Added migration 017 to empty-pin their search paths, bind store chats to the selected seller order, validate exact hub item-check sets, and require admin for authenticated SLA sweeps. Added regression tests and wired them into CI. Staging apply/CI verification pending; production remains untouched and `STAGING_READY=false`. |
+| 12 Nov 2026 | ChatGPT coordinator | WEB-F17 completed for staging: migration 017 applied successfully in staging run `43244981357`; authenticated RPC regression tests passed in run `43245491269`; 38/38 authenticated-callable public SECURITY DEFINER functions have empty search paths and zero retain PUBLIC EXECUTE. Web checks, migration checks and Android APK build passed on `6018cb0418efc1f7eb700555b24afb28f795136c`. Production untouched; `STAGING_READY=false`. |
 | Date | Who | What |
 |---|---|---|
 | 12 Nov 2026 | ChatGPT coordinator | Staging reset run `43234686076` succeeded. Removed redundant `016_signup_profile_fields.sql` and its no-op staging history row. All 19 migrations were compared to live stored SQL; executable bodies match after comment/format normalization. Schema, policy and RLS parity verified; four function differences are comments only. Migration checker run `43237645367` passed after fixing version-prefix sorting. WEB-F07/F07b marked DONE. Live Everneed01 was not reset. |

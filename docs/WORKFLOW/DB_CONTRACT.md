@@ -94,14 +94,14 @@ Important gap: the seller app currently presents application and product managem
 - Closed guest sessions cannot be reopened using the same identifier. Guest ping/close calls cannot mutate malformed identifiers.
 - The six anonymous SECURITY DEFINER warnings are intentionally retained for these public features; do not remove access blindly. Continue negative tests and review the function bodies/ACLs whenever these RPCs change.
 
-### Authenticated SECURITY DEFINER audit and hardening (migration 017; staging pending verification)
+### Authenticated SECURITY DEFINER audit and hardening (migration 017; staging verified 12 Nov 2026)
 - A read-only first-pass audit covered all 38 public SECURITY DEFINER routines executable by `authenticated`, including the six intentional public/anonymous endpoints.
 - Migration 017 pins every one of those routines to an empty `search_path`; their referenced tables and helper functions are schema-qualified. No function ACLs were broadened.
 - `chat_start` now requires an attached order to contain the selected store as a seller and bounds chat subject/first-message input.
 - `hub_receive` now requires exactly one valid check result per order item and rejects duplicate, unknown, extra or missing item IDs.
 - `support_sla_sweep` now distinguishes authenticated JWT callers from service-role/cron invocations; authenticated calls require admin status even if the JWT subject is absent.
 - Regression tests cover cross-store order/chat binding, duplicate hub checks, malformed authenticated claims, seller denial of an admin payout RPC, empty search paths, and explicit function grants.
-- Staging application and CI results are recorded in `ROUTINE_SECURITY_REVIEW.md`; production remains untouched pending explicit owner approval.
+- Migration 017 applied successfully to staging in workflow run `43244981357`. Its regression tests passed in run `43245491269`; catalog verification confirmed 38/38 empty search paths and zero PUBLIC EXECUTE. Production remains untouched pending explicit owner approval.
 
 ### Helpers (used by policies and other functions, not called from the browser)
 `is_admin`, `my_role`, `on_signup`, `rate_hit`, `chat_member`, `chat_guard`, `chat_escalate_core`, `cancel_order_for`, `confirm_received_for`, `support_sla_minutes`, `run_scheduled_jobs`.
@@ -140,7 +140,7 @@ Repo folder: `supabase/migrations/`. **Files replay in plain filename order, whi
 | `014_chat_start_official_store` | 20261111073320 | **yes, recovered 12 Nov 2026** | yes |
 | `015_support_sla_public` | 20261111073610 | **yes, recovered 12 Nov 2026** | yes |
 | `016_public_rpc_security_hardening` | 016 (repo sequence) | **yes, added 12 Nov 2026** | **staging only; live not applied** |
-| `017_authenticated_rpc_boundary_hardening` | 017 (repo sequence) | **yes, added 12 Nov 2026** | **staging pending; live not applied** |
+| `017_authenticated_rpc_boundary_hardening` | 017 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied and regression-tested; live not applied** |
 
 **How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters.
 
