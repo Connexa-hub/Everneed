@@ -1,0 +1,89 @@
+name: Reset staging database
+
+# Destructive by design: manual dispatch only, exact confirmation, and a hard project-ref guard.
+# This workflow must never be pointed at Everneed01 or any other project.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type RESET_STAGING to wipe and rebuild Everneed-staging"
+        required: true
+        type: choice
+        options:
+          - RESET_STAGING
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-db
+  cancel-in-progress: false
+
+env:
+  STAGING_REF: vjiadqygpyebpisxslbx
+  LIVE_REF: zpgasfweaixwsktlueje
+
+jobs:
+  reset:
+    name: Clean rebuild of Everneed-staging only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate confirmation and target
+        shell: bash
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [[ "$CONFIRM" != "RESET_STAGING" ]]; then
+            echo "::error::Exact confirmation missing. No database action taken."
+            exit 1
+          fi
+          if [[ -z "${STAGING_DB_URL:-}" ]]; then
+            echo "::error::STAGING_DB_URL repository secret is missing. No database action taken."
+            exit 1
+          fi
+          if [[ "$STAGING_DB_URL" == *"$LIVE_REF"* ]]; then
+            echo "::error::Connection string contains the LIVE project reference. Refusing destructive action."
+            exit 1
+          fi
+          if [[ "$STAGING_DB_URL" != *"$STAGING_REF"* ]]; then
+            echo "::error::Connection string does not contain the exact staging project reference. Refusing destructive action."
+            exit 1
+          fi
+          echo "Target verified: Everneed-staging ($STAGING_REF). Connection string is not printed."
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Ensure Supabase CLI project config exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f supabase/config.toml ]]; then
+            supabase init
+          fi
+          test -f supabase/config.toml
+
+      - name: Record staging migration state before reset
+        shell: bash
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: supabase migration list --remote="$STAGING_DB_URL"
+
+      - name: Reset and replay repository migrations on staging
+        shell: bash
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: supabase db reset --remote="$STAGING_DB_URL" --no-seed --yes
+
+      - name: Verify migration history after rebuild
+        shell: bash
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: |
+          set -euo pipefail
+          supabase migration list --remote="$STAGING_DB_URL"
