@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — migrations 016 and 017 applied and regression-tested on staging; CI and Android APK build passed; production remains untouched.
+**Last updated:** 12 Nov 2026 — WEB-Q01 buyer/seller/admin isolation tests passed in staging and CI; Turnstile implementation started; production remains untouched.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -11,15 +11,15 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 7 | 1 | 1 | 0 | 4 | 5 | 18 |
+| Foundation (F) | 9 | 1 | 1 | 0 | 4 | 5 | 20 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
 | Admin console (AD) | 5 | 1 | 0 | 0 | 0 | 13 | 19 |
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
-| Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **26** | **8** | **1** | **0** | **4** | **53** | **92** |
+| Quality (Q) | 1 | 0 | 0 | 0 | 0 | 3 | 4 |
+| **All** | **29** | **8** | **1** | **0** | **4** | **52** | **95** |
 
 Update this table when you change a status.
 
@@ -55,6 +55,7 @@ Update this table when you change a status.
 | WEB-F15 | Real URLs instead of `#/` routes (+ `_redirects`) | P2 | TODO | `core.js` router | | | Needed for SEO and shareable store links. |
 | WEB-F16 | Harden public guest-support and waitlist RPCs | P0 | DONE | migration `016_public_rpc_security_hardening`, `supabase/tests/016_public_rpc_security_hardening.sql` | ChatGPT coordinator | web-portal | Applied to staging; public RPC regression tests passed in run `43245491269`. Six intended public RPCs remain callable; helpers are not callable by API roles. Production untouched. |
 | WEB-F17 | Audit and harden authenticated-callable SECURITY DEFINER RPCs | P0 | DONE (staging) | migration `017_authenticated_rpc_boundary_hardening`, `supabase/tests/017_authenticated_rpc_security.sql` | ChatGPT coordinator | web-portal | Reviewed all 38 functions. Staging migration run `43244981357` succeeded; SQL regression tests passed in `43245491269`; catalog check confirms 38/38 empty search paths and zero PUBLIC EXECUTE. CI web, migration and APK workflows passed on `6018cb0`. Production untouched. |
+| WEB-F18 | Require server-verified Cloudflare Turnstile for public waitlist and guest support | P0 | IN PROGRESS | `supabase/functions/public-forms/`, migration `018_turnstile_public_rpc_boundary.sql`, website support/waitlist forms | ChatGPT coordinator | web-portal | Turnstile widget created for `everneed.pages.dev` (sitekey stored in public config); server secret must be configured as a Supabase Edge Function secret on staging before deployment. Public RPC grants will be narrowed to `service_role` only after the proxy is ready. Production untouched. |
 
 ## M. Public site
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
@@ -155,7 +156,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## Q. Quality
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-Q01 | RLS test: buyer/seller/admin negative-access isolation | P1 | IN PROGRESS | `supabase/tests/018_rls_isolation_regression.sql`, `.github/workflows/build.yml` | ChatGPT coordinator | web-portal | Claim started 12 Nov 2026; staging only. Test real JWT role contexts for buyer A/B, seller A/B and non-admin/admin boundaries; no production changes. |
+| WEB-Q01 | RLS test: buyer/seller/admin negative-access isolation | P1 | DONE | `supabase/tests/018_rls_isolation_regression.sql`, `.github/workflows/build.yml` | ChatGPT coordinator | web-portal | Staging SQL suite passed; GitHub Database tests passed on `758a894` (run `43248544594`); web checks, migration checks and APK build passed. Fixtures rolled back; no Q01 records remained. Production untouched. |
 | WEB-Q02 | Smoke test: sign up, apply, approve, list product, publish | P1 | TODO | | | | Do after F11 and ENV01, on staging. |
 | WEB-Q03 | Accessibility pass (focus, labels, contrast, 200% text) | P2 | TODO | | | | |
 | WEB-Q04 | Performance pass (Lighthouse, image sizes, script count) | P3 | TODO | | | | 11 scripts load in sequence today. |
@@ -164,6 +165,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 
 ## Change log (newest first)
 | 12 Nov 2026 | ChatGPT coordinator | WEB-F17 completed for staging: migration 017 applied successfully in staging run `43244981357`; authenticated RPC regression tests passed in run `43245491269`; 38/38 authenticated-callable public SECURITY DEFINER functions have empty search paths and zero retain PUBLIC EXECUTE. Web checks, migration checks and Android APK build passed on `6018cb0418efc1f7eb700555b24afb28f795136c`. Production untouched; `STAGING_READY=false`. |
+| 12 Nov 2026 | ChatGPT coordinator | WEB-Q01 completed: buyer/seller/admin isolation SQL suite passed on staging and in CI run `43248544594`; fixtures rolled back and staging contains no Q01 fixture rows. WEB-F18 started; Turnstile widget created for `everneed.pages.dev`. Production untouched. |
 | Date | Who | What |
 |---|---|---|
 | 12 Nov 2026 | ChatGPT coordinator | Staging reset run `43234686076` succeeded. Removed redundant `016_signup_profile_fields.sql` and its no-op staging history row. All 19 migrations were compared to live stored SQL; executable bodies match after comment/format normalization. Schema, policy and RLS parity verified; four function differences are comments only. Migration checker run `43237645367` passed after fixing version-prefix sorting. WEB-F07/F07b marked DONE. Live Everneed01 was not reset. |
