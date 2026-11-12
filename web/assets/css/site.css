@@ -191,7 +191,7 @@ body.auth-page #root{min-height:100svh}
 .auth-logo{display:inline-flex;align-items:center;gap:9px;font:750 1.12rem var(--font-display);letter-spacing:-.035em}
 .auth-logo-mark{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--brand);color:var(--text-on-brand);font:800 19px var(--font-display)}
 .auth-home-link{font-size:.74rem;color:var(--text-3);font-weight:650}
-.auth-intro-area{min-height:min(61svh,610px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:26px 0 18px}
+.auth-intro-area{min-height:min(64svh,650px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:26px 0 18px}
 .auth-overline{font-size:.64rem;letter-spacing:.16em;font-weight:850;color:var(--brand-ink)}
 .auth-intro-area h1{max-width:21ch;margin:12px auto 0;font:680 clamp(2rem,4.8vw,3.35rem)/1.02 var(--font-display);letter-spacing:-.055em}
 .auth-intro-area>p{max-width:62ch;margin:13px auto 0;color:var(--text-2);font-size:.9rem;line-height:1.55}
@@ -250,7 +250,7 @@ body.auth-page #root{min-height:100svh}
 @keyframes auth-form-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @media(max-width:680px){
  .auth-page-wrap{padding:12px 18px 28px}
- .auth-intro-area{min-height:clamp(350px,59svh,500px);padding:20px 0 16px}
+ .auth-intro-area{min-height:clamp(370px,63svh,540px);padding:20px 0 16px}
  .auth-intro-area h1{max-width:19ch;font-size:clamp(1.9rem,8.3vw,2.55rem)}
  .auth-intro-area>p{max-width:43ch;font-size:.76rem;margin-top:10px}
  .auth-product-wave{gap:7px;margin-top:23px;width:100%}
@@ -269,7 +269,7 @@ body.auth-page #root{min-height:100svh}
  .auth-intro-area{min-height:345px}
 }
 @media(max-height:740px) and (max-width:680px){
- .auth-intro-area{min-height:330px;padding-top:12px}
+ .auth-intro-area{min-height:clamp(340px,60svh,450px);padding-top:12px}
  .auth-intro-area h1{font-size:1.82rem}
  .auth-product-wave{margin-top:15px}
  .auth-product-art{width:54px}
@@ -279,3 +279,6 @@ body.auth-page #root{min-height:100svh}
  .auth-product-art,.auth-progress-track i,#toast{transition:none!important}
  .auth-product-tile .auth-product-art{transform:none!important}
 }
+
+/* Keep the category artwork clean: the wave and product images carry the visual story. */
+.auth-product-art:before{content:none!important}
