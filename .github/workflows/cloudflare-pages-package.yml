@@ -1,6 +1,16 @@
 name: Package Everneed for Cloudflare Pages
 
 on:
+  push:
+    branches:
+      - web-portal
+    paths:
+      - 'web/**'
+      - 'css/**'
+      - 'fonts/**'
+      - 'js/theme.js'
+      - 'shared/**'
+      - '.github/workflows/cloudflare-pages-package.yml'
   workflow_dispatch:
 
 permissions:
