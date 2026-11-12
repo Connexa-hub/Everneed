@@ -1,0 +1,44 @@
+name: Package Everneed for Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - web-portal
+    paths:
+      - 'web/**'
+      - 'css/**'
+      - 'fonts/**'
+      - 'js/theme.js'
+      - 'shared/**'
+      - '.github/workflows/cloudflare-pages-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out web-portal
+        uses: actions/checkout@v4
+        with:
+          ref: web-portal
+
+      - name: Prepare Pages output
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p web/assets/css web/assets/js
+          cp css/tokens.css css/fonts.css web/assets/css/
+          cp -r fonts web/assets/fonts
+          cp js/theme.js web/assets/js/
+          cp shared/*.js web/assets/js/
+
+      - name: Package Pages files
+        uses: actions/upload-artifact@v4
+        with:
+          name: everneed-cloudflare-pages
+          path: web/
+          if-no-files-found: error
+          retention-days: 7

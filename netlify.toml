@@ -1,0 +1,12 @@
+# Netlify: publishes web/. The app's palette, fonts and theme engine are copied in at build time so the website
+# always matches the app and no app file is modified or duplicated in git.
+[build]
+  command = "mkdir -p web/assets/css web/assets/js && cp css/tokens.css css/fonts.css web/assets/css/ && cp -r fonts web/assets/fonts && cp js/theme.js web/assets/js/ && cp shared/*.js web/assets/js/"
+  publish = "web"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"

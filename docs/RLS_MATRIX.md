@@ -30,4 +30,4 @@ S = select, I = insert, U = update, D = delete. "own" = rows tied to the signed-
 | storage `media` | read | read | upload under `stores/<own store id>/` | all |
 
 Merchants never read `orders`, customer profiles, or another store's rows. `my_seller_orders()` gives the merchant view with this privacy rule: hub orders show first name and city only; direct orders show full name, phone and address only after the seller has accepted.
-Tests: `supabase/tests/phase2_checks.sql` (91 checks) and `supabase/tests/local/concurrency.sh` (parallel last-unit race).
+Tests: `supabase/tests/phase2_checks.sql` (93 checks) and `supabase/tests/local/concurrency.sh` (parallel last-unit race).
