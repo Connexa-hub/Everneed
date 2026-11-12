@@ -61,6 +61,40 @@ begin
   on conflict(user_id,policy_document_id) do nothing;
 end $$;
 
+
+-- Seller applications require explicit acceptance of the current regional seller policy pack.
+create or replace function public.submit_store(p_store text)
+returns void language plpgsql security definer set search_path = ''
+as $
+declare a record; s record; missing_policies text[];
+begin
+  if auth.uid() is null then raise exception 'Please sign in.'; end if;
+  perform private.throttle('submit_store',5,600);
+  select * into s from public.stores where id=p_store and owner_id=auth.uid() for update;
+  if not found then raise exception 'That is not your store.'; end if;
+  if s.status not in ('draft','rejected') then raise exception 'This store has already been submitted.'; end if;
+  select * into a from public.store_applications where store_id=p_store;
+  if not found or coalesce(a.business_name,'')='' or coalesce(a.bank_name,'')='' or coalesce(a.account_number,'')='' or coalesce(a.account_name,'')='' then
+    raise exception 'Complete your business and payout details first.';
+  end if;
+  select array_agg(req.policy_type order by req.policy_type) into missing_policies
+  from (values ('seller_terms'),('seller_privacy'),('marketplace_rules'),('returns_refunds')) req(policy_type)
+  where not exists (
+    select 1 from public.policy_documents d
+    join public.policy_acceptances pa on pa.policy_document_id=d.id and pa.user_id=auth.uid()
+    where d.policy_type=req.policy_type and d.country=s.country
+      and d.published and d.requires_acceptance and d.effective_at<=now()
+  );
+  if coalesce(cardinality(missing_policies),0)>0 then
+    raise exception 'Review and accept the current seller policies for your region before submitting: %.',array_to_string(missing_policies,', ');
+  end if;
+  update public.stores set status='pending',activation_status='verification_required' where id=p_store;
+  update public.store_applications set submitted_at=now(),decision=null,reason=null,reviewed_by=null,reviewed_at=null where store_id=p_store;
+  perform private.notify_admins('store_submitted','A store is waiting for approval',s.name,jsonb_build_object('store_id',p_store));
+end $;
+revoke execute on function public.submit_store(text) from public, anon;
+grant execute on function public.submit_store(text) to authenticated;
+
 create table if not exists public.seller_verification_rules (
   country text not null check (country ~ '^[A-Z]{2}$'),
   check_type text not null check (check_type in ('phone','identity','face_liveness','business_address')),
