@@ -24,12 +24,11 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 Update this table when you change a status.
 
 ## Next up (in order)
-1. `WEB-Q01` Run buyer/seller/admin negative-access tests on staging, especially seller A versus seller B and buyer order privacy.
-2. Add server-verified Cloudflare Turnstile to public support and waitlist endpoints; never trust a client-only CAPTCHA result.
-3. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
-4. `WEB-F10` Enable leaked-password protection on staging and confirm the intended Auth settings.
-5. `WEB-F11` Create the first admin account (owner action) so admin flows can be tested.
-6. `APP-06` and `WEB-S05`/`WEB-S06`: build seller order queue and payout visibility; then run `APP-10` real-device smoke tests.
+1. Complete server-verified Cloudflare Turnstile for public waitlist and guest support (WEB-F18; waiting for the owner to add the staging secret).
+2. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
+3. `WEB-F10` Enable leaked-password protection on staging and confirm the intended Auth settings.
+4. `WEB-F11` Create the first admin account (owner action) so admin flows can be tested.
+5. `APP-06` and `WEB-S05`/`WEB-S06`: build seller order queue and payout visibility; then run `APP-10` real-device smoke tests.
 
 ---
 
