@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — migration files renamed so the Supabase CLI replays them all (WEB-F07); staging project created and guarded workflow added, waiting on one owner secret (WEB-ENV01).
+**Last updated:** 12 Nov 2026 — guarded staging reset workflow added; migration versions resequenced to match Supabase CLI's lexical version ordering; owner has added `STAGING_DB_URL`.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -11,7 +11,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 5 | 2 | 0 | 0 | 4 | 6 | 17 |
+| Foundation (F) | 5 | 2 | 1 | 0 | 4 | 5 | 17 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
@@ -19,12 +19,12 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
 | Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **24** | **9** | **0** | **0** | **4** | **54** | **91** |
+| **All** | **24** | **9** | **1** | **0** | **4** | **53** | **91** |
 
 Update this table when you change a status.
 
 ## Next up (in order)
-1. `WEB-ENV01` Owner: add the `STAGING_DB_URL` secret and run the "Staging database" workflow. That is also the real replay test for `WEB-F07b`.
+1. `WEB-F07b` Run the manually triggered **Reset staging database** workflow on `web-portal` with confirmation `RESET_STAGING`; then verify the 19-migration replay and schema parity. The owner has already added `STAGING_DB_URL`.
 2. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
 3. `WEB-F11` Create the first admin account (owner action).
 4. `WEB-F09` Schedule and verify the background jobs. Needs a migration numbered 016, tested on staging first.
