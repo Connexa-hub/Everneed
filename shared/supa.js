@@ -35,6 +35,7 @@
     resendSignup:function(e){return raw("/auth/v1/resend",{m:"POST",b:{type:"signup",email:e},anon:1})},
     verifySignupOtp:function(e,token){return window.Supa.verifySignup(e,token)},
     resendSignupOtp:function(e){return window.Supa.resendSignup(e)},
+    authSettings:function(){return raw("/auth/v1/settings",{anon:1})},
     out:function(){sess=null;try{localStorage.removeItem(KEY)}catch(e){}},
     get:function(p){return api("/rest/v1/"+p)},
     insert:function(t,o){return api("/rest/v1/"+t,{m:"POST",b:o,h:REP})},
