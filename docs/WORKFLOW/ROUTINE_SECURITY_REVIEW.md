@@ -130,6 +130,39 @@ These are conservative initial controls, not a substitute for an edge challenge.
 
 The six anonymous SECURITY DEFINER advisor warnings remain expected because these public features must be callable without accounts. Their presence is not a pass by itself: review the function bodies, grants, search paths, input bounds and abuse controls whenever they change. Staging verification and negative regression tests are required before any production rollout.
 
+## Authenticated-callable public SECURITY DEFINER audit — 12 Nov 2026
+
+The staging catalog was inspected after migration 016 and all 38 public SECURITY DEFINER routines callable by `authenticated` were reviewed by signature, body, owner, ACL, search-path setting and authorization path. The six intended anonymous endpoints are included in this count. The remaining authenticated-callable routines have explicit grants to `authenticated`; the audit found no unexpected anonymous grants on those protected routines. All 38 are owned by `postgres`.
+
+### Controls observed
+
+- Admin mutations (store approval/rejection/suspension, product review, payout, refund, dispatch, hub receive/consolidate, rental payment and payment confirmation) call `private.need_admin()` before protected writes.
+- Buyer order operations scope by `auth.uid()`: cancellation, payment report, receipt confirmation and order tracking.
+- Seller order and earnings operations use store ownership checks and legal transition rules; `my_seller_orders` withholds phone/street until the direct-delivery order reaches the allowed state.
+- Chat read/send/escalate/set operations require membership or admin status. Admin-only chat creation checks admin status.
+- `store_balance` returns a balance only to the owning seller or an admin. `my_role` and `is_admin` derive role from the caller's own profile.
+- The public SLA and store reply-stat RPCs return only operational configuration or aggregate statistics.
+- API roles cannot CREATE objects in either `public` or `private`; both roles do have database TEMP privilege. The audited public RPC bodies use schema-qualified application objects. Migration 017 nevertheless standardizes all 38 authenticated-callable public SECURITY DEFINER routines to an empty `search_path`.
+
+### Findings and remediation
+
+1. **P1 — store-chat/order association:** before migration 017, a buyer could start a chat with an approved store while attaching an order they owned that did not contain that store. The seller could receive a conversation carrying an unrelated order reference. Migration 017 now verifies the selected store appears in that order's `seller_orders` rows.
+2. **P1 — hub item-check completeness:** before migration 017, `hub_receive` checked that each expected item appeared at least once but did not reject extra duplicate results. Migration 017 requires an exact array length, valid statuses, valid item IDs and complete one-to-one coverage.
+3. **P2 — SLA sweep claim handling:** the previous guard relied on `auth.uid() IS NOT NULL`; a malformed authenticated-role claim with no subject could take the service/cron bypass. Migration 017 checks the JWT role and requires admin for every authenticated-role call, while retaining service-role/cron operation.
+4. **P2 — delivery-code strength:** `mark_delivered` currently uses a four-digit code with five attempts per ten minutes per user/order action. This is not a confirmed authorization bypass, but it is a limited search space. Recommend a future six-digit code, short expiry and persistent per-order attempt lockout; this requires a coordinated schema/UI migration and is not changed in 017.
+5. **P2 — refund allocation invariant:** `refund` is admin-only and caps total refunds at the order total, but the ledger reversal is allocated pro-rata to the selected seller order. The business rule for partial refunds across multi-seller orders and delivery fees needs finance/owner confirmation before changing it.
+6. **P2 — private schema exposure:** five `private` SECURITY DEFINER helper predicates are executable by anon/authenticated and `private` has schema USAGE. Their bodies use an empty search path and return caller-scoped predicates/own-store state, but the Supabase Data API exposed-schema setting could not be confirmed from SQL. Confirm that `private` is not exposed through the REST API.
+
+### Migration 017 changes
+
+- Empty `search_path` is applied to all 38 public SECURITY DEFINER routines callable by `authenticated`; their application objects are schema-qualified.
+- `chat_start` binds an order to the selected store and bounds subject/first-message lengths.
+- `hub_receive` rejects duplicate, extra, missing, unknown and malformed item-check entries.
+- `support_sla_sweep` denies every non-admin authenticated-role invocation, including a missing-subject claim, while preserving service-role/cron execution.
+- `supabase/tests/017_authenticated_rpc_security.sql` adds regression checks for the identified boundary cases, protected admin RPC access, empty search paths and PUBLIC/anonymous grants.
+
+Staging application and the full CI rerun are still pending. The test database run must prove the new negative cases before WEB-F17 can be marked DONE.
+
 ## Current decision
 
-Keep the live Everneed01 database untouched. Migration 016 is a staging-only candidate pending CI regression results, staging functional checks, review of the Supabase security advisor output, and the owner's explicit approval before production application. No live privileges, functions, policies, tables or data have been changed.
+Keep the live Everneed01 database untouched. Migrations 016 and 017 are staging-only candidates; do not apply either to production without the owner's explicit approval. No live privileges, functions, policies, tables or data have been changed.

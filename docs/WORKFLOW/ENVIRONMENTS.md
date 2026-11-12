@@ -22,7 +22,7 @@ Everneed has two databases. Both the website and the app are meant to use the sa
 - `everneed.pages.dev` (the bare production address) and **any other address, including a custom domain**, use **live**. A new domain can never land on staging by accident.
 - A yellow "STAGING: test data only" ribbon appears at the bottom of every staging page.
 
-**Staging is currently switched off.** `STAGING_READY` in `shared/config.js` is `false`, so every address still uses live, exactly as before. The guarded clean rebuild succeeded on 12 Nov 2026 and the 19-migration SQL chain was verified against live history. Do not flip the switch until the Auth, storage, test-user and preview setup below is complete.
+**Staging is currently switched off.** `STAGING_READY` in `shared/config.js` is `false`, so every address still uses live, exactly as before. The guarded clean rebuild succeeded on 12 Nov 2026 and the 19-migration historical SQL chain was verified against live history. Hardening migrations 016 and 017 are staging-only; live remains unchanged. Do not flip the switch until the Auth, storage, test-user and preview setup below is complete.
 
 ## Turning staging on (one time)
 Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
