@@ -3,9 +3,10 @@ begin;
 
 drop policy if exists "published policy documents are readable" on public.policy_documents;
 drop policy if exists "policy documents admin manage" on public.policy_documents;
-create policy "policy documents read" on public.policy_documents
-  for select to anon, authenticated
-  using ((published and effective_at <= now()) or public.is_admin());
+create policy "policy documents public read" on public.policy_documents
+  for select to anon using (published and effective_at <= now());
+create policy "policy documents signed-in read" on public.policy_documents
+  for select to authenticated using ((published and effective_at <= now()) or public.is_admin());
 create policy "policy documents admin insert" on public.policy_documents
   for insert to authenticated with check (public.is_admin());
 create policy "policy documents admin update" on public.policy_documents
