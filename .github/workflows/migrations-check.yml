@@ -55,7 +55,15 @@ jobs:
           set -uo pipefail
           # The live database applied these in this order. Filename order must reproduce it.
           expected="000_baseline.sql 001_remove_cj.sql 002_hotfix.sql 0020_multivendor_foundation.sql 0021_multivendor_function_grants_hardening.sql 003_remove_unrecorded_multivendor.sql 0030_signup_profile_fields.sql 004_marketplace_core.sql 005_marketplace_backfill_guards.sql 006_marketplace_rls.sql 007_marketplace_functions.sql 008_hardening.sql 009_profile_settings.sql 010_seller_helpers.sql 011_plans_and_limits.sql 012_support_chat_and_waitlist.sql 013_support_chat_hardening.sql 014_chat_start_official_store.sql 015_support_sla_public.sql"
-          actual=$(ls supabase/migrations | LC_ALL=C sort | tr '\n' ' ' | sed 's/ $//')
+          actual=$(for f in supabase/migrations/*.sql; do basename "$f"; done | awk -F_ '{print $1 "\t" $0}' | LC_ALL=C sort -t 
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::The complete migration directory must contain exactly the 19 live migrations in recorded order (no missing or extra files)."
+            echo "expected: $expected"
+            echo "actual:   $actual"
+            exit 1
+          fi
+          echo "Order matches the live history."
+\t' -k1,1 | cut -f2- | tr '\n' ' ' | sed 's/ $//')
           if [ "$actual" != "$expected" ]; then
             echo "::error::The complete migration directory must contain exactly the 19 live migrations in recorded order (no missing or extra files)."
             echo "expected: $expected"
