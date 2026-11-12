@@ -1,0 +1,65 @@
+name: Migration files
+
+# The Supabase CLI only applies files named <digits>_<name>.sql and silently skips everything else.
+# It applies them in plain filename order. This check fails the push if either rule is broken,
+# so a misnamed migration can never be skipped without anyone noticing.
+
+on:
+  push:
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/workflows/migrations-check.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  names:
+    name: Names and order
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every file is named digits_name.sql
+        shell: bash
+        run: |
+          set -uo pipefail
+          fail=0
+          for f in supabase/migrations/*; do
+            n=$(basename "$f")
+            if [[ ! "$n" =~ ^[0-9]+_[A-Za-z0-9_]+\.sql$ ]]; then
+              echo "::error file=$f::The Supabase CLI would skip this file. Use digits, an underscore, a name, then .sql (for example 016_add_thing.sql)."
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: No two files share a version
+        shell: bash
+        run: |
+          set -uo pipefail
+          dupes=$(ls supabase/migrations | sed -E 's/^([0-9]+)_.*/\1/' | sort | uniq -d)
+          if [ -n "$dupes" ]; then
+            echo "::error::Duplicate migration versions: $dupes"
+            exit 1
+          fi
+          echo "No duplicate versions."
+
+      - name: Replay order is the order recorded in the docs
+        shell: bash
+        run: |
+          set -uo pipefail
+          # The live database applied these in this order. Filename order must reproduce it.
+          expected="000_baseline.sql 001_remove_cj.sql 002_hotfix.sql 0030_multivendor_foundation.sql 0031_multivendor_function_grants_hardening.sql 003_remove_unrecorded_multivendor.sql 0040_signup_profile_fields.sql 004_marketplace_core.sql 005_marketplace_backfill_guards.sql 006_marketplace_rls.sql 007_marketplace_functions.sql 008_hardening.sql 009_profile_settings.sql 010_seller_helpers.sql 011_plans_and_limits.sql 012_support_chat_and_waitlist.sql 013_support_chat_hardening.sql 014_chat_start_official_store.sql 015_support_sla_public.sql"
+          actual=$(ls supabase/migrations | LC_ALL=C sort | head -19 | tr '\n' ' ' | sed 's/ $//')
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::The first 19 migration files do not replay in the live order."
+            echo "expected: $expected"
+            echo "actual:   $actual"
+            exit 1
+          fi
+          echo "Order matches the live history."
