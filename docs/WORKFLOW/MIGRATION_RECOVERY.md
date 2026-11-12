@@ -2,7 +2,7 @@
 
 **Project:** Everneed Supabase `zpgasfweaixwsktlueje`
 **Inspection date:** 12 Nov 2026
-**Status:** **Recovered.** The original SQL for all eight missing migration records was found in the live database and committed unchanged. Replay testing on an empty database is still outstanding (`WEB-F07b`); it will happen on the staging project (`ENVIRONMENTS.md`).
+**Status:** **Recovered and replay-verified on staging.** All 19 live migration records have matching repository files. A clean staging rebuild succeeded on 12 Nov 2026; executable SQL for all 19 files was compared with the stored live statements and matched after removing comments and formatting whitespace. No live database was changed.
 
 ## How it was recovered (12 Nov 2026, Claude)
 
@@ -58,10 +58,9 @@ The `Migration files` check (`.github/workflows/migrations-check.yml`) enforces 
 
 ## What is still open
 
-1. **`000` to `010` are not proven identical to what was applied.** Each repo file is larger than the stored SQL (for example `000`: 12,644 bytes in the repo, 11,616 characters stored; `007`: 55,816 against 53,444). Header comments added later are the likely cause, but this is unconfirmed. Compare each one against the stored text and record the result. Stored text is the authority for what the live database ran.
-2. **Replay test.** The full chain (000 to 015 in filename order) has not been run on an empty database. It is run on the staging project by `staging-db.yml` once the owner adds the `STAGING_DB_URL` secret (`WEB-ENV01`), and locally by the CI `Database tests` job. Never on the live project. Expected issues to look for: anything that relied on a Supabase-provided role or extension, and whether the `media` storage bucket and its policies come from these files.
-3. **Seeds.** `011` seeds three plans (Starter 3,000, Growth 8,000, Pro 20,000) and `012` seeds 8 support rules and 7 canned replies. Each is guarded with `where not exists`, so replay is safe. The closed support-queue row in the live database is operational state and is intentionally not seeded.
-4. **Things a migration file cannot capture.** Edge function code (`supabase/functions/`), Auth settings, storage bucket settings, and the missing `pg_cron` schedule (`WEB-F09`) live outside these files.
+1. **Environment configuration outside migrations.** Auth redirect URLs, the `media` storage bucket and its policies, test users, and the Paystack test Edge Function still need staging setup (`WEB-ENV01`). These are not part of the 19-file SQL chain.
+2. **Seeds and operational state.** `011` seeds three plans (Starter 3,000, Growth 8,000, Pro 20,000) and `012` seeds 8 support rules and 7 canned replies. They are guarded with `where not exists`. The closed support-queue row in live is operational state and is intentionally not seeded.
+3. **Things a migration file cannot capture.** Edge function code (`supabase/functions/`), Auth settings, storage bucket settings, and the missing `pg_cron` schedule (`WEB-F09`) live outside these files.
 
 ## Safety boundary
 
@@ -75,6 +74,14 @@ This document and the recovered files are read-only evidence plus source history
 
 Message triggers: `chat_guard_bi` (BEFORE INSERT, `chat_guard()`) and `chat_triage_ai` (AFTER INSERT, `chat_triage()`). RLS and grants are as described in `DB_CONTRACT.md` and the files under `schema_snapshot/`.
 
+## Replay and exact-SQL verification (12 Nov 2026)
+
+- GitHub Actions reset run `43234686076` completed successfully against staging project `vjiadqygpyebpisxslbx`.
+- The staging migration history was rebuilt from the 19 repository files in the same order as live. A temporary `016_signup_profile_fields.sql` duplicated the already-correct `0030_signup_profile_fields.sql`; it has been removed from the repository. Its no-op row in staging migration metadata still needs reconciliation.
+- Each of the 19 repository migrations was compared with its corresponding `supabase_migrations.schema_migrations.statements` entry on live. After ignoring SQL comments and formatting whitespace (including comments inside dollar-quoted function bodies), all 19 executable SQL bodies match.
+- Staging/live parity checks found matching public columns, RLS policies and RLS-enabled table sets. Four function-body hash differences were inspected and were comments only.
+- No SQL or data was changed on live. The staging reset affected staging only.
+
 ## Conclusion
 
-The migration drift reported in `WEB-F07` is closed at the file level: every one of the 19 live migration records now has its SQL in the repository, named so the Supabase CLI will replay all of them in the live order. What remains is proving the chain replays cleanly (`WEB-F07b`) and confirming `000` to `010` match what was stored.
+`WEB-F07` and `WEB-F07b` are complete: all 19 live migrations are recovered, executable-SQL equivalent to the stored live statements, and successfully replayed on an empty staging database. Remaining staging readiness work is tracked separately under `WEB-ENV01`, `WEB-F09` and the quality/security tasks.
