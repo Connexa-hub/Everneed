@@ -19,7 +19,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
 | Quality (Q) | 1 | 0 | 0 | 0 | 0 | 3 | 4 |
-| **All** | **29** | **8** | **1** | **0** | **4** | **52** | **95** |
+| **All** | **29** | **8** | **1** | **0** | **4** | **52** | **94** |
 
 Update this table when you change a status.
 
@@ -55,7 +55,7 @@ Update this table when you change a status.
 | WEB-F15 | Real URLs instead of `#/` routes (+ `_redirects`) | P2 | TODO | `core.js` router | | | Needed for SEO and shareable store links. |
 | WEB-F16 | Harden public guest-support and waitlist RPCs | P0 | DONE | migration `016_public_rpc_security_hardening`, `supabase/tests/016_public_rpc_security_hardening.sql` | ChatGPT coordinator | web-portal | Applied to staging; public RPC regression tests passed in run `43245491269`. Six intended public RPCs remain callable; helpers are not callable by API roles. Production untouched. |
 | WEB-F17 | Audit and harden authenticated-callable SECURITY DEFINER RPCs | P0 | DONE (staging) | migration `017_authenticated_rpc_boundary_hardening`, `supabase/tests/017_authenticated_rpc_security.sql` | ChatGPT coordinator | web-portal | Reviewed all 38 functions. Staging migration run `43244981357` succeeded; SQL regression tests passed in `43245491269`; catalog check confirms 38/38 empty search paths and zero PUBLIC EXECUTE. CI web, migration and APK workflows passed on `6018cb0`. Production untouched. |
-| WEB-F18 | Require server-verified Cloudflare Turnstile for public waitlist and guest support | P0 | IN PROGRESS | `supabase/functions/public-forms/`, migration `018_turnstile_public_rpc_boundary.sql`, website support/waitlist forms | ChatGPT coordinator | web-portal | Turnstile widget created for `everneed.pages.dev` (sitekey stored in public config); server secret must be configured as a Supabase Edge Function secret on staging before deployment. Public RPC grants will be narrowed to `service_role` only after the proxy is ready. Production untouched. |
+| WEB-F18 | Require server-verified Cloudflare Turnstile for public waitlist and guest support | P0 | IN PROGRESS | `supabase/functions/public-forms/`, migration `018_turnstile_public_rpc_boundary.sql`, website support/waitlist forms | ChatGPT coordinator | web-portal | Turnstile widget created for `everneed.pages.dev` (public sitekey stored in config); migration 018 applied to staging and ACL regression passed; `public-forms` Edge Function v1 is deployed ACTIVE with JWT verification. Add `TURNSTILE_SECRET_KEY` to staging Edge Function secrets before end-to-end verification. Preview uses the legacy RPC path until `STAGING_READY=true`; production untouched. |
 
 ## M. Public site
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
