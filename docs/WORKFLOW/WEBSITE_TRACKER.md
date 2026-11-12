@@ -9,15 +9,16 @@ Status words: `TODO`, `IN PROGRESS`, `PARTIAL`, `BLOCKED`, `NEEDS OWNER`, `DONE`
 Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 
 ## Scoreboard
-| Area | Done | Partial | Todo | Total |
-|---|---|---|---|---|
-| Foundation (F) | 6 | 1 | 8 | 15 |
-| Public site (M) | 5 | 0 | 6 | 11 |
-| Accounts (A) | 4 | 0 | 2 | 6 |
-| Seller portal (S) | 3 | 2 | 11 | 16 |
-| Admin console (AD) | 5 | 1 | 13 | 19 |
-| Shared with the app (X) | 2 | 0 | 5 | 7 |
-| Quality (Q) | 0 | 0 | 4 | 4 |
+| Area | Done | Partial | Needs owner | Todo | Total |
+|---|---|---|---|---|---|
+| Foundation (F) | 5 | 0 | 4 | 6 | 15 |
+| Public site (M) | 5 | 0 | 0 | 6 | 11 |
+| Accounts (A) | 4 | 0 | 0 | 2 | 6 |
+| Seller portal (S) | 2 | 2 | 0 | 12 | 16 |
+| Admin console (AD) | 5 | 1 | 0 | 13 | 19 |
+| Shared with the app (X) | 2 | 0 | 0 | 5 | 7 |
+| Quality (Q) | 0 | 0 | 0 | 4 | 4 |
+| **All** | **23** | **3** | **4** | **48** | **78** |
 
 Update this table when you change a status.
 
@@ -37,7 +38,7 @@ Update this table when you change a status.
 | WEB-F02 | Responsive admin and portal shell (no sideways scroll on phones) | P0 | DONE | `css/shell.css` | Claude | web-portal | `784cfdf`. Awaiting owner check on a phone. |
 | WEB-F03 | Boot diagnostic screen on blank or broken page | P0 | DONE | `js/boot.js`, `index.html` | Claude | web-portal | `d41cfb2`, `964f5dd`, `1e2828c` |
 | WEB-F04 | CI: syntax check, file references, global names | P0 | DONE | `.github/workflows/web-checks.yml` | Claude | web-portal | `1a08f8e`. Confirm first run is green. |
-| WEB-F05 | Deploy on Cloudflare Pages | P0 | NEEDS OWNER | `web/_headers`, `cloudflare-pages-package.yml` | owner | web-portal | `0549687`. Owner connects Git: build copy command and output `web`. Settings in chat history and README. |
+| WEB-F05 | Deploy on Cloudflare Pages | P0 | NEEDS OWNER | `web/_headers`, `cloudflare-pages-package.yml` | owner | web-portal | `0549687`. Owner connects Git. Build command is the `cp` line from `netlify.toml`; output directory `web`. |
 | WEB-F06 | `main` identical to `web-portal` | P0 | DONE | git | owner | main | `c816c1b` (PR #1) |
 | WEB-F07 | Export live migrations 011 to 015 into `supabase/migrations/` | P0 | TODO | live DB, `DB_CONTRACT.md` | | | Drift: chat, support, waitlist, plans exist only live. Delete `shared/sql/011_website_sync.sql` once exported. |
 | WEB-F08 | Remove `keystore/` from git and rotate the key | P0 | NEEDS OWNER | `keystore/`, `.github/workflows/build.yml` | owner | | Debug key is committed and CI ships a debug build. Use GitHub Secrets. |
