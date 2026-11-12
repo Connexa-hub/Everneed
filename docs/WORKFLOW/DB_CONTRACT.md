@@ -130,11 +130,12 @@ The following read-only snapshots are now tracked under `docs/WORKFLOW/schema_sn
 - `triggers-and-trigger-functions.json`: nine non-internal trigger definitions and their trigger-function bodies.
 - `auth-dependencies.json`: the application-owned `auth.users` signup trigger and `public.on_signup()` dependency.
 - `advisor-findings.json`: current Supabase security/performance advisor output; see `docs/WORKFLOW/SUPABASE_ADVISOR_REVIEW.md` for interpretation.
+- `support-config-seed.json`: 16 non-personal support configuration seed candidates; the closed operational support-queue record is deliberately excluded.
 
 The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_REVIEW.md`. It is a review checklist, not a security certification. The live project remains unchanged.
 
 ## Live facts that matter
-- Core commerce tables currently have 0 profiles, 0 products, and 0 orders; this does **not** mean the whole database is empty. Support/configuration data exists: `support_settings` (1), `support_rules` (8), `support_queue` (1), and `canned_replies` (7), totaling 17 rows that must be preserved. No admin account exists yet (`WEB-F11`).
+- Core commerce tables currently have 0 profiles, 0 products, and 0 orders; this does **not** mean the whole database is empty. Support/configuration data exists: `support_settings` (1), `support_rules` (8), `support_queue` (1), and `canned_replies` (7). A read-only review identified 16 non-personal configuration records as baseline seed candidates (1 SLA settings row, 8 rules, 7 canned replies). The one support-queue row is closed operational state: preserve it in the live project, but do not seed that transient record into a clean database. No admin account exists yet (`WEB-F11`).
 - Extensions `pg_cron` and `pg_net` are **not installed**, so nothing runs on a schedule (`WEB-F09`). The functions that need a schedule: `release_earnings`, `expire_rentals`, `support_sla_sweep`, `run_scheduled_jobs`.
 - Security advisor: leaked-password protection is off (`WEB-F10`, owner dashboard setting).
 - Edge function: `paystack` v4, ACTIVE.
