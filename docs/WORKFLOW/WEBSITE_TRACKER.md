@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — WEB-A01: redesigned marketplace-first animated account experience and progressive sign-in/registration steps (`6567018`, `e1a9616`, `8e29cdd`); automated checks and preview deployment pending.
+**Last updated:** 12 Nov 2026 — WEB-A01: rebuilt dedicated account screens with connected four-product wave, clean progressive forms and signup OTP verification/resend (`d5a4333`, `c0f251d`, `405b61a`, `b3b0947`, `1cea71b`); CI, preview deployment and real-account confirmation pending.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -74,7 +74,7 @@ Update this table when you change a status.
 ## A. Accounts
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal | Unified marketplace-first animated account intro; step-by-step registration (name → email → password → confirmation) and sign-in (email → password), progress/back navigation, responsive layout and reduced-motion support. Customer accounts land on My account, merchant/seller roles on portal, admin role on console; permissions remain backend-controlled. Commits `6567018`, `e1a9616`, `8e29cdd`. Automated checks, preview deployment, real account E2E and owner phone review pending. |
+| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `shared/supa.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal | Dedicated `/sign-in` and `/create-account` screens without public header/footer; heading and marketplace explanation above four connected product illustrations in a wave, with the step-by-step form below. Signup now presents a 6-digit email OTP screen, supports resend, verifies through Supabase Auth, and activates session only after successful verification; sign-in errors for unconfirmed email return users to verification. Confirmation-link callback is also handled by the shared Supabase client. Refined compact toast and removed orbit/floating animation. Commits `d5a4333`, `c0f251d`, `405b61a`, `b3b0947`, `1cea71b`, `f4d71ba`. CI, preview deployment, OTP delivery/verification E2E, and owner phone review pending. Role authorization remains backend-controlled. |
 | WEB-A02 | Role redirect (admin to console, seller to portal) | P0 | DONE | `fixes.js`, `site.js` | | | |
 | WEB-A03 | Session refresh and sign out | P0 | DONE | `supa.js` | | | |
 | WEB-A04 | Theme saved to profile | P2 | DONE | `theme.js` | | | |
