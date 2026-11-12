@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — WEB-A01: unified customer/seller/admin sign-in and open registration implemented on `web-portal` (`27a2f61`, `c5b90fe`); website syntax/reference CI passed; staging preview deployment succeeded; live account E2E remains pending.
+**Last updated:** 12 Nov 2026 — WEB-A01: redesigned marketplace-first animated account experience and progressive sign-in/registration steps (`6567018`, `e1a9616`, `8e29cdd`); automated checks and preview deployment pending.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -74,7 +74,7 @@ Update this table when you change a status.
 ## A. Accounts
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal | Unified public sign-in and open registration; customer accounts land on My account, merchant/seller roles on portal, admin role on console. Seller/admin permissions remain backend-controlled. Preview build `c5b90fe` deployed; Web checks passed. Registration/login E2E and owner phone review still pending. |
+| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal | Unified marketplace-first animated account intro; step-by-step registration (name → email → password → confirmation) and sign-in (email → password), progress/back navigation, responsive layout and reduced-motion support. Customer accounts land on My account, merchant/seller roles on portal, admin role on console; permissions remain backend-controlled. Commits `6567018`, `e1a9616`, `8e29cdd`. Automated checks, preview deployment, real account E2E and owner phone review pending. |
 | WEB-A02 | Role redirect (admin to console, seller to portal) | P0 | DONE | `fixes.js`, `site.js` | | | |
 | WEB-A03 | Session refresh and sign out | P0 | DONE | `supa.js` | | | |
 | WEB-A04 | Theme saved to profile | P2 | DONE | `theme.js` | | | |
