@@ -18,7 +18,7 @@ Read this before touching anything. Several AIs and the owner push to this repo.
 | `web-portal` | The single development and integration branch for **both the app and website**. All developers and AIs edit, test and confirm work here. |
 | `main` | The reviewed release/production branch. It receives confirmed changes from `web-portal` through pull requests. Cloudflare Pages production deploys from `main`. |
 
-There is one codebase and one shared project workflow: the app and website are both maintained in this repository and on `web-portal`, then included together in `main`. Do not create, use or refer to a separate app-development branch. The retired `everneed01` branch is not part of the workflow.
+There is one codebase and one shared project workflow: the app and website are both maintained in this repository and on `web-portal`, then included together in `main`. Do not create or use a separate app-development branch.
 
 ### Required release cycle
 1. Claim a task in `WEBSITE_TRACKER.md` and work only on `web-portal`.
