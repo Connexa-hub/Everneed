@@ -1,0 +1,125 @@
+name: Web checks
+
+# Catches the two classes of bug that blanked the site on 12 Nov 2026:
+#  1. a JavaScript syntax error in any file (the browser silently skips the whole file)
+#  2. index.html pointing at a file that is not there after the Netlify build step copies the shared files
+# Every AI or person pushing to this project gets the same check, so a broken push shows a red cross on GitHub.
+
+on:
+  push:
+    branches: [web-portal, everneed01, main]
+    paths:
+      - 'web/**'
+      - 'shared/**'
+      - 'js/**'
+      - 'css/**'
+      - 'fonts/**'
+      - 'netlify.toml'
+      - '.github/workflows/web-checks.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'shared/**'
+      - 'js/**'
+      - 'css/**'
+      - 'fonts/**'
+      - 'netlify.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  website:
+    name: Website syntax and references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Reproduce the Netlify build step
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p web/assets/css web/assets/js
+          cp css/tokens.css css/fonts.css web/assets/css/
+          cp -r fonts web/assets/fonts
+          cp js/theme.js web/assets/js/
+          cp shared/*.js web/assets/js/
+
+      - name: Syntax check every website script
+        shell: bash
+        run: |
+          set -uo pipefail
+          fail=0
+          for f in web/assets/js/*.js shared/*.js js/theme.js; do
+            if ! out=$(node --check "$f" 2>&1); then
+              echo "::error file=$f::Syntax error"
+              echo "$out"
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "All website scripts parse."
+
+      - name: Every file index.html loads must exist
+        shell: bash
+        run: |
+          set -uo pipefail
+          fail=0
+          for ref in $(grep -oE '(src|href)="/[^"#?]+"' web/index.html | sed -E 's/^(src|href)="//; s/"$//'); do
+            if [ ! -f "web${ref}" ]; then
+              echo "::error file=web/index.html::Missing after build: ${ref}"
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "All referenced files exist."
+
+      - name: Script globals are defined before they are used
+        shell: bash
+        run: |
+          set -uo pipefail
+          # Each global must be assigned by the file that is loaded before its first user, in index.html order.
+          fail=0
+          check() { # global, file that defines it
+            if ! grep -qE "(window\.$1\s*=|var $1\s*=|const $1\s*=|let $1\s*=)" "web/assets/js/$2"; then
+              echo "::error file=web/assets/js/$2::Does not define $1"
+              fail=1
+            fi
+          }
+          check CFG config.js
+          check Ico icons.js
+          check Art art.js
+          check Supa supa.js
+          check Theme theme.js
+          check Core core.js
+          check Mock mock.js
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "Globals defined."
+
+  app-scripts:
+    name: App scripts (report only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check app scripts
+        shell: bash
+        run: |
+          set -uo pipefail
+          fail=0
+          for f in $(find js -name '*.js' -type f); do
+            if ! out=$(node --check "$f" 2>&1); then
+              echo "::warning file=$f::Syntax error"
+              echo "$out"
+              fail=1
+            fi
+          done
+          exit $fail
