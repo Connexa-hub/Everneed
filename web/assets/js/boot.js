@@ -3,7 +3,7 @@
    styles on purpose, so it still works when the stylesheets or other scripts are the thing that broke. */
 (function(){
   var errs=[],started=false,shown=false;
-  var NEED=["CFG","Ico","Art","Supa","Theme","Core","Mock","Chat"];
+  var NEED=["CFG","Ico","Art","Supa","Theme","Core","Mock"];
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
   function short(u){try{return String(u).replace(location.origin,"")}catch(e){return String(u)}}
   function add(kind,msg,where){errs.push({kind:kind,msg:String(msg||"Unknown error"),where:where||"",at:new Date().toISOString()});if(started)check()}
@@ -47,8 +47,8 @@
   }
   function check(){
     if(shown){var p=document.getElementById("boot-d");if(p)p.textContent=details();return}
-    var m=missing(),fatal=errs.some(function(x){return x.kind==="load"||x.kind==="script"});
-    if(blank()||(m.length&&errs.length)||(fatal&&blank()))panel();
+    var m=missing();
+    if(blank()||(m.length&&errs.length))panel();
   }
   window.Boot={
     errors:function(){return errs.slice()},
