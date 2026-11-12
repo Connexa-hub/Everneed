@@ -3,14 +3,16 @@
 Snapshot taken **12 Nov 2026** from the live database. This contract applies to the app and website because they are parts of the same Everneed platform and use the shared Supabase backend. The function map records known website and app call sites, with app coverage distinguished as static source evidence versus live/device verification. Do not assume a function is app-integrated merely because it exists in the database.
 If you change the database, update this file in the same commit. Status words are defined in `AI_PROTOCOL.md`.
 
+A second database, **staging** (`Everneed-staging`, ref `vjiadqygpyebpisxslbx`), exists for testing. Live is the only database described below. How the two relate, and how a change moves between them, is in `ENVIRONMENTS.md`.
+
 ## Branch and database workflow
 - App and website changes are developed together on `web-portal` and released together to `main` through a reviewed pull request.
 - Both clients must use the same documented function signatures, status rules, money rules and RLS expectations. Put reusable client helpers in `shared/`.
-- Database changes must be committed as numbered files in `supabase/migrations/` before they are applied to the live project. Update this contract and the project tracker in the same change.
+- Database changes must be committed as numbered files in `supabase/migrations/` before they are applied anywhere. They reach staging automatically (`staging-db.yml`) and live by hand with the owner's approval. Update this contract and the project tracker in the same change.
 - Verify the Supabase project reference before applying any migration. Never apply a migration to a different project based only on a copied project ID.
 
 ## How the app and website talk to the database
-- Browser client: `shared/supa.js` (`Supa.get`, `insert`, `patch`, `rpc`, `rpcAnon`, `upload`). Public anon key in `shared/config.js`.
+- Browser client: `shared/supa.js` (`Supa.get`, `insert`, `patch`, `rpc`, `rpcAnon`, `upload`). Public anon key in `shared/config.js`, which also holds the staging key and picks one by page address.
 - Row Level Security is **on for every public table**. RLS controls rows, but SQL object grants and function EXECUTE privileges are separate controls; review all three. The browser should never receive privileges beyond its intended role and policies.
 - Money movement and protected order/store transitions are implemented through privileged database functions and guards. Do not assume every SECURITY DEFINER routine has the same authorization pattern: the live inventory found 84 application routines, 58 SECURITY DEFINER functions, and six SECURITY DEFINER functions with PUBLIC EXECUTE. Their caller checks, ACLs, search paths, and exposed-schema reachability must be reviewed individually. The app and website should use approved RPCs rather than writing protected tables directly.
 - Payments: edge function `paystack` (HMAC-verified webhook, `verify_jwt` off by design). Not yet called by the website; app integration must be verified during the app audit.
@@ -103,17 +105,17 @@ Policy counts in brackets.
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. Files sort in the order they were applied live. **Next migration number: 016**, but do not apply anything new until the replay test below (`WEB-F07b`) has passed on a disposable database.
+Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 016.**
 
 | File | Live version | In repo | Applied live |
 |---|---|---|---|
 | `000_baseline` | 20261029014653 | yes (see note) | yes |
 | `001_remove_cj` | 20261029014658 | yes (see note) | yes |
 | `002_hotfix` | 20261029014913 | yes (see note) | yes |
-| `002a_multivendor_foundation` | 20261029044105 | **yes, recovered 12 Nov 2026** | yes |
-| `002b_multivendor_function_grants_hardening` | 20261029044131 | **yes, recovered 12 Nov 2026** | yes |
+| `0030_multivendor_foundation` | 20261029044105 (`multivendor_foundation`) | **yes, recovered 12 Nov 2026** | yes |
+| `0031_multivendor_function_grants_hardening` | 20261029044131 | **yes, recovered 12 Nov 2026** | yes |
 | `003_remove_unrecorded_multivendor` | 20261029081939 | yes (see note) | yes |
-| `003a_signup_profile_fields` | 20261029134730 | **yes, recovered 12 Nov 2026** | yes |
+| `0040_signup_profile_fields` | 20261029134730 (`signup_profile_fields`) | **yes, recovered 12 Nov 2026** | yes |
 | `004_marketplace_core` to `010_seller_helpers` | 20261029184309 to 20261102105101 | yes (see note) | yes |
 | `011_plans_and_limits` | 20261104011326 | **yes, recovered 12 Nov 2026** | yes |
 | `012_support_chat_and_waitlist` | 20261111073217 | **yes, recovered 12 Nov 2026** | yes |
@@ -121,11 +123,15 @@ Repo folder: `supabase/migrations/`. Files sort in the order they were applied l
 | `014_chat_start_official_store` | 20261111073320 | **yes, recovered 12 Nov 2026** | yes |
 | `015_support_sla_public` | 20261111073610 | **yes, recovered 12 Nov 2026** | yes |
 
-**How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters. The names `002a`, `002b` and `003a` are file names only; the live records have no number. They are lettered so a plain sort replays them in the live order.
+**How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters.
+
+**Why `0030`, `0031` and `0040`.** Three of the live records never had a number. They first got letter names (`002a`, `002b`, `003a`), but the Supabase CLI only applies files named `digits_name.sql` and silently skips the rest, which would have dropped `signup_profile_fields` from any rebuild. Digits-only versions fix that: `0030` and `0031` sort after `002_hotfix` and before `003_remove_unrecorded_multivendor`, and `0040` sorts after `003_` and before `004_`. The new files are byte-for-byte copies of the old ones (identical git hashes). The `Migration files` check (`.github/workflows/migrations-check.yml`) fails a push if any file name would be skipped, if two files share a version, or if the first 19 do not replay in the live order.
+
+**`003` removes what `0030` and `0031` create.** `003_remove_unrecorded_multivendor` drops the stores, orders and helper functions that `0030` built, because they had been added to the live database without files. Replaying all three reproduces live exactly.
 
 **Note on `000` to `010`.** These files were already in the repo, but each is **larger** than the SQL stored live (for example `000` is 12,644 bytes in the repo against 11,616 characters stored). The likely cause is header comments added later, but this has not been confirmed line by line. They are not proven identical to what was applied. See `WEB-F07b`.
 
-**What is still not proven.** Having the files is not the same as a working chain. The full sequence has not been replayed on an empty database, so nothing here proves a fresh database can be built from the repo. That is `WEB-F07b`. A replay must never be run against the live project. `docs/WORKFLOW/MIGRATION_RECOVERY.md` has the forensic evidence; `shared/sql/011_website_sync.sql` is an older partial copy and is superseded by `012`.
+**What is still not proven.** Having the files is not the same as a working chain. The first real replay on an empty database is the staging run (`staging-db.yml`, see `ENVIRONMENTS.md`), together with the local replay in the CI `Database tests` job. Neither has reported on the 19-file chain yet. That is `WEB-F07b`. A replay must never be run against the live project. `docs/WORKFLOW/MIGRATION_RECOVERY.md` has the forensic evidence; `shared/sql/011_website_sync.sql` is an older partial copy and is superseded by `012`.
 
 ## Baseline recovery evidence added (12 Nov 2026)
 
@@ -147,12 +153,12 @@ The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_RE
 - Extensions `pg_cron` and `pg_net` are **not installed**, so nothing runs on a schedule (`WEB-F09`). The functions that need a schedule: `release_earnings`, `expire_rentals`, `support_sla_sweep`, `run_scheduled_jobs`.
 - Security advisor: leaked-password protection is off (`WEB-F10`, owner dashboard setting).
 - Edge function: `paystack` v4, ACTIVE.
-- Storage bucket used by uploads: `media` (public read, 5 MiB maximum, JPEG/PNG/WebP/GIF). Public read does not imply public write; the six `storage.objects` policies are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`.
+- Storage bucket used by uploads: `media` (public read, 5 MiB maximum, JPEG/PNG/WebP/GIF). Public read does not imply public write; the six `storage.objects` policies are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`. It is not yet confirmed that the migration files create this bucket; the staging run will show it.
 - The three seed sets (plans in `011`, support rules and canned replies in `012`) are inserted by the recovered migrations themselves, guarded by `where not exists`, so a fresh chain re-creates them.
 
 ## How to add a database change
 1. Read the table or function you are changing in the live database first.
-2. Number it **016** or higher, after the replay test `WEB-F07b` has passed. If you must go before that, say so in the PR.
-3. Write and test the proposed migration on a disposable database first; run database tests and security advisors, then compare the result with the intended schema/security contract.
+2. Number it **016** or higher. Digits, underscore, name, `.sql`.
+3. Push it to `web-portal`. It is applied to **staging** automatically and the `Database tests` job replays it locally; run the security advisors and compare the result with the intended schema/security contract.
 4. Commit the reviewed migration and update this contract and the project tracker in the same PR.
-5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline.
+5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline, and never run `supabase db push` against live.
