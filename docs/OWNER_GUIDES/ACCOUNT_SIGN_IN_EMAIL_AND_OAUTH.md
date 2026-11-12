@@ -31,7 +31,7 @@ A frontend button or hidden page is never a security boundary. Supabase policies
 | Development / preview | Everneed-staging | vjiadqygpyebpisxslbx | Develop and test against a production-compatible schema and configuration, using test accounts and test data |
 | Production / live | Everneed01 | zpgasfweaixwsktlueje | Real user accounts and live marketplace data |
 
-Staging is a separate development database intended to mirror production's schema, migrations, policies and expected backend behaviour. It lets us develop against the production design without risking real customer records. Keep schema and migrations aligned, but use separate Auth users, secrets, payment test credentials and test data.
+Staging is a separate development database intended to mirror production's schema, migrations, policies and expected backend behaviour. It lets us develop against the production design without risking real customer records. Keep the production baseline reproducible. Staging may also contain newer, unpromoted development migrations (currently 016–018) that are being tested before any production approval. Use separate Auth users, secrets, payment test credentials and test data.
 
 **Important:** staging is not a safe alias for the live database. Preview and local development must use staging. Do not copy real customer records into staging or point a staging build at live data. Production changes are promoted only after staging verification and owner approval.
 
