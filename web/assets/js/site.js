@@ -96,7 +96,7 @@
       stage.addEventListener("keydown",function(e){if(e.key==="Enter"&&stage.querySelector("[data-auth-next]")){e.preventDefault();stage.querySelector("[data-auth-next]").click()}});
       formEl.addEventListener("submit",function(e){
         var input=stage.querySelector("#auth-current"),value=input?input.value:"";
-        if(up&&state.step===3){if(value!==state.pw){e.preventDefault();C.toast("Your passwords do not match.",true);return}state.pw2=value}
+        if(up&&state.step===3){if(value!==state.pw){e.preventDefault();e.stopPropagation();C.toast("Your passwords do not match.",true);return}state.pw2=value}
         if(!up&&state.step===1)state.pw=value;
         if(up&&state.step===2)state.pw=value;
         sync();
