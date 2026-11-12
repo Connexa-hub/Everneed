@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — WEB-A01: unified public account sign-in/registration flow claimed by ChatGPT; staging preview remains the test environment.
+**Last updated:** 12 Nov 2026 — WEB-A01: unified customer/seller/admin sign-in and open registration implemented on `web-portal` (`27a2f61`, `c5b90fe`); website syntax/reference CI passed; staging preview deployment succeeded; live account E2E remains pending.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -74,7 +74,7 @@ Update this table when you change a status.
 ## A. Accounts
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `site.js`, `supa.js` | ChatGPT | web-portal |
+| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal |
 | WEB-A02 | Role redirect (admin to console, seller to portal) | P0 | DONE | `fixes.js`, `site.js` | | | |
 | WEB-A03 | Session refresh and sign out | P0 | DONE | `supa.js` | | | |
 | WEB-A04 | Theme saved to profile | P2 | DONE | `theme.js` | | | |
