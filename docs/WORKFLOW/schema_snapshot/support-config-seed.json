@@ -1,0 +1,207 @@
+{
+  "source": "read-only export of non-personal support configuration",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "inspection_date": "2026-11-12",
+  "warning": "Seed candidates only. Review against original migrations before any baseline recreation. This file intentionally excludes live support queue records.",
+  "support_settings": [
+    {
+      "key": "sla",
+      "value": {
+        "minutes": {
+          "pro": 15,
+          "none": 480,
+          "growth": 60,
+          "starter": 240
+        },
+        "seller_reply_minutes": 30,
+        "auto_escalate_extra_minutes": 30
+      }
+    }
+  ],
+  "support_rules": [
+    {
+      "id": 1,
+      "tag": "refund",
+      "name": "Refund or payment dispute",
+      "reply": null,
+      "action": "escalate",
+      "active": true,
+      "reason": "Refund or payment dispute",
+      "pattern": "\\y(refund|money back|chargeback|charge ?back|double charge|charged twice)\\y",
+      "priority": 1,
+      "applies_to": [
+        "store",
+        "support",
+        "seller_admin"
+      ]
+    },
+    {
+      "id": 2,
+      "tag": "trust-safety",
+      "name": "Fraud, safety or legal",
+      "reply": null,
+      "action": "escalate",
+      "active": true,
+      "reason": "Possible fraud, safety or legal issue",
+      "pattern": "\\y(scam|scammer|fraud|fake|stole|stolen|cheated|police|lawyer|sue|blackmail|threat\\w*)\\y",
+      "priority": 2,
+      "applies_to": [
+        "store",
+        "support",
+        "seller_admin"
+      ]
+    },
+    {
+      "id": 3,
+      "tag": "delivery",
+      "name": "Delivery problem",
+      "reply": null,
+      "action": "tag",
+      "active": true,
+      "reason": "Delivery problem",
+      "pattern": "(not (yet )?(delivered|received|arrived)|never (arrived|came|received)|still waiting|missing item|wrong item|damaged|broken|very late)",
+      "priority": 1,
+      "applies_to": [
+        "store",
+        "support"
+      ]
+    },
+    {
+      "id": 4,
+      "tag": "abuse",
+      "name": "Abusive language",
+      "reply": null,
+      "action": "escalate",
+      "active": true,
+      "reason": "Abusive language",
+      "pattern": "\\y(idiot|stupid|fool|useless|bastard|fuck\\w*|shit\\w*)\\y",
+      "priority": 1,
+      "applies_to": [
+        "store",
+        "support",
+        "seller_admin"
+      ]
+    },
+    {
+      "id": 5,
+      "tag": "off-platform",
+      "name": "Off-platform payment",
+      "reply": "Keep payment and delivery inside Everneed. Paying or arranging delivery outside the app removes buyer protection and the delivery-code safeguard.",
+      "action": "shield",
+      "active": true,
+      "reason": "Possible off-platform payment",
+      "pattern": "(pay (me )?(directly|outside)|send (me )?(the )?(money|cash|payment)|transfer (it )?to my|my account number|whatsapp me|call me on|outside (the )?(app|everneed))",
+      "priority": 1,
+      "applies_to": [
+        "store"
+      ]
+    },
+    {
+      "id": 6,
+      "tag": "human-requested",
+      "name": "Asked for a person",
+      "reply": null,
+      "action": "escalate",
+      "active": true,
+      "reason": "Asked for a person",
+      "pattern": "((speak|talk) to (a |an |the )?(human|person|agent|someone|admin|manager|supervisor)|customer care|real person)",
+      "priority": 0,
+      "applies_to": [
+        "store",
+        "support"
+      ]
+    },
+    {
+      "id": 7,
+      "tag": "billing",
+      "name": "Seller billing",
+      "reply": null,
+      "action": "tag",
+      "active": true,
+      "reason": "Billing question",
+      "pattern": "\\y(payout|withdraw\\w*|commission|subscription|upgrade|downgrade|renew\\w*)\\y",
+      "priority": 0,
+      "applies_to": [
+        "support",
+        "seller_admin"
+      ]
+    },
+    {
+      "id": 8,
+      "tag": "account",
+      "name": "Account access",
+      "reply": null,
+      "action": "tag",
+      "active": true,
+      "reason": "Account access",
+      "pattern": "(password|hacked|locked out|can.t (log|sign) ?in|verification code)",
+      "priority": 0,
+      "applies_to": [
+        "support",
+        "seller_admin"
+      ]
+    }
+  ],
+  "canned_replies": [
+    {
+      "id": "65ebf109-98b0-4ba4-ac64-4c149a71d2cc",
+      "body": "I have passed this to the right team and will update you here.",
+      "scope": "admin",
+      "owner_is_null": true
+    },
+    {
+      "id": "68ca3969-5fda-4326-b5df-db8e87b2f6b1",
+      "body": "Is there anything else I can help with? I will mark this resolved shortly.",
+      "scope": "admin",
+      "owner_is_null": true
+    },
+    {
+      "id": "6d52867f-95c4-4075-bbb6-f83bee81972f",
+      "body": "Could you share your order number so I can look into it?",
+      "scope": "admin",
+      "owner_is_null": true
+    },
+    {
+      "id": "9a18f2e0-03e0-4e85-aa82-888d3c923a93",
+      "body": "Thanks for your message. I will check and get back to you shortly.",
+      "scope": "seller",
+      "owner_is_null": true
+    },
+    {
+      "id": "9e7936ef-d0b0-45e0-8689-74f13adf5057",
+      "body": "Reminder: only share your delivery code with the rider when you receive your items.",
+      "scope": "seller",
+      "owner_is_null": true
+    },
+    {
+      "id": "af02cd8e-7445-4f28-ba70-3c12087cd0ad",
+      "body": "Your order is being prepared and will be handed over for delivery soon.",
+      "scope": "seller",
+      "owner_is_null": true
+    },
+    {
+      "id": "b10c7f0a-c1d1-4237-a9c3-f45d2d0a5a25",
+      "body": "Hi, thanks for contacting Everneed. How can I help?",
+      "scope": "admin",
+      "owner_is_null": true
+    }
+  ],
+  "support_queue": {
+    "observed_count": 1,
+    "statuses": {
+      "closed": 1
+    },
+    "baseline_action": "Do not seed this operational queue row into a clean database. It is a closed transient record and may contain visitor/customer data."
+  },
+  "counts": {
+    "support_settings": 1,
+    "support_rules": 8,
+    "canned_replies": 7,
+    "config_seed_records": 16
+  },
+  "notes": [
+    "16 configuration records are candidate seeds: 1 SLA settings row, 8 support rules, and 7 canned replies.",
+    "The one support_queue row is a closed operational record, not configuration; it is excluded from seed content and no identifier/name/message data is exported.",
+    "No live records were changed or deleted."
+  ]
+}

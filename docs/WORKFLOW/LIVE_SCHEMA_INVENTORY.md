@@ -33,7 +33,7 @@ The inventory is an initial pass. A baseline is not ready until the full definit
 | Support queue | 1 row |
 | Canned replies | 7 rows |
 
-The four support/configuration tables above contain 17 rows in total. Preserve them; do not describe the database as completely empty.
+The four support/configuration tables above contain 17 rows in total. The read-only seed review identifies 16 non-personal configuration records (1 SLA setting, 8 rules, 7 canned replies). The single support_queue row is closed operational state: preserve it in the live project, but do not seed that transient record into a clean baseline. Do not describe the database as completely empty.
 
 ## Public table inventory
 
