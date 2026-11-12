@@ -103,21 +103,29 @@ Policy counts in brackets.
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. **Next migration number: do not assign until the recovered history is reconciled.**
+Repo folder: `supabase/migrations/`. Files sort in the order they were applied live. **Next migration number: 016**, but do not apply anything new until the replay test below (`WEB-F07b`) has passed on a disposable database.
 
-| # | Name | In repo | Applied live |
+| File | Live version | In repo | Applied live |
 |---|---|---|---|
-| 000 to 010 | numbered migrations present in repo | yes | yes |
-| — | multivendor_foundation (20261029044105) | **NO — recovery in progress** | yes |
-| — | multivendor_function_grants_hardening (20261029044131) | **NO — recovery in progress** | yes |
-| — | signup_profile_fields (20261029134730) | **NO — recovery in progress** | yes |
-| 011 | plans_and_limits | **NO — recovery in progress** | yes (20261104011326) |
-| 012 | support_chat_and_waitlist | **NO — recovery in progress** | yes (20261111073217) |
-| 013 | support_chat_hardening | **NO — recovery in progress** | yes (20261111073234) |
-| 014 | chat_start_official_store | **NO — recovery in progress** | yes (20261111073320) |
-| 015 | support_sla_public | **NO — recovery in progress** | yes (20261111073610) |
+| `000_baseline` | 20261029014653 | yes (see note) | yes |
+| `001_remove_cj` | 20261029014658 | yes (see note) | yes |
+| `002_hotfix` | 20261029014913 | yes (see note) | yes |
+| `002a_multivendor_foundation` | 20261029044105 | **yes, recovered 12 Nov 2026** | yes |
+| `002b_multivendor_function_grants_hardening` | 20261029044131 | **yes, recovered 12 Nov 2026** | yes |
+| `003_remove_unrecorded_multivendor` | 20261029081939 | yes (see note) | yes |
+| `003a_signup_profile_fields` | 20261029134730 | **yes, recovered 12 Nov 2026** | yes |
+| `004_marketplace_core` to `010_seller_helpers` | 20261029184309 to 20261102105101 | yes (see note) | yes |
+| `011_plans_and_limits` | 20261104011326 | **yes, recovered 12 Nov 2026** | yes |
+| `012_support_chat_and_waitlist` | 20261111073217 | **yes, recovered 12 Nov 2026** | yes |
+| `013_support_chat_hardening` | 20261111073234 | **yes, recovered 12 Nov 2026** | yes |
+| `014_chat_start_official_store` | 20261111073320 | **yes, recovered 12 Nov 2026** | yes |
+| `015_support_sla_public` | 20261111073610 | **yes, recovered 12 Nov 2026** | yes |
 
-**Drift:** Eight applied SQL files are missing from the repository: `multivendor_foundation`, `multivendor_function_grants_hardening`, `signup_profile_fields`, and 011–015. Task `WEB-F07` is IN PROGRESS. A read-only forensic inventory of all 19 live migration records is recorded in `docs/WORKFLOW/MIGRATION_RECOVERY.md`; it is evidence, not a substitute migration chain. Until original SQL is recovered and reconciled, a rebuilt database is not reproducible from this repository. `shared/sql/011_website_sync.sql` is an older partial copy and is not equivalent.
+**How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters. The names `002a`, `002b` and `003a` are file names only; the live records have no number. They are lettered so a plain sort replays them in the live order.
+
+**Note on `000` to `010`.** These files were already in the repo, but each is **larger** than the SQL stored live (for example `000` is 12,644 bytes in the repo against 11,616 characters stored). The likely cause is header comments added later, but this has not been confirmed line by line. They are not proven identical to what was applied. See `WEB-F07b`.
+
+**What is still not proven.** Having the files is not the same as a working chain. The full sequence has not been replayed on an empty database, so nothing here proves a fresh database can be built from the repo. That is `WEB-F07b`. A replay must never be run against the live project. `docs/WORKFLOW/MIGRATION_RECOVERY.md` has the forensic evidence; `shared/sql/011_website_sync.sql` is an older partial copy and is superseded by `012`.
 
 ## Baseline recovery evidence added (12 Nov 2026)
 
@@ -140,10 +148,11 @@ The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_RE
 - Security advisor: leaked-password protection is off (`WEB-F10`, owner dashboard setting).
 - Edge function: `paystack` v4, ACTIVE.
 - Storage bucket used by uploads: `media` (public read, 5 MiB maximum, JPEG/PNG/WebP/GIF). Public read does not imply public write; the six `storage.objects` policies are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`.
+- The three seed sets (plans in `011`, support rules and canned replies in `012`) are inserted by the recovered migrations themselves, guarded by `where not exists`, so a fresh chain re-creates them.
 
 ## How to add a database change
 1. Read the table or function you are changing in the live database first.
-2. Do **not** assign the next migration number until the eight missing historical SQL files are recovered or a separately approved reconstructed fresh-install baseline strategy is established.
+2. Number it **016** or higher, after the replay test `WEB-F07b` has passed. If you must go before that, say so in the PR.
 3. Write and test the proposed migration on a disposable database first; run database tests and security advisors, then compare the result with the intended schema/security contract.
 4. Commit the reviewed migration and update this contract and the project tracker in the same PR.
 5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline.
