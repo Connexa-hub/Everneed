@@ -1,4 +1,6 @@
-# Everneed01 audit (Phase 1.1)
+# Historical Everneed01 audit (Phase 1.1)
+
+> **Historical baseline only.** This report audits the earlier Stage 1 app and records the legacy CJ removal work. It is not the current multivendor/web-portal audit. Use `docs/WORKFLOW/REPOSITORY_AND_PRODUCT_AUDIT_2026-11-12.md`, `docs/WORKFLOW/WEBSITE_TRACKER.md`, and `docs/WORKFLOW/DB_CONTRACT.md` for current status.
 
 Baseline of the code as received. No code was changed to produce this report.
 Line numbers refer to the files as received; JS files are dense, so a few references are file plus feature.
