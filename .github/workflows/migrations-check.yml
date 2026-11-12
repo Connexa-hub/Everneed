@@ -1,7 +1,7 @@
 name: Migration files
 
 # The Supabase CLI only applies files named <digits>_<name>.sql and silently skips everything else.
-# It applies them in plain filename order. This check fails the push if either rule is broken,
+# The CLI compares migration versions as strings, so filenames and remote history must have the same lexical order. This check fails the push if either rule is broken,
 # so a misnamed migration can never be skipped without anyone noticing.
 
 on:
@@ -54,7 +54,7 @@ jobs:
         run: |
           set -uo pipefail
           # The live database applied these in this order. Filename order must reproduce it.
-          expected="000_baseline.sql 001_remove_cj.sql 002_hotfix.sql 0030_multivendor_foundation.sql 0031_multivendor_function_grants_hardening.sql 003_remove_unrecorded_multivendor.sql 0040_signup_profile_fields.sql 004_marketplace_core.sql 005_marketplace_backfill_guards.sql 006_marketplace_rls.sql 007_marketplace_functions.sql 008_hardening.sql 009_profile_settings.sql 010_seller_helpers.sql 011_plans_and_limits.sql 012_support_chat_and_waitlist.sql 013_support_chat_hardening.sql 014_chat_start_official_store.sql 015_support_sla_public.sql"
+          expected="000_baseline.sql 001_remove_cj.sql 002_hotfix.sql 0020_multivendor_foundation.sql 0021_multivendor_function_grants_hardening.sql 003_remove_unrecorded_multivendor.sql 0030_signup_profile_fields.sql 004_marketplace_core.sql 005_marketplace_backfill_guards.sql 006_marketplace_rls.sql 007_marketplace_functions.sql 008_hardening.sql 009_profile_settings.sql 010_seller_helpers.sql 011_plans_and_limits.sql 012_support_chat_and_waitlist.sql 013_support_chat_hardening.sql 014_chat_start_official_store.sql 015_support_sla_public.sql"
           actual=$(ls supabase/migrations | LC_ALL=C sort | head -19 | tr '\n' ' ' | sed 's/ $//')
           if [ "$actual" != "$expected" ]; then
             echo "::error::The first 19 migration files do not replay in the live order."
