@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — WEB-A01: rebuilt dedicated account screens with connected four-product wave, clean progressive forms and signup OTP verification/resend (`d5a4333`, `c0f251d`, `405b61a`, `b3b0947`, `1cea71b`); CI, preview deployment and real-account confirmation pending.
+**Last updated:** 12 Nov 2026 — WEB-A01: dedicated `/sign-in` and `/create-account` screens, connected product wave, signup OTP verify/resend and post-verification session handling deployed to preview (`84cea21`); real inbox/OTP and owner device checks pending.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -74,7 +74,7 @@ Update this table when you change a status.
 ## A. Accounts
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `shared/supa.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal | Dedicated `/sign-in` and `/create-account` screens without public header/footer; heading and marketplace explanation above four connected product illustrations in a wave, with the step-by-step form below. Signup presents a 6-digit email OTP screen, supports resend, verifies through Supabase Auth, and activates session only after successful verification; sign-in errors for unconfirmed email return users to verification. Confirmation-link callback is handled by the shared Supabase client. Refined compact toast and removed orbit/floating animation. Commits include `d5a4333`, `c0f251d`, `405b61a`, `b3b0947`, `1cea71b`, `f4d71ba`, `d10c7bc`, `befdb42`. JavaScript syntax checks passed; Cloudflare preview deployment for `befdb42` succeeded. OTP delivery/verification E2E and owner phone review remain pending. Role authorization remains backend-controlled. |
+| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `shared/supa.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal | Dedicated `/sign-in` and `/create-account` screens without public header/footer; marketplace heading/explanation above four connected product illustrations in a wave, with progressive form below. Signup presents a 6-digit email OTP screen with resend; Supabase `/verify` signup OTP activates the session only after verification, and session user ID is derived from the returned JWT. Unconfirmed password sign-in routes back to confirmation. Confirmation-link callback is also supported. Compact toast and no floating/orbit animation. Preview deployment `afd67cf2` (commit `84cea21`) is successful and owns `https://web-portal.everneed.pages.dev`. Real inbox/OTP verification and owner phone review pending. Role authorization remains backend-controlled. |
 | WEB-A02 | Role redirect (admin to console, seller to portal) | P0 | DONE | `fixes.js`, `site.js` | | | |
 | WEB-A03 | Session refresh and sign out | P0 | DONE | `supa.js` | | | |
 | WEB-A04 | Theme saved to profile | P2 | DONE | `theme.js` | | | |
