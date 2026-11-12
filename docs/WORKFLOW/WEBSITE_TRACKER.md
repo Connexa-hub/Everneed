@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — Seller journey specification approved; product cutout assets explicitly pending; web-first seller onboarding and customer app-handoff are now the next implementation track. WEB-A01: dedicated `/sign-in` and `/create-account` screens; product cutout-style showcase with floating category labels and heading; signup OTP verify/resend and post-verification session handling. Owner guide added at `docs/OWNER_GUIDES/ACCOUNT_SIGN_IN_EMAIL_AND_OAUTH.md`. SMTP/OAuth dashboard setup and real inbox/owner device checks remain pending.
+**Last updated:** 12 Nov 2026 — Seller journey specification expanded with separate regional customer/seller legal consent, hard verification-to-live gate and explainable verification reminders; product cutout assets explicitly pending. WEB-A01: dedicated `/sign-in` and `/create-account` screens; product cutout-style showcase with floating category labels and heading; signup OTP verify/resend and post-verification session handling. Owner guide added at `docs/OWNER_GUIDES/ACCOUNT_SIGN_IN_EMAIL_AND_OAUTH.md`. SMTP/OAuth dashboard setup and real inbox/owner device checks remain pending.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -14,12 +14,12 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Foundation (F) | 9 | 1 | 1 | 0 | 4 | 5 | 20 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 3 | 0 | 1 | 0 | 0 | 2 | 6 |
-| Seller portal (S) | 1 | 3 | 1 | 0 | 0 | 12 | 17 |
+| Seller portal (S) | 1 | 3 | 1 | 0 | 0 | 13 | 18 |
 | Admin console (AD) | 5 | 1 | 0 | 0 | 0 | 13 | 19 |
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
 | Quality (Q) | 1 | 0 | 0 | 0 | 0 | 3 | 4 |
-| **All** | **28** | **9** | **1** | **0** | **5** | **52** | **95** |
+| **All** | **28** | **9** | **1** | **0** | **5** | **53** | **96** |
 
 Update this table when you change a status.
 
@@ -64,7 +64,7 @@ Update this table when you change a status.
 | WEB-M03 | Help, Support, About | P2 | DONE | `site.js`, `kb.js` | | | |
 | WEB-M04 | Early-access waitlist form | P1 | DONE | `join_waitlist` | | | |
 | WEB-M05 | Theme and colour page | P2 | DONE | `core.js` appearance | | | |
-| WEB-M06 | Legal pages: Terms, Privacy, Cookies, Returns, Seller agreement | P1 | TODO | source text in `docs/LEGAL/` | | | Needed before real launch. Footer links must go somewhere. Have a lawyer review. |
+| WEB-M06 | Legal pages and regional policy catalogue: customer terms/privacy, seller terms/agreement, cookies, returns/refunds, marketplace rules and country-specific notices | P1 | TODO | `docs/LEGAL/`, policy catalogue, consent records | | | Distinct customer and seller policy packs; resolve by declared country/region and policy version. Capture immutable acceptance evidence; material seller policy updates may require re-acceptance. Do not enable a market without an approved policy pack. Legal review required. Spec: `docs/PRODUCT/WEB_SELLER_JOURNEY_SPEC.md`. |
 | WEB-M07 | SEO: titles, Open Graph, sitemap, robots | P2 | TODO | `index.html`, `_redirects` | | | Depends on F15 for real value. |
 | WEB-M08 | Public storefront page | P1 | TODO | `public_stores`, `public_products` | | | Cover, logo, rating, product grid, follow, chat button. |
 | WEB-M09 | Public product page | P1 | TODO | `public_products`, `public_reviews`, `product_ratings` | | | Gallery, "Sold by", delivery estimate. |
@@ -79,7 +79,7 @@ Update this table when you change a status.
 | WEB-A03 | Session refresh and sign out | P0 | DONE | `supa.js` | | | |
 | WEB-A04 | Theme saved to profile | P2 | DONE | `theme.js` | | | |
 | WEB-A05 | Forgot and reset password | P1 | TODO | Supabase Auth `/recover` | | | No reset flow exists. |
-| WEB-A06 | Email confirmation landing and redirect URLs | P1 | TODO | Supabase Auth URL settings | | | Add the Cloudflare URL (and custom domain) to the redirect list, on live and on staging. |
+| WEB-A06 | Email confirmation landing and redirect URLs | P1 | TODO | Supabase Auth URL settings | | | Add the Cloudflare URL (and custom domain) to the redirect list, on live and on staging. |\n| WEB-A07 | Region-aware customer/seller legal consent and policy-version audit | P1 | TODO | `docs/LEGAL/`, policy catalogue, consent records | | | Customer acceptance is distinct from seller agreement acceptance. Resolve by declared jurisdiction, record policy version/content hash, locale, timestamp and actor; optional marketing consent remains separate. Spec: `docs/PRODUCT/WEB_SELLER_JOURNEY_SPEC.md`. |
 
 ## S. Seller portal
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
@@ -100,7 +100,7 @@ Update this table when you change a status.
 | WEB-S14 | Reply to reviews | P3 | TODO | `reviews` | | | |
 | WEB-S15 | Bulk product import (CSV) | P3 | TODO | `products` | | | |
 | WEB-S16 | Offers and discounts | P3 | TODO | `offers` | | | |
-| WEB-S17 | Web-first seller journey: welcome, categories, store identity, location, branding, contact, verification, plans and portal entry | P0 | IN PROGRESS | `site.js`, `portal.js`, `submit_store`, `store_applications`, private storage, country/plan config | ChatGPT coordinator | web-portal | Build from `docs/PRODUCT/WEB_SELLER_JOURNEY_SPEC.md`; reuse existing schema/RPCs where possible. Phone OTP, country-aware ID/face/address checks, four configured plans and secure private document handling require provider/policy readiness. Web first; app parity only after staging acceptance. |
+| WEB-S17 | Web-first seller journey: welcome, categories, store identity, location, branding, contact, verification, plans and portal entry | P0 | IN PROGRESS | `site.js`, `portal.js`, `submit_store`, `store_applications`, private storage, country/plan config | ChatGPT coordinator | web-portal | Build from `docs/PRODUCT/WEB_SELLER_JOURNEY_SPEC.md`; reuse existing schema/RPCs where possible. Phone OTP, country-aware ID/face/address checks, four configured plans and secure private document handling require provider/policy readiness. Web first; app parity only after staging acceptance. |\n| WEB-S18 | Enforce verification gate before store activation and provide intelligent verification reminders | P0 | TODO | activation RPC/state transition, verification provider callbacks, notification rules/queue | | web-portal | Admin application approval must not make a store live. Server rechecks mandatory jurisdiction-specific phone/identity/face/address requirements on every activation attempt; incomplete/skipped/pending/expired/failed checks block activation and route seller to the exact missing steps. Event-driven, explainable reminders; no AI-only identity decisions or admin bypass. Spec: `docs/PRODUCT/WEB_SELLER_JOURNEY_SPEC.md`. |
 
 ## AD. Admin console
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
@@ -164,7 +164,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ---
 
 ## Change log (newest first)
-| 12 Nov 2026 | ChatGPT coordinator | Added `docs/PRODUCT/WEB_SELLER_JOURNEY_SPEC.md` defining shopper app handoff, web-first seller onboarding, country-aware location/verification, optional unverified state, plan configuration, seller hub, privacy/security and acceptance criteria. Added WEB-S17; WEB-S02 reset to PARTIAL because the existing five-step implementation does not yet satisfy the expanded flow. Product cutout asset work explicitly remains pending. No database or production changes. |\n| 12 Nov 2026 | ChatGPT coordinator | Owner confirmed Auth redirect setup and added staging Paystack test secret. Deployed `paystack` ACTIVE v1 to staging with `verify_jwt=false` (same webhook-compatible setting as production). Enabled preview-only staging routing on `web-portal`; corrected the staging anon key and preview hostname regex. Cloudflare preview deployment `e13fb39c` for commit `4afa676` succeeded and owns alias `web-portal.everneed.pages.dev`. Production `main`/Everneed01 untouched. Test accounts and full E2E remain. |\n| 12 Nov 2026 | ChatGPT coordinator | Added WEB-M10 requirement: website customer registration/sign-in remains available, but the Shop entry hands customers to the mobile app with only verified, currently published Google Play, GitHub APK/release and future platform download links. Same Everneed account is used in the app; web cart/checkout and duplicate shopping catalogue are out of scope. Requirement recorded only; implementation pending. |
+| 12 Nov 2026 | ChatGPT coordinator | Added `docs/PRODUCT/WEB_SELLER_JOURNEY_SPEC.md` defining shopper app handoff, web-first seller onboarding, regional customer/seller legal agreements and privacy notices, versioned consent, hard server-side verification-to-live gate, and explainable event-driven seller verification reminders. Added WEB-A07 and WEB-S18; expanded WEB-M06. Product cutout asset work explicitly remains pending. No database or production changes. |\n| 12 Nov 2026 | ChatGPT coordinator | Owner confirmed Auth redirect setup and added staging Paystack test secret. Deployed `paystack` ACTIVE v1 to staging with `verify_jwt=false` (same webhook-compatible setting as production). Enabled preview-only staging routing on `web-portal`; corrected the staging anon key and preview hostname regex. Cloudflare preview deployment `e13fb39c` for commit `4afa676` succeeded and owns alias `web-portal.everneed.pages.dev`. Production `main`/Everneed01 untouched. Test accounts and full E2E remain. |\n| 12 Nov 2026 | ChatGPT coordinator | Added WEB-M10 requirement: website customer registration/sign-in remains available, but the Shop entry hands customers to the mobile app with only verified, currently published Google Play, GitHub APK/release and future platform download links. Same Everneed account is used in the app; web cart/checkout and duplicate shopping catalogue are out of scope. Requirement recorded only; implementation pending. |
 | 12 Nov 2026 | ChatGPT coordinator | WEB-F17 completed for staging: migration 017 applied successfully in staging run `43244981357`; authenticated RPC regression tests passed in run `43245491269`; 38/38 authenticated-callable public SECURITY DEFINER functions have empty search paths and zero retain PUBLIC EXECUTE. Web checks, migration checks and Android APK build passed on `6018cb0418efc1f7eb700555b24afb28f795136c`. Production untouched; `STAGING_READY=false`. |
 | 12 Nov 2026 | ChatGPT coordinator | WEB-Q01 completed: buyer/seller/admin isolation SQL suite passed on staging and in CI run `43248544594`; fixtures rolled back and staging contains no Q01 fixture rows. WEB-F18 implementation staged: widget created for `everneed.pages.dev`, migration 018 applied to staging, ACL regression passed and `public-forms` Edge Function deployed ACTIVE. Owner action remains: set `TURNSTILE_SECRET_KEY` in staging before end-to-end verification. Production untouched. |
 | Date | Who | What |
