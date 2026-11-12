@@ -40,15 +40,29 @@
     if(role==="merchant"||role==="seller")return "#/portal";
     return "#/account";
   }
+  function socialOptions(){
+    var providers=[["google","Google"],["apple","Apple"],["facebook","Facebook"]];
+    return '<div class="auth-social" aria-label="Other sign-in options">'+providers.map(function(p){
+      var icon=p[0]==="google"?'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.72-.06-1.42-.18-2.09H12v3.96h5.38a4.6 4.6 0 0 1-2 3.02v2.47h3.24c1.9-1.75 2.98-4.33 2.98-7.36z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.62-2.41l-3.24-2.47c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.06v2.55A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.41 13.96a6 6 0 0 1 0-3.92V7.49H3.06a10 10 0 0 0 0 9.02z"/><path fill="#EA4335" d="M12 5.92c1.47 0 2.78.5 3.82 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.49l3.35 2.55C7.2 7.68 9.4 5.92 12 5.92z"/></svg>':p[0]==="apple"?'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.37 12.2c.02 2.18 1.91 2.9 1.93 2.91-.02.05-.3 1.03-.99 2.04-.6.88-1.22 1.75-2.2 1.77-.96.02-1.27-.57-2.37-.57s-1.45.55-2.36.59c-.95.04-1.68-.95-2.29-1.82-1.25-1.8-2.2-5.08-.92-7.3.64-1.1 1.78-1.8 3.02-1.82.94-.02 1.83.63 2.4.63.58 0 1.66-.78 2.8-.67.48.02 1.84.19 2.71 1.46-.07.04-1.62.95-1.6 2.78M14.53 6.77c.5-.6.83-1.44.74-2.27-.72.03-1.6.48-2.12 1.08-.47.54-.88 1.4-.77 2.22.8.06 1.64-.4 2.15-1.03"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5 21v-8.2h2.76l.41-3.2H13.5V7.56c0-.93.26-1.56 1.6-1.56h1.7V3.14c-.3-.04-1.34-.14-2.55-.14-2.52 0-4.25 1.54-4.25 4.38V9.6H7.15v3.2H10V21z"/></svg>';
+      return '<button type="button" class="auth-social-button is-unavailable" data-auth-provider="'+p[0]+'" aria-disabled="true"><span class="auth-social-icon">'+icon+'</span><span>'+p[1]+'</span></button>';
+    }).join("")+'</div>';
+  }
   function authPage(up){
     var steps=up?["Your details","Email address","Password","Review details"]:["Email address","Password"];
     var state={step:0,name:"",email:"",pw:"",pw2:"",verifying:false};
     function input(label,type,placeholder,autocomplete,value,attrs){
-      return '<label class="auth-field"><span>'+label+'</span><input id="auth-current" type="'+type+'" value="'+esc(value||"")+'" placeholder="'+placeholder+'" autocomplete="'+autocomplete+'" '+(type==="email"?'inputmode="email"':'')+' '+(attrs||"")+' required></label>';
+      var field='<input id="auth-current" type="'+type+'" value="'+esc(value||"")+'" placeholder="'+placeholder+'" autocomplete="'+autocomplete+'" '+(type==="email"?'inputmode="email"':'')+' '+(attrs||"")+' required>';
+      if(type==="password")field='<div class="auth-password-control">'+field+'<button type="button" class="auth-eye" data-auth-eye aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg></button></div>';
+      return '<label class="auth-field"><span>'+label+'</span>'+field+'</label>';
     }
     function productWave(){
-      var items=[["groceries","Everyday essentials"],["skincare","Beauty & care"],["accessories","Accessories"],["electricals","Electronics"]];
-      return '<div class="auth-product-wave" aria-label="Explore product categories"><svg class="auth-wave-connector" viewBox="0 0 760 82" preserveAspectRatio="none" aria-hidden="true"><path d="M4 42 C75 42 75 16 150 16 S225 68 300 68 S375 16 450 16 S525 68 600 68 S675 42 756 42"/></svg>'+items.map(function(x,i){return '<div class="auth-product-tile tile-'+i+'"><div class="auth-product-art"><img src="'+Art.product(x[0])+'" alt=""></div><span>'+x[1]+'</span></div>'}).join("")+'</div>';
+      var items=[
+        ["serum","Skincare","https://img.magnific.com/premium-psd/golden-serum-dropper-bottle-skincare-beauty-products_84443-66236.jpg?q=80&semt=ais_hybrid&w=740"],
+        ["audio","Electronics","https://images.rawpixel.com/image_png_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDI0LTA5L3Jhd3BpeGVsb2ZmaWNlNl9pbWFnZV9vZl9hX21vZGVybl93aXJlbGVzc19ibGFja19oZWFkcGhvbmVfbWluaV9lYzY2MDgzZS04ZTZjLTRmMjEtOTc3Ny05YTg2YzdmMzQ2ZmYucG5n.png"],
+        ["watch","Accessories","https://images.rawpixel.com/image_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTA5L3NtYWxsZGVzaWduY29tcGFueTAxX21lbnNfd2F0Y2hfaXNvbGF0ZWRfd2hpdGVfYmFja2dyb3VuZF81NmQwNmEzMS01YWRkLTRlZjYtOGY1My01MjY5NDg0NmVjMWFfMS5qcGc.jpg"],
+        ["sneaker","Fashion","https://productshotai.app/images/productshot/free-image-tools/remove-background/workbench/default-after.webp"]
+      ];
+      return '<div class="auth-product-wave" aria-label="Real product showcase"><svg class="auth-wave-connector" viewBox="0 0 900 120" preserveAspectRatio="none" aria-hidden="true"><path d="M8 62 C110 62 120 12 225 12 S340 108 450 108 S565 12 675 12 S790 62 892 62"/></svg>'+items.map(function(x,i){return '<div class="auth-product-tile product-'+x[0]+'"><div class="auth-product-art"><img src="'+x[2]+'" alt="'+x[1]+' product" loading="eager" decoding="async"></div><span>'+x[1]+'</span></div>'}).join("")+'</div>';
     }
     function panel(){
       if(state.verifying){
@@ -78,18 +92,36 @@
     var form='<form class="auth-form" data-form="auth" data-mode="'+(up?"up":"in")+'" novalidate>'
       +'<input type="hidden" name="name"><input type="hidden" name="email"><input type="hidden" name="pw"><input type="hidden" name="pw2"><input type="hidden" name="otp">'
       +'<div id="auth-stage" aria-live="polite">'+panel()+'</div></form>';
-    var html='<main class="auth-experience"><div class="w auth-page-wrap"><header class="auth-topbar"><a class="auth-logo" href="/"><span class="auth-logo-mark">e</span><span>Everneed</span></a><a class="auth-home-link" href="/">Back to website <span aria-hidden="true">↗</span></a></header>'
-      +'<section class="auth-intro-area"><span class="auth-overline">THE MARKETPLACE FOR EVERYDAY DISCOVERY</span><h1>'+(up?'One account. A world of stores to explore.':'Welcome to a marketplace made for discovery.')+'</h1><p>Everneed brings shoppers and independent stores together. Explore everyday products, discover different stores and shop through one simple mobile app. You can use the same account to become a seller.</p>'
-      +productWave()+'</section><section class="auth-form-area"><div class="auth-entry-head"><div><span class="auth-entry-kicker">'+(up?"JOIN EVERNEED":"YOUR ACCOUNT")+'</span><h2>'+(up?"Create your account":"Sign in")+'</h2></div><span class="auth-entry-mark">e</span></div>'
-      +'<div class="auth-entry-card">'+form+'<p class="auth-switch">'+switcher+'</p><p class="auth-trust"><span aria-hidden="true">⌑</span> Seller and admin tools are available only to accounts with the required approval.</p></div>'
-      +'<p class="auth-legal">By continuing, you agree to Everneed’s account terms and privacy practices.</p></section></div></main>';
+    var html='<main class="auth-experience"><div class="w auth-page-wrap"><header class="auth-topbar"><a class="auth-logo" href="/"><img src="/favicon.svg" alt="Everneed" width="34" height="34"><span>Everneed</span></a></header>'
+      +'<section class="auth-intro-area">'+productWave()+'</section><section class="auth-form-area"><div class="auth-entry-head"><h2>'+(up?"Create your account":"Sign in")+'</h2></div>'
+      +'<div class="auth-entry-card">'+form+'<div class="auth-social-divider"><span>Or continue with</span></div>'+socialOptions()+'<p class="auth-switch">'+switcher+'</p></div></section></div></main>';
     var page={layout:"auth",html:html,title:up?"Create account":"Sign in"};
     page.after=function(){
       var stage=document.getElementById("auth-stage"),formEl=document.querySelector('[data-form="auth"]');
       function sync(){["name","email","pw","pw2","otp"].forEach(function(k){var el=formEl.querySelector('[name="'+k+'"]');if(el)el.value=state[k]})}
       function render(){stage.innerHTML=panel();var input=stage.querySelector("#auth-current");if(input)input.focus({preventScroll:true})}
       activeAuth={showVerify:function(){state.verifying=true;state.step=0;formEl.setAttribute("data-mode","verify");render()},state:state};formEl.__authState=state;formEl.__authRender=render;
+      var social=document.querySelector(".auth-social");
+      if(social){
+        Supa.authSettings().then(function(settings){
+          var enabled=settings&&settings.external||{};
+          social.querySelectorAll("[data-auth-provider]").forEach(function(button){
+            var provider=button.getAttribute("data-auth-provider"),available=enabled[provider]===true;
+            button.classList.toggle("is-available",available);button.classList.toggle("is-unavailable",!available);
+            button.setAttribute("aria-disabled",available?"false":"true");
+          });
+        }).catch(function(){});
+        social.addEventListener("click",function(e){
+          var button=e.target.closest("[data-auth-provider]");if(!button)return;
+          var provider=button.getAttribute("data-auth-provider");
+          if(!button.classList.contains("is-available")){C.toast(provider.charAt(0).toUpperCase()+provider.slice(1)+" sign-in is not available yet. Use email and password for now.",true);return}
+          var url=CFG.supabase.url.replace(/\/$/,"")+"/auth/v1/authorize?provider="+encodeURIComponent(provider)+"&redirect_to="+encodeURIComponent(location.origin+"/")+"&apikey="+encodeURIComponent(CFG.supabase.key);
+          location.href=url;
+        });
+      }
       stage.addEventListener("click",function(e){
+        var eye=e.target.closest("[data-auth-eye]");
+        if(eye){var password=stage.querySelector("#auth-current");if(password){var show=password.type==="password";password.type=show?"text":"password";eye.setAttribute("aria-pressed",show?"true":"false");eye.setAttribute("aria-label",show?"Hide password":"Show password");eye.classList.toggle("is-visible",show)}return}
         var back=e.target.closest("[data-auth-back]"),next=e.target.closest("[data-auth-next]"),resend=e.target.closest("[data-auth-resend]");
         if(back){if(state.verifying){state.verifying=false;formEl.setAttribute("data-mode",up?"up":"in");state.step=up?1:0}else state.step=Math.max(0,state.step-1);render();return}
         if(resend){resend.disabled=true;Supa.resendSignup(state.email).then(function(){C.toast("A new confirmation code has been sent.")}).catch(function(err){C.toast(err.message||"We couldn’t resend the code. Try again shortly.",true)}).finally(function(){resend.disabled=false});return}
