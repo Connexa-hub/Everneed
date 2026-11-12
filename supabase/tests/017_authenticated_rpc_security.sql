@@ -49,7 +49,9 @@ declare
   v_product_a text;
   v_product_b text;
   v_order jsonb;
+  v_chat_order jsonb;
   v_order_id text;
+  v_chat_order_id text;
   v_so_b text;
   v_duplicate jsonb;
   v_result text;
@@ -115,10 +117,23 @@ begin
   );
   v_order_id := v_order->>'id';
   perform public.confirm_payment(v_order_id, 'F17-REF');
+
+  -- Use a separate one-seller order to prove that a buyer cannot attach it to another store's chat.
+  v_chat_order := public.create_order(
+    v_buyer,
+    jsonb_build_array(jsonb_build_object('id', v_product_b, 'size', '', 'qty', 1)),
+    'NG', 'bank', v_customer, 1, 'NGN', 0, null, 0, null
+  );
+  v_chat_order_id := v_chat_order->>'id';
   perform public.zz_f17_back();
 
-  if v_order->>'route' <> 'hub' then
+  if v_order->>'route' <> 'hub'
+     or (select count(distinct store_id) from public.seller_orders where order_id = v_order_id) <> 2 then
     raise exception 'F17 fixture expected a multi-seller hub order';
+  end if;
+  if not exists (select 1 from public.seller_orders where order_id = v_chat_order_id and store_id = v_store_b)
+     or exists (select 1 from public.seller_orders where order_id = v_chat_order_id and store_id = v_store_a) then
+    raise exception 'F17 chat fixture must belong only to Store B';
   end if;
 
   select id into v_so_b
@@ -129,7 +144,7 @@ begin
   perform public.zz_f17_as(v_buyer);
   v_result := public.zz_f17_try(format(
     'select public.chat_start(%L,%L,%L,%L,%L,%L)',
-    'store', v_store_a, v_order_id, 'Wrong store order', null, null
+    'store', v_store_a, v_chat_order_id, 'Wrong store order', null, null
   ));
   if v_result not like 'ERR:%' then
     raise exception 'A buyer attached an order to a store that did not sell it';
@@ -137,7 +152,7 @@ begin
 
   v_result := public.zz_f17_try(format(
     'select public.chat_start(%L,%L,%L,%L,%L,%L)',
-    'store', v_store_b, v_order_id, 'Correct store order', null, null
+    'store', v_store_b, v_chat_order_id, 'Correct store order', null, null
   ));
   if v_result <> 'ok' then
     raise exception 'A valid store/order conversation was rejected: %', v_result;
