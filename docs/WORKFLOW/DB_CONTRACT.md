@@ -140,7 +140,8 @@ Repo folder: `supabase/migrations/`. **Files replay in plain filename order, whi
 | `014_chat_start_official_store` | 20261111073320 | **yes, recovered 12 Nov 2026** | yes |
 | `015_support_sla_public` | 20261111073610 | **yes, recovered 12 Nov 2026** | yes |
 | `016_public_rpc_security_hardening` | 016 (repo sequence) | **yes, added 12 Nov 2026** | **staging only; live not applied** |
-| `017_authenticated_rpc_boundary_hardening` | 017 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied and regression-tested; live not applied** |\n| `018_turnstile_public_rpc_boundary` | 018 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied; ACL regression passed; live not applied** |
+| `017_authenticated_rpc_boundary_hardening` | 017 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied and regression-tested; live not applied** |
+| `018_turnstile_public_rpc_boundary` | 018 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied; ACL regression passed; live not applied** |
 
 **How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters.
 
