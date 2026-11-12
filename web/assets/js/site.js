@@ -88,7 +88,7 @@
       var stage=document.getElementById("auth-stage"),formEl=document.querySelector('[data-form="auth"]');
       function sync(){["name","email","pw","pw2","otp"].forEach(function(k){var el=formEl.querySelector('[name="'+k+'"]');if(el)el.value=state[k]})}
       function render(){stage.innerHTML=panel();var input=stage.querySelector("#auth-current");if(input)input.focus({preventScroll:true})}
-      activeAuth={showVerify:function(){state.verifying=true;state.step=0;formEl.setAttribute("data-mode","verify");render()},state:state};
+      activeAuth={showVerify:function(){state.verifying=true;state.step=0;formEl.setAttribute("data-mode","verify");render()},state:state};formEl.__authState=state;formEl.__authRender=render;
       stage.addEventListener("click",function(e){
         var back=e.target.closest("[data-auth-back]"),next=e.target.closest("[data-auth-next]"),resend=e.target.closest("[data-auth-resend]");
         if(back){if(state.verifying){state.verifying=false;formEl.setAttribute("data-mode",up?"up":"in");state.step=up?3:0}else state.step=Math.max(0,state.step-1);render();return}
@@ -113,7 +113,7 @@
     };
     return page;
   }
-  V.login=function(p){if(Supa.uid()&&!p[0])return Supa.profile().then(function(profile){return{redirect:roleRoute(profile)}});return authPage(p[0]==="new")};
+  V.login=function(p){if(Supa.uid())return Supa.profile().then(function(profile){return{redirect:"/"+roleRoute(profile)}}).catch(function(){return{redirect:"/#/account"}});return authPage(p[0]==="new")};
   V.account=function(){
     var me=C.me()||{},name=esc(me.name||me.full_name||"there");
     return pub('<section class="sec"><div class="w" style="max-width:760px">'
@@ -131,19 +131,46 @@
       +'<div class="row" style="margin-top:22px"><a class="btn" href="#/login/new">Create an account</a><a class="btn o" href="#/sell">For sellers</a></div></div></section>',"","Shop in the app");
   };
   F.auth=function(f,d){
-    var mode=f.dataset.mode||"in",state=f.__authState,b=f.querySelector('button[type="submit"]');
+    var mode=f.dataset.mode||"in",state=f.__authState||{},b=f.querySelector('button[type="submit"]');
     if(mode==="verify"){
-      if(!d.otp||!/^\d{6}$/.test(String(d.otp))){C.toast("Enter the 6-digit code from your email.",true);return}
+      var code=String(d.otp||"").trim();
+      if(!/^\d{6}$/.test(code)){C.toast("Enter the 6-digit code from your email.",true);return}
       if(b)b.disabled=true;
-      Supa.verifySignup(String(d.email||state.email).trim(),d.otp).then(function(){return Supa.profile().catch(function(){return{}})}).then(function(profile){C.reset();location.href=roleRoute(profile)}).catch(function(err){if(b)b.disabled=false;C.toast(err.message||"That code could not be verified. Check it and try again.",true)});
+      Supa.verifySignupOtp(String(d.email||state.email||"").trim(),code).then(function(){
+        return Supa.profile().catch(function(){return{}});
+      }).then(function(profile){
+        C.reset();location.href="/"+roleRoute(profile);
+      }).catch(function(err){
+        if(b)b.disabled=false;
+        C.toast(err.message||"That code could not be verified. Check it and try again.",true);
+      });
       return;
     }
     if(mode==="up"&&String(d.pw||"")!==String(d.pw2||"")){C.toast("The passwords do not match. Please try again.",true);return}
     if(!d.email||!d.pw||(mode==="up"&&!d.name)){C.toast("Please complete the required details.",true);return}
     if(b)b.disabled=true;
-    var req=mode==="up"?Supa.signUp(String(d.email).trim(),d.pw,{name:String(d.name).trim()}):Supa.signIn(String(d.email).trim(),d.pw);
-    req.then(function(r){if(mode==="up"&&r&&r.confirm){state.verify=true;state.email=r.email||state.email;f.dataset.mode="verify";if(b)b.disabled=false;if(f.__authRender)f.__authRender();return}
-      return Supa.profile().then(function(profile){C.reset();location.href=roleRoute(profile)}).catch(function(){C.reset();location.href="#/account"});
-    }).catch(function(err){if(b)b.disabled=false;var msg=err.message||"Could not complete that request. Please try again.";if(/not confirmed|email.*confirm/i.test(msg))msg="Your email is not confirmed yet. Complete the email verification step first.";C.toast(msg,true)});
+    var email=String(d.email).trim().toLowerCase();
+    var req=mode==="up"?Supa.signUp(email,d.pw,{name:String(d.name).trim()}):Supa.signIn(email,d.pw);
+    req.then(function(r){
+      if(mode==="up"&&r&&r.confirm){
+        state.email=email;state.verifying=true;state.step=0;f.dataset.mode="verify";
+        if(b)b.disabled=false;
+        if(f.__authRender)f.__authRender();
+        return;
+      }
+      return Supa.profile().then(function(profile){
+        C.reset();location.href="/"+roleRoute(profile);
+      });
+    }).catch(function(err){
+      if(b)b.disabled=false;
+      var msg=err.message||"We couldn’t complete that request. Please try again.";
+      if(/not confirmed|email.*confirm/i.test(msg)&&state.email){
+        state.verifying=true;state.step=0;f.dataset.mode="verify";
+        if(f.__authRender)f.__authRender();
+        C.toast("Your email still needs confirmation. Enter the code we sent or request a new one.",true);
+        return;
+      }
+      C.toast(msg,true);
+    });
   };
 })();
