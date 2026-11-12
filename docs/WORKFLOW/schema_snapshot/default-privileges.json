@@ -1,0 +1,32 @@
+{
+  "source": "read-only information_schema and PostgreSQL catalog queries",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "inspection_date": "2026-11-12",
+  "warning": "Evidence only; not executable migration SQL. Review these defaults carefully before any fresh-install baseline is accepted.",
+  "default_privileges": [
+    {"schema":"public","owner":"postgres","object_type":"S","acl":"{postgres=rwU/postgres,anon=rwU/postgres,authenticated=rwU/postgres,service_role=rwU/postgres}"},
+    {"schema":"public","owner":"postgres","object_type":"f","acl":"{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"},
+    {"schema":"public","owner":"postgres","object_type":"r","acl":"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"},
+    {"schema":"public","owner":"supabase_admin","object_type":"S","acl":"{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}"},
+    {"schema":"public","owner":"supabase_admin","object_type":"f","acl":"{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}"},
+    {"schema":"public","owner":"supabase_admin","object_type":"r","acl":"{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"}
+  ],
+  "sequence_privileges": [
+    {"sequence":"public.audit_log_id_seq","grantee":"anon","privilege":"USAGE","grantable":false},
+    {"sequence":"public.audit_log_id_seq","grantee":"authenticated","privilege":"USAGE","grantable":false},
+    {"sequence":"public.audit_log_id_seq","grantee":"service_role","privilege":"USAGE","grantable":false},
+    {"sequence":"public.ledger_entries_id_seq","grantee":"anon","privilege":"USAGE","grantable":false},
+    {"sequence":"public.ledger_entries_id_seq","grantee":"authenticated","privilege":"USAGE","grantable":false},
+    {"sequence":"public.ledger_entries_id_seq","grantee":"service_role","privilege":"USAGE","grantable":false},
+    {"sequence":"public.support_rules_id_seq","grantee":"anon","privilege":"USAGE","grantable":false},
+    {"sequence":"public.support_rules_id_seq","grantee":"authenticated","privilege":"USAGE","grantable":false},
+    {"sequence":"public.support_rules_id_seq","grantee":"service_role","privilege":"USAGE","grantable":false}
+  ],
+  "important_observations": [
+    "Default privileges for newly created public-schema tables owned by postgres grant ALL table privileges (arwdDxtm) to anon, authenticated, and service_role. RLS remains a separate row-level control and must be enabled and correctly configured on every exposed table.",
+    "Default privileges for newly created public-schema functions owned by postgres grant EXECUTE to anon, authenticated, and service_role. Every SECURITY DEFINER function must be reviewed individually and should not inherit broad execution access without a documented reason.",
+    "Default privileges are also present for objects created by supabase_admin; treat platform-owned defaults separately from application-owned baseline DDL.",
+    "The three observed sequences grant USAGE to anon, authenticated, and service_role. Verify whether this is required by the app before reproducing.",
+    "Do not blindly copy these defaults into the reconstructed baseline. Confirm which defaults are intentional and which should be tightened in a separately reviewed security change."
+  ]
+}
