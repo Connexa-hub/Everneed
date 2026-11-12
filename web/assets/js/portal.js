@@ -17,7 +17,8 @@
   V.portal=function(p){if(!Supa.uid())return{redirect:"#/login"};var sub=p[0]||"";
     return load(sub==="").then(function(){var h;
       if(sub==="appearance")h='<h1 style="font-size:2.2rem">Appearance</h1><div id="apprw" style="margin-top:20px">'+C.appearance()+"</div>";
-      else if(sub==="apply")h=wizard();\n      else if(sub==="verification")h=verification();
+      else if(sub==="apply")h=wizard();
+      else if(sub==="verification")h=verification();
       else if(!P.store)h=intro();
       else if(sub==="products"&&P.store.status==="approved")h=plist();
       else if(sub==="product"&&P.store.status==="approved")h=pform(p[1]);
