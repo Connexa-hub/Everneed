@@ -1,0 +1,1239 @@
+{
+  "source": "Supabase database advisors",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "observed_at": "2026-11-12T04:27Z",
+  "warning": "Read-only advisor findings; not all findings are vulnerabilities. Review intended behavior and actual workload before changes.",
+  "security": [
+    {
+      "name": "rls_enabled_no_policy",
+      "title": "RLS Enabled No Policy",
+      "level": "INFO",
+      "count": 2,
+      "description": "Detects cases where row level security (RLS) has been enabled on a table but no RLS policies have been created.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+      "findings": [
+        {
+          "detail": "Table \\`public.kv\\` has RLS enabled, but no policies exist",
+          "metadata": {
+            "name": "kv",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.rate_limits\\` has RLS enabled, but no policies exist",
+          "metadata": {
+            "name": "rate_limits",
+            "type": "table",
+            "schema": "public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "title": "Public Can Execute SECURITY DEFINER Function",
+      "level": "WARN",
+      "count": 6,
+      "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+      "findings": [
+        {
+          "detail": "Function `public.join_waitlist(p_email text, p_name text, p_role text, p_country text, p_interest text, p_source text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/join_waitlist`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "join_waitlist",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_email text, p_name text, p_role text, p_country text, p_interest text, p_source text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.store_reply_stats()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/store_reply_stats`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "store_reply_stats",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_guest_close(p_id text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_guest_close`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_guest_close",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_id text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_guest_open(p_id text, p_name text, p_topic text, p_page text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_guest_open`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_guest_open",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_id text, p_name text, p_topic text, p_page text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_guest_ping(p_id text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_guest_ping`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_guest_ping",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_id text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_sla_public()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_sla_public`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_sla_public",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "",
+            "security_definer": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+      "level": "WARN",
+      "count": 38,
+      "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "findings": [
+        {
+          "detail": "Function `public.admin_confirm_payment(p_order text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/admin_confirm_payment`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "admin_confirm_payment",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_order text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.apply_rental_payment(p_store text, p_plan text, p_amount numeric, p_method text, p_ref text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/apply_rental_payment`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "apply_rental_payment",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_store text, p_plan text, p_amount numeric, p_method text, p_ref text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.approve_store(p_store text, p_note text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/approve_store`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "approve_store",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_store text, p_note text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.cancel_order(p_order text, p_reason text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/cancel_order`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "cancel_order",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_order text, p_reason text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.chat_escalate(p_conv uuid, p_reason text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/chat_escalate`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "chat_escalate",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_conv uuid, p_reason text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.chat_member(p uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/chat_member`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "chat_member",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p uuid",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.chat_read(p_conv uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/chat_read`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "chat_read",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_conv uuid",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.chat_send(p_conv uuid, p_body text, p_note boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/chat_send`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "chat_send",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_conv uuid, p_body text, p_note boolean",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.chat_set(p_conv uuid, p_status text, p_assignee uuid, p_tags text[], p_priority integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/chat_set`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "chat_set",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_conv uuid, p_status text, p_assignee uuid, p_tags text[], p_priority integer",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.chat_start(p_kind text, p_store text, p_order text, p_subject text, p_first text, p_user uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/chat_start`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "chat_start",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_kind text, p_store text, p_order text, p_subject text, p_first text, p_user uuid",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.choose_plan(p_plan text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/choose_plan`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "choose_plan",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_plan text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.confirm_received(p_order text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/confirm_received`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "confirm_received",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_order text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.dispatch(p_order text, p_courier jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/dispatch`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "dispatch",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_order text, p_courier jsonb",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.hub_consolidate(p_order text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/hub_consolidate`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "hub_consolidate",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_order text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.hub_receive(p_so text, p_check jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/hub_receive`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "hub_receive",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_so text, p_check jsonb",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.is_admin()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_admin`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "is_admin",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.join_waitlist(p_email text, p_name text, p_role text, p_country text, p_interest text, p_source text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/join_waitlist`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "join_waitlist",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_email text, p_name text, p_role text, p_country text, p_interest text, p_source text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.mark_delivered(p_order text, p_code text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/mark_delivered`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "mark_delivered",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_order text, p_code text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.my_role()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/my_role`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "my_role",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.my_seller_orders(p_status text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/my_seller_orders`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "my_seller_orders",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_status text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.next_slug(p_name text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/next_slug`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "next_slug",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_name text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.order_tracking(p_order text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/order_tracking`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "order_tracking",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_order text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.record_payout(p_store text, p_amount numeric, p_reference text, p_period text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/record_payout`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "record_payout",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_store text, p_amount numeric, p_reference text, p_period text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.refund(p_order text, p_seller_order text, p_amount numeric, p_reason text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/refund`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "refund",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_order text, p_seller_order text, p_amount numeric, p_reason text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.reject_store(p_store text, p_reason text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/reject_store`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "reject_store",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_store text, p_reason text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.report_payment(order_id text, reference text, note text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/report_payment`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "report_payment",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "order_id text, reference text, note text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.review_product(p_product text, p_decision text, p_note text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/review_product`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "review_product",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_product text, p_decision text, p_note text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.seller_transition(p_so text, p_to text, p_payload jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/seller_transition`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "seller_transition",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_so text, p_to text, p_payload jsonb",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.set_store_terms(p_store text, p_commission numeric, p_trusted boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/set_store_terms`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "set_store_terms",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_store text, p_commission numeric, p_trusted boolean",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.store_balance(p_store text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/store_balance`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "store_balance",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_store text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.store_reply_stats()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/store_reply_stats`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "store_reply_stats",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.submit_store(p_store text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/submit_store`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "submit_store",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_store text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_guest_close(p_id text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_guest_close`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_guest_close",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_id text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_guest_open(p_id text, p_name text, p_topic text, p_page text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_guest_open`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_guest_open",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_id text, p_name text, p_topic text, p_page text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_guest_ping(p_id text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_guest_ping`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_guest_ping",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_id text",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_sla_public()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_sla_public`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_sla_public",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.support_sla_sweep()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/support_sla_sweep`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "support_sla_sweep",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "",
+            "security_definer": true
+          }
+        },
+        {
+          "detail": "Function `public.suspend_store(p_store text, p_reason text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/suspend_store`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+          "metadata": {
+            "name": "suspend_store",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_store text, p_reason text",
+            "security_definer": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "title": "Leaked Password Protection Disabled",
+      "level": "WARN",
+      "count": 1,
+      "description": "Leaked password protection is currently disabled.",
+      "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+      "findings": [
+        {
+          "detail": "Supabase Auth prevents the use of compromised passwords by checking against HaveIBeenPwned.org. Enable this feature to enhance security.",
+          "metadata": {
+            "type": "auth",
+            "entity": "Auth"
+          }
+        }
+      ]
+    }
+  ],
+  "performance": [
+    {
+      "name": "unindexed_foreign_keys",
+      "title": "Unindexed foreign keys",
+      "level": "INFO",
+      "count": 29,
+      "description": "Identifies foreign key constraints without a covering index, which can impact database performance.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys",
+      "findings": [
+        {
+          "detail": "Table \\`public.canned_replies\\` has a foreign key \\`canned_replies_owner_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "canned_replies",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "canned_replies_owner_fkey",
+            "fkey_columns": [
+              3
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.cards\\` has a foreign key \\`cards_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "cards",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "cards_user_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.conversations\\` has a foreign key \\`conversations_assignee_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "conversations",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "conversations_assignee_fkey",
+            "fkey_columns": [
+              11
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.conversations\\` has a foreign key \\`conversations_order_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "conversations",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "conversations_order_id_fkey",
+            "fkey_columns": [
+              5
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.disputes\\` has a foreign key \\`disputes_opened_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "disputes",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "disputes_opened_by_fkey",
+            "fkey_columns": [
+              4
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.disputes\\` has a foreign key \\`disputes_order_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "disputes",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "disputes_order_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.disputes\\` has a foreign key \\`disputes_resolved_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "disputes",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "disputes_resolved_by_fkey",
+            "fkey_columns": [
+              8
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.disputes\\` has a foreign key \\`disputes_seller_order_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "disputes",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "disputes_seller_order_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.ledger_entries\\` has a foreign key \\`ledger_entries_order_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ledger_entries",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ledger_entries_order_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.messages\\` has a foreign key \\`messages_sender_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "messages",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "messages_sender_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.order_items\\` has a foreign key \\`order_items_product_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "order_items",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "order_items_product_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.order_items\\` has a foreign key \\`order_items_store_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "order_items",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "order_items_store_id_fkey",
+            "fkey_columns": [
+              5
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.orders\\` has a foreign key \\`orders_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "orders",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "orders_user_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.payouts\\` has a foreign key \\`payouts_recorded_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "payouts",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "payouts_recorded_by_fkey",
+            "fkey_columns": [
+              8
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.payouts\\` has a foreign key \\`payouts_store_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "payouts",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "payouts_store_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.product_private\\` has a foreign key \\`product_private_reviewed_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "product_private",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "product_private_reviewed_by_fkey",
+            "fkey_columns": [
+              3
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.refunds\\` has a foreign key \\`refunds_opened_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "refunds",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "refunds_opened_by_fkey",
+            "fkey_columns": [
+              4
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.refunds\\` has a foreign key \\`refunds_order_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "refunds",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "refunds_order_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.refunds\\` has a foreign key \\`refunds_resolved_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "refunds",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "refunds_resolved_by_fkey",
+            "fkey_columns": [
+              9
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.refunds\\` has a foreign key \\`refunds_seller_order_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "refunds",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "refunds_seller_order_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.reviews\\` has a foreign key \\`reviews_order_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "reviews",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "reviews_order_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.reviews\\` has a foreign key \\`reviews_product_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "reviews",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "reviews_product_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.store_applications\\` has a foreign key \\`store_applications_plan_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "store_applications",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "store_applications_plan_id_fkey",
+            "fkey_columns": [
+              14
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.store_applications\\` has a foreign key \\`store_applications_reviewed_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "store_applications",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "store_applications_reviewed_by_fkey",
+            "fkey_columns": [
+              4
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.store_payments\\` has a foreign key \\`store_payments_recorded_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "store_payments",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "store_payments_recorded_by_fkey",
+            "fkey_columns": [
+              10
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.store_payments\\` has a foreign key \\`store_payments_store_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "store_payments",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "store_payments_store_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.store_payments\\` has a foreign key \\`store_payments_subscription_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "store_payments",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "store_payments_subscription_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.store_subscriptions\\` has a foreign key \\`store_subscriptions_plan_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "store_subscriptions",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "store_subscriptions_plan_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          }
+        },
+        {
+          "detail": "Table \\`public.support_queue\\` has a foreign key \\`support_queue_claimed_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_queue",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "support_queue_claimed_by_fkey",
+            "fkey_columns": [
+              6
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "auth_rls_initplan",
+      "title": "Auth RLS Initialization Plan",
+      "level": "WARN",
+      "count": 18,
+      "description": "Detects if calls to \\`current_setting()\\` and \\`auth.<function>()\\` in RLS policies are being unnecessarily re-evaluated for each row",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan",
+      "findings": [
+        {
+          "detail": "Table \\`public.orders\\` has a row level security policy \\`orders read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "orders",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.profiles\\` has a row level security policy \\`profile read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "profiles",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.cards\\` has a row level security policy \\`cards own read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "cards",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.cards\\` has a row level security policy \\`cards own delete\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "cards",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.reviews\\` has a row level security policy \\`reviews insert\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "reviews",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.reviews\\` has a row level security policy \\`reviews own update\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "reviews",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.reviews\\` has a row level security policy \\`reviews own delete\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "reviews",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.stores\\` has a row level security policy \\`stores owner read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "stores",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.stores\\` has a row level security policy \\`stores owner create\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "stores",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.stores\\` has a row level security policy \\`stores owner update\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "stores",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.disputes\\` has a row level security policy \\`disputes read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "disputes",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.disputes\\` has a row level security policy \\`disputes open\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "disputes",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.notifications\\` has a row level security policy \\`notifications own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "notifications",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.notifications\\` has a row level security policy \\`notifications mark read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "notifications",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.profiles\\` has a row level security policy \\`profile update\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "profiles",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.conversation_members\\` has a row level security policy \\`cm_select\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "conversation_members",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.canned_replies\\` has a row level security policy \\`canned_select\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "canned_replies",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.canned_replies\\` has a row level security policy \\`canned_write\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "canned_replies",
+            "type": "table",
+            "schema": "public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "no_primary_key",
+      "title": "No Primary Key",
+      "level": "INFO",
+      "count": 1,
+      "description": "Detects if a table does not have a primary key. Tables without a primary key can be inefficient to interact with at scale.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0004_no_primary_key",
+      "findings": [
+        {
+          "detail": "Table \\`public.rate_limits\\` does not have a primary key",
+          "metadata": {
+            "name": "rate_limits",
+            "type": "table",
+            "schema": "public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "unused_index",
+      "title": "Unused Index",
+      "level": "INFO",
+      "count": 10,
+      "description": "Detects if an index has never been used and may be a candidate for removal.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index",
+      "findings": [
+        {
+          "detail": "Index \\`products_search_idx\\` on table \\`public.products\\` has not been used",
+          "metadata": {
+            "name": "products",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`stores_search_idx\\` on table \\`public.stores\\` has not been used",
+          "metadata": {
+            "name": "stores",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`conversations_store\\` on table \\`public.conversations\\` has not been used",
+          "metadata": {
+            "name": "conversations",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`conversations_status\\` on table \\`public.conversations\\` has not been used",
+          "metadata": {
+            "name": "conversations",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`cm_user\\` on table \\`public.conversation_members\\` has not been used",
+          "metadata": {
+            "name": "conversation_members",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`seller_orders_store_status_idx\\` on table \\`public.seller_orders\\` has not been used",
+          "metadata": {
+            "name": "seller_orders",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`seller_orders_order_idx\\` on table \\`public.seller_orders\\` has not been used",
+          "metadata": {
+            "name": "seller_orders",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`order_items_order_idx\\` on table \\`public.order_items\\` has not been used",
+          "metadata": {
+            "name": "order_items",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`order_items_seller_order_idx\\` on table \\`public.order_items\\` has not been used",
+          "metadata": {
+            "name": "order_items",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Index \\`ledger_store_idx\\` on table \\`public.ledger_entries\\` has not been used",
+          "metadata": {
+            "name": "ledger_entries",
+            "type": "table",
+            "schema": "public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multiple_permissive_policies",
+      "title": "Multiple Permissive Policies",
+      "level": "WARN",
+      "count": 12,
+      "description": "Detects if multiple permissive row level security policies are present on a table for the same \\`role\\` and \\`action\\` (e.g. insert). Multiple permissive policies are suboptimal for performance as each policy must be executed for every relevant query.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0006_multiple_permissive_policies",
+      "findings": [
+        {
+          "detail": "Table \\`public.banners\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{\"banners admin\",\"banners read\"}\\`",
+          "metadata": {
+            "name": "banners",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.canned_replies\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{canned_select,canned_write}\\`",
+          "metadata": {
+            "name": "canned_replies",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.collections\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{\"collections admin\",\"collections read\"}\\`",
+          "metadata": {
+            "name": "collections",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.offers\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{\"offers admin\",\"offers public auto\"}\\`",
+          "metadata": {
+            "name": "offers",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.products\\` has multiple permissive policies for role \\`authenticated\\` for action \\`DELETE\\`. Policies include \\`{\"products admin\",\"products owner delete\"}\\`",
+          "metadata": {
+            "name": "products",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.products\\` has multiple permissive policies for role \\`authenticated\\` for action \\`INSERT\\`. Policies include \\`{\"products admin\",\"products owner insert\"}\\`",
+          "metadata": {
+            "name": "products",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.products\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{\"products admin\",\"products owner read\",\"products public read\"}\\`",
+          "metadata": {
+            "name": "products",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.products\\` has multiple permissive policies for role \\`authenticated\\` for action \\`UPDATE\\`. Policies include \\`{\"products admin\",\"products owner update\"}\\`",
+          "metadata": {
+            "name": "products",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.settings\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{\"settings admin\",\"settings merchant hub\",\"settings read\"}\\`",
+          "metadata": {
+            "name": "settings",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.size_charts\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{\"charts admin\",\"charts read\"}\\`",
+          "metadata": {
+            "name": "size_charts",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.store_plans\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{\"plans admin\",\"plans read\"}\\`",
+          "metadata": {
+            "name": "store_plans",
+            "type": "table",
+            "schema": "public"
+          }
+        },
+        {
+          "detail": "Table \\`public.stores\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{\"stores admin read\",\"stores owner read\",\"stores public read\"}\\`",
+          "metadata": {
+            "name": "stores",
+            "type": "table",
+            "schema": "public"
+          }
+        }
+      ]
+    }
+  ]
+}
