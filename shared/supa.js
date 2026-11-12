@@ -33,6 +33,8 @@
     signUp:function(e,p,meta){var redirect=encodeURIComponent(location.origin+"/sign-in?confirmed=1");return raw("/auth/v1/signup?redirect_to="+redirect,{m:"POST",b:{email:e,password:p,data:meta},anon:1}).then(function(j){return j&&j.access_token?save(j):{confirm:true,email:(j&&j.email)||e}})},
     verifySignup:function(e,token){return raw("/auth/v1/verify",{m:"POST",b:{type:"signup",email:e,token:String(token).replace(/\\s/g,"")},anon:1}).then(save)},
     resendSignup:function(e){return raw("/auth/v1/resend",{m:"POST",b:{type:"signup",email:e},anon:1})},
+    verifySignupOtp:function(e,token){return window.Supa.verifySignup(e,token)},
+    resendSignupOtp:function(e){return window.Supa.resendSignup(e)},
     out:function(){sess=null;try{localStorage.removeItem(KEY)}catch(e){}},
     get:function(p){return api("/rest/v1/"+p)},
     insert:function(t,o){return api("/rest/v1/"+t,{m:"POST",b:o,h:REP})},
