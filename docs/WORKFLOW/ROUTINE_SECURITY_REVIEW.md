@@ -11,13 +11,12 @@ This review is descriptive. It does not modify privileges, functions, policies, 
 
 ## Inventory facts
 
-- 84 application routines were found in `public` and `private`.
+- 84 application routines were found in `public` and `private`: 30 in `private`, 54 in `public`.
 - 58 routines are marked `SECURITY DEFINER`.
 - 30 of those 58 directly reference `auth.uid()`; the remaining 28 require review of their caller, grants, internal checks, and intended service role.
 - 939 table/view privilege rows were returned for the public schema.
 - Anonymous and authenticated roles currently have schema USAGE on both `public` and `private`.
-- No hard-coded payment secret-key, JWT, long bearer-token, or private-key literal matched the targeted scan of the 84 function definitions.
-- No dynamic SQL patterns or hard-coded HTTP URLs matched the targeted scan. This is a narrow scan, not proof that secrets cannot exist elsewhere.
+- No hard-coded payment secret-key, JWT, long bearer-token, or private-key literal matched the targeted scan of the 84 function definitions. This is a narrow scan, not proof that secrets cannot exist elsewhere.
 
 ## SECURITY DEFINER functions with PUBLIC EXECUTE
 
@@ -32,7 +31,7 @@ Six routines were observed with PUBLIC EXECUTE in their ACL:
 | `store_live(text)` | private | Returns whether a store is approved and has a qualifying subscription; no direct `auth.uid()` call. |
 | `store_reply_stats()` | public | Returns aggregate store reply-time statistics. |
 
-The `private` schema currently grants USAGE to `anon` and `authenticated`. Whether these helpers are reachable through the REST Data API also depends on the project's configured exposed-schema list; that setting was not established in this inspection. Keep this as a security-review item rather than assuming REST exposure.
+The `private` schema currently grants USAGE to `anon` and `authenticated`. Whether these helpers are reachable through the REST Data API also depends on the project's configured exposed-schema list; the database-session setting lookup returned NULL and did not establish that configuration. Keep this as an open security-review item rather than assuming REST exposure.
 
 ## Anonymous/public RPC endpoints reviewed
 
@@ -46,6 +45,27 @@ The following functions have anonymous or PUBLIC execution grants:
 
 This review did not find evidence that these endpoints expose raw customer messages or contact details. Their current behavior and intended public use should still be confirmed against the website/app flows.
 
+## Paystack Edge Function — version 4
+
+The active `paystack` Edge Function was retrieved and reviewed statically. Its deployed configuration has `verify_jwt=false`. This is consistent with accepting Paystack webhooks without a Supabase user JWT, but it makes the function's own request authentication essential.
+
+Observed controls:
+- Webhook requests are authenticated by validating the `x-paystack-signature` HMAC-SHA512 against the raw request body using the Paystack secret.
+- Non-webhook requests require a bearer token that is validated with Supabase Auth `getUser`; the handler rejects missing/invalid users.
+- Order creation, payment initialization, saved-card charging, receipt confirmation, and admin-only actions are scoped in the handler to the authenticated user or admin profile.
+- Payment settlement checks successful transaction status, order metadata, currency, and that the paid amount is at least the server-stored order total before calling `confirm_payment`.
+- The function uses server-side `PAYSTACK_SECRET_KEY` and `SUPABASE_SERVICE_ROLE_KEY`; secret values were not retrieved or recorded.
+
+Items requiring further verification:
+1. Confirm that `confirm_payment`, `create_order`, `confirm_received_for`, `cancel_order_for`, and `rate_hit` enforce their own intended authorization and idempotency guarantees.
+2. Review the saved-card authorization-code storage and access controls on `cards`; the Edge Function uses the service role to read and upsert authorization records.
+3. Confirm Paystack webhook configuration points to this function and that signature verification is tested against real provider test events.
+4. Consider constant-time signature comparison and explicit handling of malformed webhook JSON as defense-in-depth.
+5. Confirm CORS wildcard behavior is intentional. CORS is not authentication, and the handler still requires a user token for non-webhook actions.
+6. The function's deployed source references an external FX-rate provider. Verify timeout, failure handling, and acceptable staleness for checkout pricing.
+
+No Edge Function deployment, secret change, or database change was made. This was a source inspection only.
+
 ## Default privilege concern
 
 The live database has default privileges in the `public` schema for objects created by both `postgres` and `supabase_admin`.
@@ -57,18 +77,19 @@ For objects created by `postgres`, the observed defaults grant:
 
 RLS is enabled on all 38 current public tables, but RLS is separate from SQL object privileges. Every new exposed table still needs deliberate RLS policies. Function EXECUTE defaults are especially important because RLS does not automatically protect a function's internal logic, and SECURITY DEFINER functions execute with their owner's privileges.
 
-Do not copy these defaults blindly into a reconstructed baseline. Before the next production schema expansion, review whether the defaults should be narrowed (for example, revoke broad default EXECUTE and grant only to intended roles) in a separately tested and approved migration. No such change has been made.
+Do not copy these defaults blindly into a reconstructed baseline. Before the next production schema expansion, review whether the defaults should be narrowed in a separately tested and approved migration. No such change has been made.
 
 ## Baseline requirements
 
 Before any function or privilege definitions are placed into the reconstructed fresh-install baseline:
 
-1. Export all 84 complete function definitions and their exact ACLs.
+1. Export all 84 complete function definitions and their exact ACLs in bounded batches.
 2. Review every SECURITY DEFINER routine for caller authorization, safe search path, ownership, and data exposure.
 3. Confirm the Data API exposed-schema configuration, especially whether `private` is exposed.
 4. Reconcile explicit grants with default privileges and table RLS policies.
-5. Test anonymous, authenticated buyer, authenticated seller, and service-role behavior on a disposable database.
+5. Test anonymous, authenticated buyer, authenticated seller, admin, and service-role behavior on a disposable database.
 6. Document intentional public RPC endpoints and add negative tests for unauthorized callers.
+7. Test Paystack webhook and user-token flows against provider test events and a disposable database.
 
 ## Current decision
 
