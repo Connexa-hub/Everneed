@@ -117,7 +117,7 @@ Repo folder: `supabase/migrations/`. **Next migration number: do not assign unti
 | 014 | chat_start_official_store | **NO — recovery in progress** | yes (20261111073320) |
 | 015 | support_sla_public | **NO — recovery in progress** | yes (20261111073610) |
 
-**Drift:** Eight applied SQL files are missing from the repository: `multivendor_foundation`, `multivendor_function_grants_hardening`, `signup_profile_fields`, and 011–015. Task `WEB-F07` is IN PROGRESS. A read-only forensic inventory of all 19 live migration records is recorded in `docs/WORKFLOW/MIGRATION_RECOVERY.md`; it is evidence, not a substitute migration chain. Until original SQL is recovered and reconciled, a rebuilt database is not reproducible from this repository.se would lose chat, support, waitlist and plans. `shared/sql/011_website_sync.sql` is an older partial copy and is not equivalent.
+**Drift:** Eight applied SQL files are missing from the repository: `multivendor_foundation`, `multivendor_function_grants_hardening`, `signup_profile_fields`, and 011–015. Task `WEB-F07` is IN PROGRESS. A read-only forensic inventory of all 19 live migration records is recorded in `docs/WORKFLOW/MIGRATION_RECOVERY.md`; it is evidence, not a substitute migration chain. Until original SQL is recovered and reconciled, a rebuilt database is not reproducible from this repository. `shared/sql/011_website_sync.sql` is an older partial copy and is not equivalent.
 
 ## Live facts that matter
 - Data is **empty** (0 profiles, 0 products, 0 orders). No admin account exists yet (`WEB-F11`).
