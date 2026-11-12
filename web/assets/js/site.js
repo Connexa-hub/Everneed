@@ -1,6 +1,6 @@
 /* Marketing pages, sign in, early access. */
 (function(){
-  var C=Core,esc=C.esc,V=C.V,A=C.A,F=C.F,wlWidget=null;
+  var C=Core,esc=C.esc,V=C.V,A=C.A,F=C.F,wlWidget=null,activeAuth=null;
   function pub(html,active,title){return{layout:"pub",html:html,active:active,title:title}}
   var TOOLS=[["Your own storefront","A store page with your name, cover, colour and link. Share it anywhere."],["Reviewed listings","Every product is checked before it goes live, so shoppers trust what they see."],["Orders that split by seller","One cart can hold many sellers. You only see and handle your own part."],["Hub or direct delivery","Hand items to the Everneed hub, or deliver yourself in the areas you choose."],["A ledger you can read","Every sale and commission is recorded. Earnings release after the holding period."],["Messages from Everneed","Approvals, change requests and payout news land in your dashboard."]];
   V.home=function(){return pub(`
@@ -41,37 +41,74 @@
     return "#/account";
   }
   function authPage(up){
-    var steps=up?["Your details","Email address","Password","Confirm password"]:["Email address","Password"];
-    var state={step:0,name:"",email:"",pw:"",pw2:"",otp:"",verify:false};
-    function field(label,type,placeholder,autocomplete,value,extra){return '<label class="auth-field"><span>'+label+'</span><input id="auth-current" name="current" type="'+type+'" value="'+esc(value||"")+'" placeholder="'+placeholder+'" autocomplete="'+autocomplete+'" '+(type==="email"?'inputmode="email"':"")+' '+(extra||"")+' required></label>'}
-    function panel(){
-      if(state.verify)return '<div class="auth-verify"><span class="auth-step-kicker">EMAIL VERIFICATION</span><h2>Check your inbox.</h2><p class="auth-intro">We sent a confirmation code to <b>'+esc(state.email)+'</b>. Enter the code from the email to activate your Everneed account.</p>'+field("6-digit confirmation code","text","Enter code","one-time-code",state.otp,'inputmode="numeric" pattern="[0-9]{6}" maxlength="6"')+'<div class="auth-verify-help">Can’t find it? Check your spam folder or request another email.</div><div class="auth-step-actions"><button class="btn o" type="button" data-auth-resend>Resend code</button><button class="btn auth-primary" type="submit">Verify email <span aria-hidden="true">→</span></button></div><button class="auth-text-button" type="button" data-auth-edit>Email address entered incorrectly?</button></div>';
-      var i=state.step,content="",hint="";
-      if(up){if(i===0){content=field("Your name","text","Enter your full name","name",state.name);hint="Let’s start with the name you want on your account."}if(i===1){content=field("Email address","email","you@example.com","email",state.email);hint="We’ll send a confirmation code to this address."}if(i===2){content=field("Create password","password","At least 8 characters","new-password",state.pw);hint="Use at least 8 characters to keep your account secure."}if(i===3){content=field("Confirm password","password","Enter your password again","new-password",state.pw2);hint="Confirm your password to finish creating your account."}}
-      else{if(i===0){content=field("Email address","email","you@example.com","email",state.email);hint="Use the email address connected to your Everneed account."}if(i===1){content=field("Password","password","Enter your password","current-password",state.pw);hint="Sign in to manage your Everneed account."}}
-      return '<div class="auth-progress"><span>'+steps[i]+'</span><span>'+(i+1)+' of '+steps.length+'</span><i><b style="width:'+((i+1)/steps.length*100)+'%"></b></i></div><div class="auth-step"><span class="auth-step-kicker">'+(up?"CREATE ACCOUNT":"YOUR EVERNEED ACCOUNT")+'</span><h2>'+(up?["Let’s get started.","Where should we reach you?","Secure your account.","One final check."][i]:["Welcome back.","Enter your password."][i])+'</h2><p class="auth-intro">'+hint+'</p>'+content+'<div class="auth-step-actions">'+(i>0?'<button class="btn o" type="button" data-auth-back>Back</button>':'<a class="auth-text-button" href="/">Home</a>')+(i===steps.length-1?'<button class="btn auth-primary" type="submit">'+(up?"Create account":"Sign in")+' <span aria-hidden="true">→</span></button>':'<button class="btn auth-primary" type="button" data-auth-next>Continue <span aria-hidden="true">→</span></button>')+'</div></div>';
+    var steps=up?["Your details","Email address","Password","Review details"]:["Email address","Password"];
+    var state={step:0,name:"",email:"",pw:"",pw2:"",verifying:false};
+    function input(label,type,placeholder,autocomplete,value,attrs){
+      return '<label class="auth-field"><span>'+label+'</span><input id="auth-current" type="'+type+'" value="'+esc(value||"")+'" placeholder="'+placeholder+'" autocomplete="'+autocomplete+'" '+(type==="email"?'inputmode="email"':'')+' '+(attrs||"")+' required></label>';
     }
-    function hidden(){return '<input type="hidden" name="name" value="'+esc(state.name)+'"><input type="hidden" name="email" value="'+esc(state.email)+'"><input type="hidden" name="pw" value="'+esc(state.pw)+'"><input type="hidden" name="pw2" value="'+esc(state.pw2)+'"><input type="hidden" name="otp" value="'+esc(state.otp)+'">'}
-    var html='<section class="auth-screen"><div class="auth-screen-top"><div class="auth-screen-inner"><a class="auth-brand" href="/"><img src="/favicon.svg" alt="" width="30" height="30"><span>Everneed</span></a><a class="auth-home-link" href="/">Back to website</a></div><div class="auth-hero"><div class="auth-hero-copy"><span class="auth-overline">ONE MARKETPLACE · MANY STORES</span><h1>'+(up?'Discover your next favourite.':'Your everyday marketplace, all in one place.')+'</h1><p>Explore products from independent stores, discover new favourites and shop with one Everneed account. Your shopping journey continues in the mobile app.</p></div><div class="auth-product-wave" aria-label="A connected collection of products from Everneed stores"><svg class="auth-wave-line" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 68 C110 8 140 8 250 68 S390 128 500 68 S640 8 750 68 S890 128 1000 68" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 9" opacity=".48"/></svg><div class="auth-product"><div class="auth-product-art art-fashion"><span>✦</span><b>Style</b></div><small>Fashion</small></div><div class="auth-product"><div class="auth-product-art art-tech"><span>▣</span><b>Tech</b></div><small>Gadgets</small></div><div class="auth-product"><div class="auth-product-art art-home"><span>◒</span><b>Home</b></div><small>Home finds</small></div><div class="auth-product"><div class="auth-product-art art-care"><span>✿</span><b>Care</b></div><small>Beauty & care</small></div></div><div class="auth-hero-foot"><span>ONE ACCOUNT</span><i></i><span>MANY INDEPENDENT STORES</span><i></i><span>SHOP IN THE APP</span></div></div></div><div class="auth-screen-bottom"><div class="auth-form-wrap"><div class="auth-form-heading"><span class="auth-form-kicker">'+(up?"JOIN EVERNEED":"YOUR ACCOUNT")+'</span><h2>'+(up?"Create your account":"Sign in")+'</h2><p>'+(up?"A few quick steps and you’re ready to explore.":"Continue where you left off.")+'</p></div><form class="auth-form" data-form="auth" data-mode="'+(up?"up":"in")+'" novalidate>'+hidden()+'<div id="auth-stage" aria-live="polite">'+panel()+'</div></form><div class="auth-form-switch">'+(up?'Already have an account? <a href="/sign-in">Sign in</a>':'New to Everneed? <a href="/create-account">Create an account</a>')+'</div><p class="auth-security-note">Your account is protected. Seller and admin access is granted only through the appropriate approval.</p></div></div></section>';
+    function productWave(){
+      var items=[["groceries","Everyday essentials"],["skincare","Beauty & care"],["accessories","Accessories"],["electricals","Electronics"]];
+      return '<div class="auth-product-wave" aria-label="Explore product categories"><svg class="auth-wave-connector" viewBox="0 0 760 82" preserveAspectRatio="none" aria-hidden="true"><path d="M4 42 C75 42 75 16 150 16 S225 68 300 68 S375 16 450 16 S525 68 600 68 S675 42 756 42"/></svg>'+items.map(function(x,i){return '<div class="auth-product-tile tile-'+i+'"><div class="auth-product-art"><img src="'+Art.product(x[0])+'" alt=""></div><span>'+x[1]+'</span></div>'}).join("")+'</div>';
+    }
+    function panel(){
+      if(state.verifying){
+        return '<div class="auth-progress"><div class="auth-progress-top"><span>Email confirmation</span><span>VERIFY</span></div><div class="auth-progress-track"><i style="width:100%"></i></div></div>'
+          +'<div class="auth-step"><span class="auth-step-kicker">ONE LAST STEP</span><h2>Check your inbox.</h2><p class="auth-intro">We sent a confirmation code to <strong>'+esc(state.email)+'</strong>. Enter the code from that email to activate your Everneed account.</p>'
+          +input("6-digit email code","text","Enter confirmation code","one-time-code","","inputmode=\"numeric\" maxlength=\"8\" pattern=\"[0-9]{6,8}\"")
+          +'<div class="auth-step-actions"><button class="btn o" type="button" data-auth-back>Back</button><button class="btn auth-primary" type="submit">Confirm email <span aria-hidden="true">→</span></button></div>'
+          +'<div class="auth-resend-row"><span>Didn’t receive the code?</span><button type="button" class="auth-text-button" data-auth-resend>Resend code</button></div><p class="auth-verify-note">Check your spam or promotions folder too. The account will only be activated after the code is verified.</p></div>';
+      }
+      var i=state.step,content="",hint="";
+      if(up){
+        if(i===0){content=input("Your name","text","Full name","name",state.name);hint="Let’s start with the name you use."}
+        if(i===1){content=input("Email address","email","you@example.com","email",state.email);hint="We’ll send a one-time confirmation code to this address."}
+        if(i===2){content=input("Create a password","password","At least 8 characters","new-password",state.pw);hint="Use at least 8 characters and keep it private."}
+        if(i===3){content='<div class="auth-review-row"><span>Name</span><b>'+esc(state.name)+'</b></div><div class="auth-review-row"><span>Email</span><b>'+esc(state.email)+'</b></div><div class="auth-review-row"><span>Password</span><b>••••••••</b></div>';hint="Review your details before creating your account."}
+      }else{
+        if(i===0){content=input("Email address","email","you@example.com","email",state.email);hint="Use the email address connected to your Everneed account."}
+        if(i===1){content=input("Password","password","Enter your password","current-password",state.pw);hint="Your Everneed account works for shopping and selling."}
+      }
+      var last=i===steps.length-1;
+      return '<div class="auth-progress"><div class="auth-progress-top"><span>'+steps[i]+'</span><span>'+String(i+1).padStart(2,"0")+' / '+String(steps.length).padStart(2,"0")+'</span></div><div class="auth-progress-track"><i style="width:'+((i+1)/steps.length*100)+'%"></i></div></div>'
+        +'<div class="auth-step"><span class="auth-step-kicker">'+(up?"CREATE YOUR ACCOUNT":"YOUR EVERNEED ACCOUNT")+'</span><h2>'+(up?["Let’s get started.","Where should we reach you?","Secure your account.","Everything look right?"][i]:["Welcome back.","Enter your password."][i])+'</h2><p class="auth-intro">'+hint+'</p>'+content
+        +'<div class="auth-step-actions">'+(i>0?'<button class="btn o" type="button" data-auth-back>Back</button>':'<a class="auth-back-link" href="/">Back to Everneed</a>')
+        +(last?'<button class="btn auth-primary" type="submit">'+(up?"Create account":"Sign in")+' <span aria-hidden="true">→</span></button>':'<button class="btn auth-primary" type="button" data-auth-next>Continue <span aria-hidden="true">→</span></button>')+'</div></div>';
+    }
+    var switcher=up?'Already have an account? <a href="/login">Sign in</a>':'New to Everneed? <a href="/register">Create an account</a>';
+    var form='<form class="auth-form" data-form="auth" data-mode="'+(up?"up":"in")+'" novalidate>'
+      +'<input type="hidden" name="name"><input type="hidden" name="email"><input type="hidden" name="pw"><input type="hidden" name="pw2"><input type="hidden" name="otp">'
+      +'<div id="auth-stage" aria-live="polite">'+panel()+'</div></form>';
+    var html='<main class="auth-experience"><div class="w auth-page-wrap"><header class="auth-topbar"><a class="auth-logo" href="/"><span class="auth-logo-mark">e</span><span>Everneed</span></a><a class="auth-home-link" href="/">Back to website <span aria-hidden="true">↗</span></a></header>'
+      +'<section class="auth-intro-area"><span class="auth-overline">THE MARKETPLACE FOR EVERYDAY DISCOVERY</span><h1>'+(up?'One account. A world of stores to explore.':'Welcome to a marketplace made for discovery.')+'</h1><p>Everneed brings shoppers and independent stores together. Explore everyday products, discover different stores and shop through one simple mobile app. You can use the same account to become a seller.</p>'
+      +productWave()+'</section><section class="auth-form-area"><div class="auth-entry-head"><div><span class="auth-entry-kicker">'+(up?"JOIN EVERNEED":"YOUR ACCOUNT")+'</span><h2>'+(up?"Create your account":"Sign in")+'</h2></div><span class="auth-entry-mark">e</span></div>'
+      +'<div class="auth-entry-card">'+form+'<p class="auth-switch">'+switcher+'</p><p class="auth-trust"><span aria-hidden="true">⌑</span> Seller and admin tools are available only to accounts with the required approval.</p></div>'
+      +'<p class="auth-legal">By continuing, you agree to Everneed’s account terms and privacy practices.</p></section></div></main>';
     var page={layout:"auth",html:html,title:up?"Create account":"Sign in"};
-    page.after=function(){var stage=document.getElementById("auth-stage"),formEl=document.querySelector('[data-form="auth"]');formEl.__authState=state;
+    page.after=function(){
+      var stage=document.getElementById("auth-stage"),formEl=document.querySelector('[data-form="auth"]');
       function sync(){["name","email","pw","pw2","otp"].forEach(function(k){var el=formEl.querySelector('[name="'+k+'"]');if(el)el.value=state[k]})}
-      function render(){formEl.dataset.mode=state.verify?"verify":(up?"up":"in");formEl.querySelectorAll('input[type="hidden"]').forEach(function(n){if(n.name in state)n.value=state[n.name]});stage.innerHTML=panel();var input=stage.querySelector("#auth-current");if(input)input.focus({preventScroll:true})}
-      formEl.__authRender=render;
-      stage.addEventListener("click",function(e){var back=e.target.closest("[data-auth-back]"),next=e.target.closest("[data-auth-next]"),resend=e.target.closest("[data-auth-resend]"),edit=e.target.closest("[data-auth-edit]");
-        if(back){state.step=Math.max(0,state.step-1);render();return}
-        if(edit){state.verify=false;state.step=1;render();return}
-        if(resend){resend.disabled=true;Supa.resendSignup(state.email).then(function(){C.toast("A new confirmation email has been sent.")}).catch(function(err){C.toast(err.message||"Could not resend the code.",true)}).finally(function(){resend.disabled=false});return}
-        if(next){var input=stage.querySelector("#auth-current"),value=input.value.trim();if(!input.reportValidity())return;
+      function render(){stage.innerHTML=panel();var input=stage.querySelector("#auth-current");if(input)input.focus({preventScroll:true})}
+      activeAuth={showVerify:function(){state.verifying=true;state.step=0;formEl.setAttribute("data-mode","verify");render()},state:state};
+      stage.addEventListener("click",function(e){
+        var back=e.target.closest("[data-auth-back]"),next=e.target.closest("[data-auth-next]"),resend=e.target.closest("[data-auth-resend]");
+        if(back){if(state.verifying){state.verifying=false;formEl.setAttribute("data-mode",up?"up":"in");state.step=up?3:0}else state.step=Math.max(0,state.step-1);render();return}
+        if(resend){resend.disabled=true;Supa.resendSignupOtp(state.email).then(function(){C.toast("A new confirmation code has been sent.")}).catch(function(err){C.toast(err.message||"We couldn’t resend the code. Try again shortly.",true)}).finally(function(){resend.disabled=false});return}
+        if(next){
+          var el=stage.querySelector("#auth-current"),value=el.value.trim();
+          if(!el.reportValidity())return;
           if(up&&state.step===0)state.name=value;
-          if((up&&state.step===1)||(!up&&state.step===0)){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){input.setCustomValidity("Enter a valid email address.");input.reportValidity();input.setCustomValidity("");return}state.email=value.toLowerCase()}
-          if((up&&state.step===2)||(!up&&state.step===1)){if(value.length<8){input.setCustomValidity("Use at least 8 characters.");input.reportValidity();input.setCustomValidity("");return}state.pw=value}
+          if((up&&state.step===1)||(!up&&state.step===0)){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){el.setCustomValidity("Enter a valid email address.");el.reportValidity();el.setCustomValidity("");return}state.email=value.toLowerCase()}
+          if((up&&state.step===2)||(!up&&state.step===1))state.pw=value;
           state.step++;sync();render();
-        }});
+        }
+      });
       stage.addEventListener("keydown",function(e){if(e.key==="Enter"&&stage.querySelector("[data-auth-next]")){e.preventDefault();stage.querySelector("[data-auth-next]").click()}});
-      formEl.addEventListener("submit",function(e){var input=stage.querySelector("#auth-current"),value=input?input.value.trim():"";if(state.verify){state.otp=value;sync();return}
-        if(up&&state.step===3){if(value!==state.pw){e.preventDefault();e.stopPropagation();C.toast("The passwords do not match. Please try again.",true);return}state.pw2=value}
-        if(!up&&state.step===1)state.pw=value;if(up&&state.step===2)state.pw=value;sync();
+      formEl.addEventListener("submit",function(e){
+        var el=stage.querySelector("#auth-current"),value=el?el.value.trim():"";
+        if(state.verifying){state.otp=value;sync();return}
+        if(up&&state.step===3){state.pw2=state.pw}
+        if(!up&&state.step===1)state.pw=value;
+        sync();
       });
     };
     return page;
