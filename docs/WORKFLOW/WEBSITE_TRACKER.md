@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — claimed the Android app audit under WEB-APP01.
+**Last updated:** 12 Nov 2026 — PR #3 released; Android app static audit recorded.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -11,25 +11,25 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 4 | 1 | 1 | 0 | 3 | 6 | 15 |
+| Foundation (F) | 5 | 1 | 0 | 0 | 3 | 6 | 15 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
 | Admin console (AD) | 5 | 1 | 0 | 0 | 0 | 13 | 19 |
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
-| App audit (APP) | 0 | 0 | 1 | 0 | 0 | 0 | 1 |
+| App audit (APP) | 0 | 4 | 0 | 0 | 0 | 7 | 11 |
 | Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **22** | **4** | **2** | **0** | **3** | **48** | **79** |
+| **All** | **23** | **8** | **0** | **0** | **3** | **55** | **89** |
 
 Update this table when you change a status.
 
 ## Next up (in order)
-1. `WEB-F06` Complete the reviewed `web-portal` → `main` release PR after CI and owner confirmation.
-2. `WEB-F07` Recover and commit live migrations 011 to 015 before further database changes.
-3. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
-4. `WEB-F11` Create the first admin account (owner action).
-5. `WEB-F09` Schedule and verify the background jobs.
-6. `WEB-APP01` Audit the app already in this repository and add an evidence-based app backlog.
+1. `WEB-F07` Recover and commit live migrations 011 to 015 before any further database changes.
+2. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
+3. `WEB-F11` Create the first admin account (owner action).
+4. `WEB-F09` Schedule and verify the background jobs, after the migration history is safely recovered.
+5. `APP-02` Remove the permissive local/demo admin fallback; admin access must never be inferred from a blank admin email setting.
+6. `APP-10` Run real-device app smoke tests and record the results.
 
 ---
 
@@ -39,9 +39,9 @@ Update this table when you change a status.
 | WEB-F01 | Fix syntax errors that blanked home and store chat | P0 | DONE | `mock.js`, store chat page | owner | web-portal | `e7db758`, `abd356a` |
 | WEB-F02 | Responsive admin and portal shell (no sideways scroll on phones) | P0 | PARTIAL | `css/shell.css` | Claude | web-portal | `784cfdf`. Code is in place; still needs owner verification on a real phone before DONE. |
 | WEB-F03 | Boot diagnostic screen on blank or broken page | P0 | DONE | `js/boot.js`, `index.html` | Claude | web-portal | `d41cfb2`, `964f5dd`, `1e2828c` |
-| WEB-F04 | CI: syntax check, file references, global names | P0 | DONE | `.github/workflows/web-checks.yml`, `tools/check.mjs` | Claude | web-portal | `1a08f8e`. `npm test` and token consistency passed in GitHub Actions run `43146674947`; full APK and database jobs are still running. |
+| WEB-F04 | CI: syntax check, file references, global names | P0 | DONE | `.github/workflows/web-checks.yml`, `tools/check.mjs` | Claude | web-portal | `npm test` and token consistency passed; full Install/test, Database tests and APK build all passed on released main run `43147699406`. Database job remains configured `continue-on-error: true` and is not a release gate yet. |
 | WEB-F05 | Deploy on Cloudflare Pages | P0 | DONE | Cloudflare Pages project `everneed`, GitHub integration | owner | main | Git integration and production branch `main` verified; successful deployment confirmed on merge commit `c816c1b`. |
-| WEB-F06 | Release confirmed app and website changes from `web-portal` to `main` through reviewed PRs | P0 | IN PROGRESS | git, GitHub Actions, Cloudflare Pages | owner + project coordinator | web-portal | Single development branch for both clients. Branches intentionally differ between releases; merge only after CI and confirmation. |
+| WEB-F06 | Release confirmed app and website changes from `web-portal` to `main` through reviewed PRs | P0 | DONE | git, GitHub Actions, Cloudflare Pages | owner + project coordinator | web-portal | PR #3 merged 12 Nov 2026 as `0bca163`; main run `43147699406` passed Install and test, Database tests and APK. The database job is currently non-blocking by workflow configuration. |
 | WEB-F07 | Export live migrations 011 to 015 into `supabase/migrations/` | P0 | TODO | live DB, `DB_CONTRACT.md` | | | Drift: chat, support, waitlist, plans exist only live. Delete `shared/sql/011_website_sync.sql` once exported. |
 | WEB-F08 | Remove `keystore/` from git and rotate the key | P0 | NEEDS OWNER | `keystore/`, `.github/workflows/build.yml` | owner | | Debug key is committed and CI ships a debug build. Use GitHub Secrets. |
 | WEB-F09 | Schedule background jobs (install `pg_cron`, add a migration) | P0 | TODO | `run_scheduled_jobs`, `release_earnings`, `expire_rentals`, `support_sla_sweep` | | | Nothing runs on a timer today, so earnings never release and rentals never expire. |
@@ -136,7 +136,17 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## APP. App audit
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-APP01 | Audit the existing Android app in this repository and create an app-specific implementation backlog | P0 | IN PROGRESS | `index.html`, `js/`, generated Capacitor Android project, `capacitor.config.json`, `package.json` | ChatGPT coordinator | web-portal | Static audit started from main after PR #3 release. APK CI is green; app UI/device and real-database flows still require verification. |
+| WEB-APP01 | Audit the existing Android app in this repository and create an app-specific implementation backlog | P0 | PARTIAL | `index.html`, `js/`, generated Capacitor Android project, `capacitor.config.json`, `package.json` | ChatGPT coordinator | web-portal | Static source audit completed; see APP-02 to APP-11 below. Shopper catalogue, product/store pages, cart/checkout, account, seller onboarding/product forms and admin moderation code exist. APK builds, but no device UI/live account/payment flow has been verified. Android project is generated by CI, not committed. |
+| APP-02 | Remove permissive local/demo admin fallback; never infer admin when `CFG.adminEmail` is blank | P0 | TODO | `js/app.js`, `js/config.js` | | web-portal | Static audit found the local fallback sets `admin:true` when `CFG.adminEmail` is empty. Verify reachability and make role assignment server-authoritative; no Supabase role or RLS changes without a migration. |
+| APP-03 | Complete account recovery and email-confirmation return flow | P1 | TODO | `js/auth.js`, Supabase Auth redirects | | web-portal | Email/password and email-code paths exist; password recovery/reset and a complete confirmation landing/redirect flow are not present in the app code. |
+| APP-04 | Verify buyer checkout, Paystack and multi-seller order creation end to end | P0 | PARTIAL | `js/app.js`, `js/payments.js`, `js/cards.js`, `supabase/functions/paystack/` | | web-portal | App calls the Paystack edge function for checkout/coupons/cancellation and saved-card actions. SQL tests cover two sellers producing one hub-routed order, but live provider/webhook/device checkout is unverified. |
+| APP-05 | Verify buyer order history, payment states, delivery tracking, cancellation and reviews | P1 | PARTIAL | `js/app.js`, `js/shop.js`, `js/store.js`, `supabase/migrations/` | | web-portal | UI and call sites exist for order list/details, payment report, received confirmation and verified-purchase reviews; confirm status mapping and live RLS against the current database. |
+| APP-06 | Implement seller order queue, delivery transitions, earnings and payout history in the app | P0 | TODO | `js/merchant/merchant.js`, seller-order RPCs, ledger tables | | web-portal | Current seller surface covers store application, basic dashboard and single-image product create/edit/review only; no seller order or earnings/payout screens found. |
+| APP-07 | Complete admin operations for hub handling, refunds, disputes and seller payouts | P1 | TODO | `js/admin.js`, `js/adminx.js`, `js/admin-sellers.js` | | web-portal | Admin code includes seller/product moderation and some order/payment/offer tools; full hub, refund, dispute and payout workflows remain to be implemented and tested. |
+| APP-08 | Consolidate app config, Supabase client, status and money helpers into shared modules | P1 | TODO | `js/config.js`, `js/supa.js`, `shared/`, `index.html` | | web-portal | App currently loads `js/config.js` and `js/supa.js`; the parallel `shared/config.js` and `shared/supa.js` are not loaded by the app. |
+| APP-09 | Complete barcode fallback and image-based product search | P2 | PARTIAL | `js/app.js`, Capacitor camera permissions | | web-portal | Barcode scan depends on browser `BarcodeDetector` support; image matching explicitly displays a Stage 2 placeholder. Add graceful fallback or connect a supported search service. |
+| APP-10 | Run real-device app smoke tests and record install, permissions and core flows | P0 | TODO | Android APK, GitHub Actions build, test checklist | | web-portal | CI builds a debug APK successfully, but no evidence yet for install/upgrade, 360–412px layout, camera/location/notifications, sign-in, checkout or seller flows on a physical Android device. |
+| APP-11 | Complete app accessibility and performance pass on low-to-mid Android devices | P2 | TODO | `css/`, `js/`, Capacitor build | | web-portal | Verify touch targets, contrast, keyboard/focus, image weight, startup and scroll performance on real devices and weak mobile data. |
 
 ## Q. Quality
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
@@ -151,7 +161,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## Change log (newest first)
 | Date | Who | What |
 |---|---|---|
-| 12 Nov 2026 | Project workflow | Standardized `web-portal` as the only development branch for both app and website; `main` is the reviewed release and Cloudflare production branch. Added app audit task; corrected Cloudflare and branch statuses. |
-| 12 Nov 2026 | Project workflow | Synced existing `main` checker and roadmap fixes into `web-portal` through PR #2. |
+| 12 Nov 2026 | Project workflow | PR #3 merged as `0bca163`; `web-portal` is the only development branch for app and website, `main` is reviewed release/Cloudflare production. All three release CI jobs passed on main run `43147699406`. |
+| 12 Nov 2026 | Project workflow | Static Android app audit recorded in `DB_CONTRACT.md`; app backlog APP-02 to APP-11 added. No database migrations applied. |\n| 12 Nov 2026 | Project workflow | Synced existing `main` checker and roadmap fixes into `web-portal` through PR #2. |
 | 12 Nov 2026 | Claude | Created tracker, protocol and database contract. Merged `web-portal` into `main`. Added `shell.css`, `boot.js`, `web-checks.yml`, `_headers`. |
 | 12 Nov 2026 | owner | Fixed `mock.js` and store chat syntax errors; added Cloudflare packaging workflow. |
