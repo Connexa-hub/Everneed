@@ -37,10 +37,11 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
    - Storage: confirm the `media` bucket exists (public read, 5 MiB, JPEG/PNG/WebP/GIF) and has the same policies as live. If the migrations did not create it, a numbered migration must, which also closes a rebuild gap on live.
    - Create a test admin and two test sellers (`WEB-Q01` needs them).
    - Payments: the `paystack` edge function is not deployed to staging. Use Paystack **test** keys there, never live keys. 
-   - Public forms: `public-forms` is deployed to staging with JWT verification enabled. Add `TURNSTILE_SECRET_KEY` under Project → Edge Functions → Secrets in `Everneed-staging`; copy the secret from the Cloudflare Turnstile widget named **Everneed public forms**. Never put it in Git, a browser config, GitHub Actions or chat. The public sitekey is in `shared/config.js`; the widget is restricted to `everneed.pages.dev` and its subdomains.\n   - The `public-forms` function requires a successful Siteverify response, the expected action (`waitlist` or `guest_open`) and a hostname under `everneed.pages.dev`. The preview client switches to the Edge Function only when `CFG.env` is `staging`.
+   - Public forms: `public-forms` is deployed to staging with JWT verification enabled. Add `TURNSTILE_SECRET_KEY` under Project → Edge Functions → Secrets in `Everneed-staging`; copy the secret from the Cloudflare Turnstile widget named **Everneed public forms**. Never put it in Git, a browser config, GitHub Actions or chat. The public sitekey is in `shared/config.js`; the widget is restricted to `everneed.pages.dev` and its subdomains.
+    - The `public-forms` function requires a successful Siteverify response, the expected action (`waitlist` or `guest_open`) and a hostname under `everneed.pages.dev`. The preview client switches to the Edge Function only when `CFG.env` is `staging`.
 
 ## Moving a change from idea to live
-1. Write the migration as `supabase/migrations/NNN_name.sql` (next number: 016). Digits, underscore, name. The `Migration files` check fails the push if it is not named that way.
+1. Write the migration as `supabase/migrations/NNN_name.sql` (next number: 019). Digits, underscore, name. The `Migration files` check fails the push if it is not named that way.
 2. Push to `web-portal`. `staging-db.yml` applies it to staging.
 3. Test on the `web-portal` preview site and, once wired, a test app build.
 4. Open a pull request to `main`. Tests must be green.
