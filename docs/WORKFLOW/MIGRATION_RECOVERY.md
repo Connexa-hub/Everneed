@@ -77,7 +77,7 @@ Message triggers: `chat_guard_bi` (BEFORE INSERT, `chat_guard()`) and `chat_tria
 ## Replay and exact-SQL verification (12 Nov 2026)
 
 - GitHub Actions reset run `43234686076` completed successfully against staging project `vjiadqygpyebpisxslbx`.
-- The staging migration history was rebuilt from the 19 repository files in the same order as live. A temporary `016_signup_profile_fields.sql` duplicated the already-correct `0030_signup_profile_fields.sql`; it has been removed from the repository. Its no-op row in staging migration metadata still needs reconciliation.
+- The staging migration history was rebuilt from the 19 repository files in the same order as live. A temporary `016_signup_profile_fields.sql` duplicated the already-correct `0030_signup_profile_fields.sql`; it has been removed from the repository. Its no-op row was removed from staging migration metadata after verifying it duplicated version `0030`.
 - Each of the 19 repository migrations was compared with its corresponding `supabase_migrations.schema_migrations.statements` entry on live. After ignoring SQL comments and formatting whitespace (including comments inside dollar-quoted function bodies), all 19 executable SQL bodies match.
 - Staging/live parity checks found matching public columns, RLS policies and RLS-enabled table sets. Four function-body hash differences were inspected and were comments only.
 - No SQL or data was changed on live. The staging reset affected staging only.
