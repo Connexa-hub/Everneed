@@ -1,0 +1,104 @@
+{
+  "source": "read-only PostgreSQL catalog query",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "inspection_date": "2026-11-12",
+  "warning": "Evidence only; not a migration. Trigger functions must be reconciled with original migrations and reviewed before baseline reconstruction.",
+  "trigger_count": 9,
+  "triggers": [
+    {
+      "schema": "public",
+      "table_name": "ledger_entries",
+      "trigger_name": "ledger_guard",
+      "trigger_definition": "CREATE TRIGGER ledger_guard BEFORE DELETE OR UPDATE ON ledger_entries FOR EACH ROW EXECUTE FUNCTION private.ledger_guard()",
+      "function_schema": "private",
+      "function_name": "ledger_guard",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.ledger_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if tg_op = 'DELETE' then raise exception 'Ledger entries are never deleted.'; end if;\n  if new.amount is distinct from old.amount or new.kind is distinct from old.kind or new.store_id is distinct from old.store_id\n     or new.order_id is distinct from old.order_id or new.seller_order_id is distinct from old.seller_order_id or new.currency is distinct from old.currency then\n    raise exception 'Ledger amounts are never edited; add a reversing entry.';\n  end if;\n  return new;\nend $function$\n"
+    },
+    {
+      "schema": "public",
+      "table_name": "messages",
+      "trigger_name": "chat_guard_bi",
+      "trigger_definition": "CREATE TRIGGER chat_guard_bi BEFORE INSERT ON messages FOR EACH ROW EXECUTE FUNCTION chat_guard()",
+      "function_schema": "public",
+      "function_name": "chat_guard",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION public.chat_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public'\nAS $function$\nbegin\n  if new.kind='text' and new.body ~* '(code|otp|pin)' and new.body ~ '(^|\\D)\\d{4}(\\D|$)' then\n    new.body := regexp_replace(new.body,'(^|\\D)\\d{4}(\\D|$)','\\1••••\\2','g');\n    new.meta := new.meta || '{\"redacted\":true}'::jsonb;\n  end if;\n  return new;\nend $function$\n"
+    },
+    {
+      "schema": "public",
+      "table_name": "messages",
+      "trigger_name": "chat_triage_ai",
+      "trigger_definition": "CREATE TRIGGER chat_triage_ai AFTER INSERT ON messages FOR EACH ROW EXECUTE FUNCTION chat_triage()",
+      "function_schema": "public",
+      "function_name": "chat_triage",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION public.chat_triage()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare c public.conversations%rowtype; r public.support_rules%rowtype; v_tags text[]:='{}'; v_prio int:=0; v_esc text; v_mins int;\n        v_responder boolean; v_customer boolean; o public.orders%rowtype; v_so text; v_nm text;\nbegin\n  select * into c from public.conversations where id=new.conversation_id;\n  if not found then return new; end if;\n  if new.kind in ('text','system','order_card') then\n    update public.conversation_members set unread=unread+1 where conversation_id=new.conversation_id and user_id is distinct from new.sender_id;\n  end if;\n  if new.kind='note' then return new; end if;\n  update public.conversations set last_message_at=new.created_at,\n    last_preview=case when new.kind in ('text','order_card') then left(new.body,80) else last_preview end,\n    status=case when status='resolved' and new.kind='text' then 'open' else status end,\n    resolved_at=case when status='resolved' and new.kind='text' then null else resolved_at end,\n    admin_unread=case when new.kind='text' and new.sender_role not in ('admin','system') then true else admin_unread end\n  where id=new.conversation_id;\n  if new.kind<>'text' then return new; end if;\n\n  v_responder := new.sender_role='admin' or (c.kind='store' and new.sender_role='seller') or (c.kind='admin_user' and new.sender_role<>'admin');\n  v_customer := not v_responder and new.sender_role<>'system';\n  if v_responder then\n    update public.conversations set sla_due_at=null, first_reply_at=coalesce(first_reply_at,new.created_at) where id=c.id;\n  elsif v_customer then\n    v_mins := case when c.kind='store' then coalesce((select (value->>'seller_reply_minutes')::int from public.support_settings where key='sla'),30)\n                   when c.kind in ('support','seller_admin') then public.support_sla_minutes(c.tier) else null end;\n    if v_mins is not null then update public.conversations set sla_due_at=coalesce(sla_due_at, now()+make_interval(mins=>v_mins)) where id=c.id; end if;\n  end if;\n\n  if new.meta ? 'redacted' then\n    insert into public.messages(conversation_id,sender_role,kind,body,meta)\n    values(new.conversation_id,'system','shield','For your safety we hid a 4-digit number. Never share your delivery code in chat. Give it only when your items arrive.','{\"rule\":\"code\"}'::jsonb);\n    v_tags := array_append(v_tags,'code-shared'); v_prio := greatest(v_prio,1);\n  end if;\n\n  if new.sender_role not in ('admin','system') then\n    for r in select * from public.support_rules where active and c.kind=any(applies_to) and new.body ~* pattern order by priority desc, id loop\n      if r.tag is not null then v_tags := array_append(v_tags,r.tag); end if;\n      v_prio := greatest(v_prio,r.priority);\n      if r.action='escalate' and v_esc is null then v_esc := coalesce(r.reason,r.name); end if;\n      if r.action='shield' and r.reply is not null and not exists(select 1 from public.messages where conversation_id=c.id and kind='shield' and meta->>'rule'=r.id::text and created_at>now()-interval '10 minutes') then\n        insert into public.messages(conversation_id,sender_role,kind,body,meta) values(c.id,'system','shield',r.reply,jsonb_build_object('rule',r.id::text));\n      end if;\n    end loop;\n  end if;\n  if cardinality(v_tags)>0 or v_prio>0 then\n    update public.conversations set tags=(select coalesce(array_agg(distinct t),'{}') from unnest(v_tags||conversations.tags) t), priority=greatest(priority,v_prio) where id=c.id;\n  end if;\n  if v_esc is not null then perform public.chat_escalate_core(c.id,v_esc,greatest(v_prio,1)); end if;\n\n  if c.order_id is not null and new.sender_role in ('buyer','user') and new.body ~* '(where is|where.s my|track|order status|when will|how long|eta)' then\n    select * into o from public.orders where id=c.order_id;\n    if found then\n      select status into v_so from public.seller_orders where order_id=c.order_id and (c.store_id is null or store_id=c.store_id) limit 1;\n      insert into public.messages(conversation_id,sender_role,kind,body,meta)\n      values(c.id,'system','order_card','Order '||coalesce(o.ref,left(o.id,8))||': '||coalesce(o.status,'processing')||case when v_so is not null then ' (seller: '||v_so||')' else '' end,\n        jsonb_build_object('order_id',o.id,'status',o.status,'seller_status',v_so,'payment',o.payment_status));\n    end if;\n  end if;\n\n  v_nm := case new.sender_role when 'admin' then 'Everneed Support' else coalesce((select name from public.profiles where id=new.sender_id),'New message') end;\n  insert into public.notifications(id,user_id,kind,title,body,data)\n  select gen_random_uuid()::text, m.user_id,'message',v_nm,left(new.body,120),jsonb_build_object('conversation',new.conversation_id,'kind',c.kind)\n  from public.conversation_members m where m.conversation_id=new.conversation_id and m.user_id is distinct from new.sender_id and not m.muted;\n  return new;\nend $function$\n"
+    },
+    {
+      "schema": "public",
+      "table_name": "orders",
+      "trigger_name": "orders_guard",
+      "trigger_definition": "CREATE TRIGGER orders_guard BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION private.orders_guard()",
+      "function_schema": "private",
+      "function_name": "orders_guard",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.orders_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if new.status is not distinct from old.status then return new; end if;\n  if not private.order_step_ok(old.status, new.status) then\n    raise exception 'An order cannot move from % to %.', old.status, new.status;\n  end if;\n  if not (coalesce(current_setting('app.order_bypass', true), '') = '1' and current_user not in ('authenticated', 'anon')) then\n    if new.status = 'paid' and old.payment_status <> 'paid' then raise exception 'Payments are confirmed with confirm_payment().'; end if;\n    if new.status in ('shipped', 'out_for_delivery', 'delivered') and exists (\n      select 1 from public.seller_orders so join public.stores s on s.id = so.store_id where so.order_id = new.id and not s.is_official) then\n      raise exception 'Marketplace orders are dispatched and delivered through the delivery functions.';\n    end if;\n  end if;\n  return new;\nend $function$\n"
+    },
+    {
+      "schema": "public",
+      "table_name": "products",
+      "trigger_name": "products_guard",
+      "trigger_definition": "CREATE TRIGGER products_guard BEFORE INSERT OR UPDATE ON products FOR EACH ROW EXECUTE FUNCTION private.products_guard()",
+      "function_schema": "private",
+      "function_name": "products_guard",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.products_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare st text; trusted boolean; lim int; used int;\nbegin\n  if new.store_id is null then new.store_id := (select id from public.stores where is_official limit 1); end if;\n  if private.is_privileged() then return new; end if;\n  select status into st from public.stores where id = new.store_id;\n  if tg_op = 'INSERT' then\n    if new.status not in ('draft', 'pending_review') then raise exception 'New products start as draft or pending review.'; end if;\n    select pl.product_limit into lim from public.store_subscriptions ss join public.store_plans pl on pl.id = ss.plan_id where ss.store_id = new.store_id;\n    if lim is not null then\n      select count(*) into used from public.products where store_id = new.store_id and status <> 'archived';\n      if used >= lim then raise exception 'Your plan allows % products. Archive some or upgrade your plan to add more.', lim; end if;\n    end if;\n  else\n    if new.store_id is distinct from old.store_id then raise exception 'A product cannot move to another store.'; end if;\n    if new.status = 'published' and old.status is distinct from 'published' then raise exception 'Only the EverNeed team publishes products.'; end if;\n    if new.status = 'rejected' and old.status is distinct from 'rejected' then raise exception 'Only the EverNeed team rejects products.'; end if;\n    if old.status = 'published' and new.status = 'published'\n       and (new.name is distinct from old.name or new.descr is distinct from old.descr or new.images is distinct from old.images or new.img is distinct from old.img) then\n      new.status := 'pending_review';\n    end if;\n    if old.status = 'archived' and new.status <> 'archived' then\n      select pl.product_limit into lim from public.store_subscriptions ss join public.store_plans pl on pl.id = ss.plan_id where ss.store_id = new.store_id;\n      if lim is not null then\n        select count(*) into used from public.products where store_id = new.store_id and status <> 'archived';\n        if used >= lim then raise exception 'Your plan allows % products. Archive some or upgrade your plan to restore this one.', lim; end if;\n      end if;\n    end if;\n  end if;\n  if new.status = 'pending_review' then\n    if st is distinct from 'approved' then raise exception 'Your store must be approved before products go for review.'; end if;\n    select sp.trusted into trusted from public.store_private sp where sp.store_id = new.store_id;\n    if coalesce(trusted, false) and coalesce((select (data->>'auto_approve_trusted')::boolean from public.settings where id = 'policy'), false) then\n      new.status := 'published';\n    end if;\n  end if;\n  return new;\nend $function$\n"
+    },
+    {
+      "schema": "public",
+      "table_name": "profiles",
+      "trigger_name": "profiles_guard",
+      "trigger_definition": "CREATE TRIGGER profiles_guard BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION private.profiles_guard()",
+      "function_schema": "private",
+      "function_name": "profiles_guard",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.profiles_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if not private.is_privileged() and (new.role is distinct from old.role or new.email is distinct from old.email) then\n    raise exception 'Role and email cannot be changed from the app.';\n  end if;\n  return new;\nend $function$\n"
+    },
+    {
+      "schema": "public",
+      "table_name": "seller_orders",
+      "trigger_name": "seller_orders_guard",
+      "trigger_definition": "CREATE TRIGGER seller_orders_guard BEFORE UPDATE ON seller_orders FOR EACH ROW EXECUTE FUNCTION private.seller_orders_guard()",
+      "function_schema": "private",
+      "function_name": "seller_orders_guard",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.seller_orders_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if new.status is not distinct from old.status then return new; end if;\n  if coalesce(current_setting('app.order_bypass', true), '') = '1' and current_user not in ('authenticated', 'anon') then return new; end if;\n  if not private.so_step_ok(old.status, new.status, (select route from public.orders where id = new.order_id)) then\n    raise exception 'A seller order cannot move from % to %.', old.status, new.status;\n  end if;\n  return new;\nend $function$\n"
+    },
+    {
+      "schema": "public",
+      "table_name": "store_private",
+      "trigger_name": "store_private_guard",
+      "trigger_definition": "CREATE TRIGGER store_private_guard BEFORE INSERT OR UPDATE ON store_private FOR EACH ROW EXECUTE FUNCTION private.store_private_guard()",
+      "function_schema": "private",
+      "function_name": "store_private_guard",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.store_private_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if not private.is_privileged() then\n    if tg_op = 'INSERT' then\n      if new.status_note is not null or new.commission_override is not null or new.trusted then raise exception 'Not allowed.'; end if;\n    elsif new.status_note is distinct from old.status_note or new.commission_override is distinct from old.commission_override or new.trusted is distinct from old.trusted then\n      raise exception 'That setting is managed by the EverNeed team.';\n    end if;\n  end if;\n  return new;\nend $function$\n"
+    },
+    {
+      "schema": "public",
+      "table_name": "stores",
+      "trigger_name": "stores_guard",
+      "trigger_definition": "CREATE TRIGGER stores_guard BEFORE INSERT OR UPDATE ON stores FOR EACH ROW EXECUTE FUNCTION private.stores_guard()",
+      "function_schema": "private",
+      "function_name": "stores_guard",
+      "function_args": "",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.stores_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare base text; n int := 0;\nbegin\n  if tg_op = 'INSERT' then\n    base := private.slugify(coalesce(new.slug, new.name)); new.slug := base;\n    while exists (select 1 from public.stores where slug = new.slug) loop n := n + 1; new.slug := base || '-' || n; end loop;\n    if not private.is_privileged() then\n      if new.status not in ('draft', 'pending') then raise exception 'A new store starts as draft or pending.'; end if;\n      new.is_official := false; new.is_demo := false; new.approved_at := null;\n    end if;\n    return new;\n  end if;\n  if not private.is_privileged() then\n    if new.owner_id is distinct from old.owner_id or new.is_official is distinct from old.is_official or new.is_demo is distinct from old.is_demo\n       or new.approved_at is distinct from old.approved_at or new.slug is distinct from old.slug then\n      raise exception 'That store field cannot be changed from the app.';\n    end if;\n    if new.status is distinct from old.status and not (old.status in ('draft', 'rejected') and new.status = 'pending') then\n      raise exception 'Store status is changed by the EverNeed team.';\n    end if;\n  end if;\n  return new;\nend $function$\n"
+    }
+  ],
+  "notes": [
+    "These are the nine non-internal triggers observed on public tables.",
+    "Function definitions are included to preserve the trigger implementation evidence, but are not approved production SQL.",
+    "Trigger function bodies are also part of the 84-routine inventory; do not duplicate or alter them without reconciling dependencies and exact signatures."
+  ]
+}
