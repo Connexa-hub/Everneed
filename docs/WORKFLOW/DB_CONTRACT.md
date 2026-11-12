@@ -145,7 +145,7 @@ Policy counts in brackets.
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 019.**
+Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 025.**
 
 | File | Live version | In repo | Applied live |
 |---|---|---|---|
@@ -205,3 +205,10 @@ The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_RE
 3. Push it to `web-portal`. It is applied to **staging** automatically and the `Database tests` job replays it locally; run the security advisors and compare the result with the intended schema/security contract.
 4. Commit the reviewed migration and update this contract and the project tracker in the same PR.
 5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline, and never run `supabase db push` against live.
+
+
+## Public seller storefront details (migration 024; staging rollout pending)
+
+The seller application now captures a structured `stores.storefront_details` JSON object for information intended to appear on the public store page: support email, website/catalogue URL, WhatsApp business contact, Instagram/Facebook/TikTok links, opening hours, returns/exchange summary and shopper-facing delivery information. The migration adds an 8 KiB size guard. The seller identity form saves these details alongside the store name, tagline, description, logo and cover.
+
+Do not put identity numbers, verification evidence, private phone numbers, payout details or registration-address evidence in `storefront_details`. Those belong in private tables and provider-controlled verification workflows. The migration is in the repository on `web-portal`; staging application must be confirmed by CI before describing it as applied. Production remains unchanged.
