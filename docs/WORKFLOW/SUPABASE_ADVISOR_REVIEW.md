@@ -53,3 +53,21 @@ The full findings include exact table, policy, foreign-key, and index names in `
 ## Current decision
 
 Record these findings as baseline acceptance and hardening requirements. No advisor finding has been fixed by this review, and no SQL or Auth setting has been changed.
+
+
+## Follow-up: public RPC hardening (12 Nov 2026)
+
+The advisor snapshot above was taken against live before the hardening work. Migration 016 was subsequently added to web-portal and successfully applied to Everneed-staging only. Live Everneed01 remains unchanged.
+
+Staging migration 016 now:
+- Applies consistent visitor-ID validation to guest support open/ping/close.
+- Adds per-IP rate limits for guest support and waitlist, plus per-normalized-email waitlist limits. Rate-limit checks use transaction-scoped advisory locks to prevent concurrent count races.
+- Stores keyed pseudonyms, not raw IP addresses or email addresses, in rate_limits. The random pepper is stored in public.kv, which remains RLS-protected and inaccessible to API roles.
+- Uses an empty search_path and explicit anon/authenticated grants for the six intentional public SECURITY DEFINER RPCs. Internal rate-limit helper execution is revoked from API roles.
+- Prevents reuse of a closed guest-session ID to reopen that session.
+
+The six anonymous SECURITY DEFINER advisor warnings are expected to remain because the public waitlist, guest support, SLA and aggregate store-stat features need anonymous access. They are documented, bounded public endpoints—not blanket approval of arbitrary definer functions. The two no-policy tables remain intentional internal tables; do not add permissive policies just to silence the advisor.
+
+Regression tests were added at supabase/tests/016_public_rpc_security_hardening.sql and wired into the local database CI job. Their result is pending at the time of this update. Before production, require the CI tests, staging behavior checks and a fresh staging advisor run; then obtain the owner's explicit approval for a separate live migration application.
+
+Cloudflare Turnstile with server-side token verification remains a recommended additional edge control before a public launch or meaningful traffic increase. Monitor rate-limit rejections and tune limits for shared mobile networks/NATs.
