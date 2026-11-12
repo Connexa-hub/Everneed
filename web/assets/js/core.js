@@ -6,7 +6,8 @@ window.Core=(function(){
   function money(n){try{return new Intl.NumberFormat("en-NG",{style:"currency",currency:CFG.baseCurrency,maximumFractionDigits:0}).format(n||0)}catch(e){return"₦"+(n||0)}}
   function when(t){return t?new Date(t).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}):""}
   function ago(t){var s=Math.max(1,Math.round((Date.now()-new Date(t).getTime())/1000));if(s<60)return"just now";if(s<3600)return Math.round(s/60)+" min ago";if(s<86400)return Math.round(s/3600)+" h ago";return Math.round(s/86400)+" d ago"}
-  function toast(m,err){var t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");document.body.appendChild(t)}t.innerHTML='<span class="ti">'+ic(err?"alert":"check",18)+"</span><span>"+esc(m)+"</span>";t.className=err?"err show":"show";clearTimeout(t._t);t._t=setTimeout(function(){t.className=""},3600)}
+  function toast(m,err){var t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role",err?"alert":"status");t.setAttribute("aria-live",err?"assertive":"polite");document.body.appendChild(t)}t.innerHTML='<span class="toast-icon">'+ic(err?"alert":"check",18)+'</span><span class="toast-copy"><b>'+(err?"Please check this":"Everneed")+'</b><small>'+esc(m)+'</small></span><span class="toast-progress"></span>';t.className=err?"toast-error show":"show";clearTimeout(t._t);t._t=setTimeout(function(){t.className=""},4800)}
+
   function ask(title,label,required){return new Promise(function(res){var d=document.createElement("dialog");
     d.innerHTML='<form method="dialog"><h3>'+esc(title)+'</h3><label class="lb">'+esc(label)+'<textarea rows="4" maxlength="300"'+(required?' required minlength="3"':"")+'></textarea></label><div class="row"><button class="btn o s" value="x" formnovalidate>Cancel</button><button class="btn s" value="ok">Confirm</button></div></form>';
     document.body.appendChild(d);d.addEventListener("close",function(){var v=d.returnValue==="ok"?$("textarea",d).value.trim():null;d.remove();res(v)});d.showModal()})}
@@ -32,10 +33,13 @@ window.Core=(function(){
   new MutationObserver(night).observe(document.documentElement,{attributes:true,attributeFilter:["data-palette"]});
   function thumbs(){document.querySelectorAll(".pth").forEach(function(el){if(el.querySelector("img"))return;var b=el.nextElementSibling&&el.nextElementSibling.querySelector("b");el.innerHTML='<img alt="" src="'+Art.guess(b?b.textContent:"")+'">'})}
   function loadMe(){if(!Supa.uid()){me=null;return Promise.resolve(null)}if(me)return Promise.resolve(me);return Supa.profile().then(function(p){me=p;if(window.Theme)Theme.fromProfile(p);return p}).catch(function(){return null})}
-  function route(){var h=location.hash.replace(/^#\/?/,"").split("?")[0],parts=h?h.split("/"):[],seg=parts[0]||"home",f=V[seg]||V.home,app=$("#root");document.body.classList.remove("dr");
-    loadMe().then(function(){if(window.Chat&&me)Chat.boot(me);return f(parts.slice(1))}).then(function(r){if(r.redirect){location.hash=r.redirect;return}
-      app.innerHTML=r.layout==="pub"?pub(r.html,r.active):shell(r.layout,r.active,r.html);document.title=(r.title?r.title+" \u00b7 ":"")+"Everneed";window.scrollTo(0,0);Theme.apply();night();thumbs();if(window.Chat){Chat.mount(r.layout);Chat.refresh()}if(r.after)r.after()})
-    .catch(function(e){app.innerHTML=pub(empty("Something went wrong",e&&e.message||"Please try again."))})}
+  function route(){var path=location.pathname.replace(/\\/+$/,"")||"/",authPath=path==="/sign-in"||path==="/create-account"||path==="/login"||path==="/login/new",h=location.hash.replace(/^#\\/?/,"").split("?")[0],parts=h?h.split("/"):[],seg=authPath?"login":(parts[0]||"home"),args=authPath?[path==="/create-account"||path==="/login/new"?"new":"in"]:parts.slice(1),f=V[seg]||V.home,app=$("#root");document.body.classList.remove("dr","auth-page");
+    loadMe().then(function(){if(window.Chat&&me&&!authPath)Chat.boot(me);return f(args)}).then(function(r){if(r.redirect){location.hash=r.redirect;return}
+      if(r.layout==="auth"){document.body.classList.add("auth-page");app.innerHTML=r.html}
+      else app.innerHTML=r.layout==="pub"?pub(r.html,r.active):shell(r.layout,r.active,r.html);
+      document.title=(r.title?r.title+" · ":"")+"Everneed";window.scrollTo(0,0);Theme.apply();night();thumbs();if(window.Chat&&r.layout!=="auth"){Chat.mount(r.layout);Chat.refresh()}if(r.after)r.after()})
+    .catch(function(e){document.body.classList.remove("auth-page");app.innerHTML=pub(empty("Something went wrong",e&&e.message||"Please try again."))})}
+
   document.addEventListener("click",function(e){var b=e.target.closest("[data-act]");if(b){var f=A[b.getAttribute("data-act")];if(f){e.preventDefault();f(b,e)}}if(e.target.closest("[data-tact]"))setTimeout(ap,0)});
   document.addEventListener("change",function(e){if(e.target.getAttribute&&e.target.getAttribute("data-tact"))setTimeout(ap,0)});
   document.addEventListener("submit",function(e){var f=e.target.closest("[data-form]");if(!f)return;e.preventDefault();var h=F[f.getAttribute("data-form")];if(!h)return;var d={};new FormData(f).forEach(function(v,k){if(!(k in d))d[k]=v});h(f,d,e)});
@@ -43,5 +47,5 @@ window.Core=(function(){
   A.out=function(){Supa.out();me=null;location.hash="#/";location.reload()};
   A.menu=function(){document.body.classList.toggle("dr")};
   return{V:V,A:A,F:F,esc:esc,$:$,money:money,when:when,ago:ago,toast:toast,ask:ask,empty:empty,appearance:appearance,me:function(){return me},reset:function(){me=null},
-    start:function(){addEventListener("hashchange",route);route()}};
+    start:function(){addEventListener("hashchange",route);addEventListener("popstate",route);route()}};
 })();
