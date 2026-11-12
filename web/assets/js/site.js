@@ -54,7 +54,7 @@
       if(state.verifying){
         return '<div class="auth-progress"><div class="auth-progress-top"><span>Email confirmation</span><span>VERIFY</span></div><div class="auth-progress-track"><i style="width:100%"></i></div></div>'
           +'<div class="auth-step"><span class="auth-step-kicker">ONE LAST STEP</span><h2>Check your inbox.</h2><p class="auth-intro">We sent a confirmation code to <strong>'+esc(state.email)+'</strong>. Enter the code from that email to activate your Everneed account.</p>'
-          +input("6-digit email code","text","Enter confirmation code","one-time-code","","inputmode=\"numeric\" maxlength=\"8\" pattern=\"[0-9]{6,8}\"")
+          +input("6-digit email code","text","Enter confirmation code","one-time-code","","inputmode=\"numeric\" maxlength=\"6\" pattern=\"[0-9]{6}\"")
           +'<div class="auth-step-actions"><button class="btn o" type="button" data-auth-back>Back</button><button class="btn auth-primary" type="submit">Confirm email <span aria-hidden="true">→</span></button></div>'
           +'<div class="auth-resend-row"><span>Didn’t receive the code?</span><button type="button" class="auth-text-button" data-auth-resend>Resend code</button></div><p class="auth-verify-note">Check your spam or promotions folder too. The account will only be activated after the code is verified.</p></div>';
       }
@@ -74,7 +74,7 @@
         +'<div class="auth-step-actions">'+(i>0?'<button class="btn o" type="button" data-auth-back>Back</button>':'<a class="auth-back-link" href="/">Back to Everneed</a>')
         +(last?'<button class="btn auth-primary" type="submit">'+(up?"Create account":"Sign in")+' <span aria-hidden="true">→</span></button>':'<button class="btn auth-primary" type="button" data-auth-next>Continue <span aria-hidden="true">→</span></button>')+'</div></div>';
     }
-    var switcher=up?'Already have an account? <a href="/login">Sign in</a>':'New to Everneed? <a href="/register">Create an account</a>';
+    var switcher=up?'Already have an account? <a href="/sign-in">Sign in</a>':'New to Everneed? <a href="/create-account">Create an account</a>';
     var form='<form class="auth-form" data-form="auth" data-mode="'+(up?"up":"in")+'" novalidate>'
       +'<input type="hidden" name="name"><input type="hidden" name="email"><input type="hidden" name="pw"><input type="hidden" name="pw2"><input type="hidden" name="otp">'
       +'<div id="auth-stage" aria-live="polite">'+panel()+'</div></form>';
