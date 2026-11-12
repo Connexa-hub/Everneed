@@ -14,9 +14,9 @@ Integrity check: for each file, the byte size equals the stored character length
 
 | File in repo | Stored characters | File bytes | Why they differ |
 |---|---:|---:|---|
-| `0030_multivendor_foundation.sql` | 7,462 | 7,463 | trailing newline |
-| `0031_multivendor_function_grants_hardening.sql` | 289 | 290 | trailing newline |
-| `0040_signup_profile_fields.sql` | 1,246 | 1,247 | trailing newline |
+| `0020_multivendor_foundation.sql` | 7,462 | 7,463 | trailing newline |
+| `0021_multivendor_function_grants_hardening.sql` | 289 | 290 | trailing newline |
+| `0030_signup_profile_fields.sql` | 1,246 | 1,247 | trailing newline |
 | `011_plans_and_limits.sql` | 6,880 | 6,880 | none |
 | `012_support_chat_and_waitlist.sql` | 31,643 | 31,651 | two `••••` masks (3 bytes each, 1 character each) |
 | `013_support_chat_hardening.sql` | 528 | 528 | none |
@@ -32,10 +32,10 @@ A read-only call to the live migration table returned **19 applied records**.
 | 20261029014653 | 000_baseline | `000_baseline.sql` |
 | 20261029014658 | 001_remove_cj | `001_remove_cj.sql` |
 | 20261029014913 | 002_hotfix | `002_hotfix.sql` |
-| 20261029044105 | multivendor_foundation | `0030_multivendor_foundation.sql` (recovered) |
-| 20261029044131 | multivendor_function_grants_hardening | `0031_multivendor_function_grants_hardening.sql` (recovered) |
+| 20261029044105 | multivendor_foundation | `0020_multivendor_foundation.sql` (recovered) |
+| 20261029044131 | multivendor_function_grants_hardening | `0021_multivendor_function_grants_hardening.sql` (recovered) |
 | 20261029081939 | 003_remove_unrecorded_multivendor | `003_remove_unrecorded_multivendor.sql` |
-| 20261029134730 | signup_profile_fields | `0040_signup_profile_fields.sql` (recovered) |
+| 20261029134730 | signup_profile_fields | `0030_signup_profile_fields.sql` (recovered) |
 | 20261029184309 | 004_marketplace_core | `004_marketplace_core.sql` |
 | 20261029184336 | 005_marketplace_backfill_guards | `005_marketplace_backfill_guards.sql` |
 | 20261029184403 | 006_marketplace_rls | `006_marketplace_rls.sql` |
@@ -50,9 +50,9 @@ A read-only call to the live migration table returned **19 applied records**.
 | 20261111073610 | 015_support_sla_public | `015_support_sla_public.sql` (recovered) |
 
 ### Naming of the three records that had no number
-They were first saved as `002a`, `002b` and `003a`. The Supabase CLI only applies files named `digits_name.sql` and skips anything else, so those names would have been left out of any rebuild (including `signup_profile_fields`, which saves date of birth and photo at sign-up). They were renamed on 12 Nov 2026 to `0030`, `0031` and `0040`. Filename order is what the CLI follows: `0030` and `0031` sort after `002_hotfix` and before `003_remove_unrecorded_multivendor`; `0040` sorts after `003_` and before `004_`. The renamed files have the same git hashes as the originals, so the content is unchanged.
+They were first saved as `002a`, `002b` and `003a`. The Supabase CLI only applies files named `digits_name.sql` and skips anything else, so those names would have been left out of any rebuild (including `signup_profile_fields`, which saves date of birth and photo at sign-up). They were first renamed to `0030`, `0031` and `0040`, but that introduced an ordering flaw: the CLI compares migration version strings, and remote history sorts `003` before `0030`/`0031`, even though raw filenames place `0030`/`0031` before `003_`. Before the staging replay, the files were resequenced to `0020`, `0021` and `0030`. The resulting CLI and remote version order is `002`, `0020`, `0021`, `003`, `0030`, `004`. SQL contents are unchanged.
 
-`003_remove_unrecorded_multivendor` drops exactly what `0030` creates (stores, store members, order items, seller orders, fulfilment batches and the two helper functions), which is why `0030` and `0031` must run before it.
+`003_remove_unrecorded_multivendor` drops exactly what `0020` creates (stores, store members, order items, seller orders, fulfilment batches and the two helper functions), which is why `0030` and `0031` must run before it.
 
 The `Migration files` check (`.github/workflows/migrations-check.yml`) enforces the naming rule, rejects duplicate versions and checks that the first 19 files replay in the order in this table.
 
