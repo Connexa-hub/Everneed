@@ -40,6 +40,8 @@ jobs:
         run: |
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt || true
           grep -q "FAIL: 0" /tmp/p2.txt
+      - name: Public RPC security regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/016_public_rpc_security_hardening.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
   apk:
