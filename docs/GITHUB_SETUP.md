@@ -1,7 +1,8 @@
 # Push to GitHub and get an APK
 
-The workflow `.github/workflows/build.yml` runs on **every push to any branch**. A push to your build branch
-installs, tests, and builds a debug APK. You do not need to merge anything to get an APK.
+The workflow `.github/workflows/build.yml` builds Android test APKs from development pushes. Production releases still follow the reviewed `web-portal` → `main` release workflow described in `docs/WORKFLOW/AI_PROTOCOL.md`.
+
+> **Security update:** the old instructions below that say the repository contains a committed debug keystore are obsolete. The tracked keystore was removed from `web-portal`; the workflow now expects the owner-managed GitHub Actions secret `ANDROID_DEBUG_KEYSTORE_BASE64`. Never commit a keystore or its contents.
 
 ## First time
 Zips unpack **flat** (no extra top-level folder), so unpack into the folder you want as the project:
