@@ -1,6 +1,6 @@
 # Database contract for the Everneed app and website (live Supabase `zpgasfweaixwsktlueje`)
 
-Snapshot taken **12 Nov 2026** from the live database. This contract applies to the app and website because they are parts of the same Everneed platform and use the shared Supabase backend. The function map currently records the known website call sites; app call sites must be added as the app audit progresses. Do not assume a function is app-integrated merely because it exists in the database.
+Snapshot taken **12 Nov 2026** from the live database. This contract applies to the app and website because they are parts of the same Everneed platform and use the shared Supabase backend. The function map records known website and app call sites, with app coverage distinguished as static source evidence versus live/device verification. Do not assume a function is app-integrated merely because it exists in the database.
 If you change the database, update this file in the same commit. Status words are defined in `AI_PROTOCOL.md`.
 
 ## Branch and database workflow
