@@ -1,6 +1,6 @@
 # Environments: live and staging
 
-Everneed has two databases. Both the website and the app are meant to use the same one at the same time, so a change made on the website shows up in the app. Which one they use depends on where the code is running.
+Everneed has two separate Supabase databases. Staging is the development environment used to build and test changes against a production-compatible schema, migration history, policies and expected backend behaviour. It is deliberately separate from live customer data. The app and website should use the same environment at the same time, so a change made on the website shows up in the app when both are pointed at the same project.
 
 | | Live | Staging |
 |---|---|---|
@@ -8,8 +8,8 @@ Everneed has two databases. Both the website and the app are meant to use the sa
 | Project ref | `zpgasfweaixwsktlueje` | `vjiadqygpyebpisxslbx` |
 | URL | `https://zpgasfweaixwsktlueje.supabase.co` | `https://vjiadqygpyebpisxslbx.supabase.co` |
 | Region | eu-west-2 | eu-west-2 |
-| Who uses it | real users | us, testing |
-| Data | real, never wiped | fake, can be wiped any time |
+| Who uses it | real users | developers, owner and testers |
+| Data | real, never wiped | test data only; can be wiped any time |
 | Website served from | `main` (Cloudflare production, `everneed.pages.dev`) | `web-portal` and other previews (`*.everneed.pages.dev`), and `localhost` |
 | App builds | release builds from `main` | test builds from `web-portal` (not wired yet, see "The app") |
 | How migrations get there | by hand, with the owner's approval | automatically by `staging-db.yml` |
@@ -20,7 +20,7 @@ Everneed has two databases. Both the website and the app are meant to use the sa
 
 - `localhost` and `<anything>.everneed.pages.dev` use **staging**.
 - `everneed.pages.dev` (the bare production address) and **any other address, including a custom domain**, use **live**. A new domain can never land on staging by accident.
-- A yellow "STAGING: test data only" ribbon appears at the bottom of every staging page.
+- A yellow "STAGING: test data only" ribbon appears at the bottom of every staging page. Staging is intended for development against the production schema/contract, not against the production database's real user records.
 
 **Preview-only staging is now enabled.** `STAGING_READY=true` on `web-portal`; the Cloudflare preview deployment for commit `4afa676` succeeded and its alias is `https://web-portal.everneed.pages.dev`. `shared/config.js` routes `*.everneed.pages.dev` previews and localhost to staging, while the bare production host `everneed.pages.dev` and custom domains remain LIVE. The yellow `STAGING: test data only` ribbon should appear on preview pages. The guarded clean rebuild succeeded on 12 Nov 2026; all 19 historical migrations were verified against live history, and staging now contains migrations 000–018. The `media` bucket and all six `storage.objects` policies match live. `public-forms` is ACTIVE v3 with JWT verification. Owner reports Auth Site URL/redirect setup complete and `TURNSTILE_SECRET_KEY` plus Paystack test `PAYSTACK_SECRET_KEY` added; secret values/presence cannot be inspected here. `paystack` is deployed to staging as ACTIVE v1 with `verify_jwt=false`, matching production so Paystack signed webhooks can reach the handler's HMAC validation; user actions validate their bearer token inside the function. Turnstile/payment/Auth and seller/admin end-to-end checks remain pending test accounts. Hardening migrations 016–018 and all staging activity remain staging-only; production `Everneed01` and `main` are unchanged.
 
