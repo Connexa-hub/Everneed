@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — staging clean rebuild passed; all 19 migration files verified against live stored SQL; redundant migration removed.
+**Last updated:** 12 Nov 2026 — public RPC security hardening started; production remains untouched.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -11,7 +11,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 7 | 1 | 0 | 0 | 4 | 5 | 17 |
+| Foundation (F) | 7 | 1 | 1 | 0 | 4 | 5 | 18 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
@@ -19,12 +19,12 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
 | Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **26** | **8** | **0** | **0** | **4** | **53** | **91** |
+| **All** | **26** | **8** | **1** | **0** | **4** | **53** | **92** |
 
 Update this table when you change a status.
 
 ## Next up (in order)
-1. `WEB-F07b` Run the manually triggered **Reset staging database** workflow on `web-portal` with confirmation `RESET_STAGING`; then verify the 19-migration replay and schema parity. The owner has already added `STAGING_DB_URL`.
+1. `WEB-F16` Harden public guest-support and waitlist RPCs, add negative tests, and verify on staging. Production remains unchanged until owner approval. The owner has already added `STAGING_DB_URL`.
 2. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
 3. `WEB-F11` Create the first admin account (owner action).
 4. `WEB-F09` Schedule and verify the background jobs. Needs a migration numbered 016, tested on staging first.
@@ -161,6 +161,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ---
 
 ## Change log (newest first)
+| 12 Nov 2026 | ChatGPT coordinator | Claimed WEB-F16 after read-only audit of six anonymous SECURITY DEFINER functions and internal tables. Starting compatibility-preserving public RPC hardening on web-portal; production remains untouched. |
 | Date | Who | What |
 |---|---|---|
 | 12 Nov 2026 | ChatGPT coordinator | Staging reset run `43234686076` succeeded. Removed redundant `016_signup_profile_fields.sql` and its no-op staging history row. All 19 migrations were compared to live stored SQL; executable bodies match after comment/format normalization. Schema, policy and RLS parity verified; four function differences are comments only. Migration checker run `43237645367` passed after fixing version-prefix sorting. WEB-F07/F07b marked DONE. Live Everneed01 was not reset. |
