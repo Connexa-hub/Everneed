@@ -66,11 +66,27 @@ begin
 
   update public.profiles set role='admin' where id=v_admin;
 
-  -- Seller-owned stores and product fixtures are created using actual authenticated JWT contexts.
+  -- Create the two stores first; products cannot enter review until their store is approved.
   perform public.zz_q01_as(v_seller_a);
   insert into public.stores(owner_id,name,about,status,country,state,city)
   values(v_seller_a,'Q01 Store A','Isolation fixture','draft','NG','Lagos','Ikeja')
   returning id into v_store_a;
+  perform public.zz_q01_back();
+
+  perform public.zz_q01_as(v_seller_b);
+  insert into public.stores(owner_id,name,about,status,country,state,city)
+  values(v_seller_b,'Q01 Store B','Isolation fixture','draft','NG','Lagos','Ikeja')
+  returning id into v_store_b;
+  perform public.zz_q01_back();
+
+  perform public.zz_q01_as(v_admin);
+  perform public.approve_store(v_store_a,'Q01 fixture');
+  perform public.approve_store(v_store_b,'Q01 fixture');
+  perform public.zz_q01_back();
+
+  perform public.zz_q01_as(v_seller_a);
+  insert into public.store_private(store_id,pickup_address,phone)
+  values(v_store_a,'Q01 private address A','08000000011');
   insert into public.products(name,col,price,stock,store_id,status)
   values('Q01 Product A','Test',1200,5,v_store_a,'draft')
   returning id into v_product_a;
@@ -80,9 +96,8 @@ begin
   perform public.zz_q01_back();
 
   perform public.zz_q01_as(v_seller_b);
-  insert into public.stores(owner_id,name,about,status,country,state,city)
-  values(v_seller_b,'Q01 Store B','Isolation fixture','draft','NG','Lagos','Ikeja')
-  returning id into v_store_b;
+  insert into public.store_private(store_id,pickup_address,phone)
+  values(v_store_b,'Q01 private address B','08000000022');
   insert into public.products(name,col,price,stock,store_id,status)
   values('Q01 Product B','Test',2400,5,v_store_b,'draft')
   returning id into v_product_b;
@@ -95,8 +110,6 @@ begin
   perform public.zz_q01_back();
 
   perform public.zz_q01_as(v_admin);
-  perform public.approve_store(v_store_a,'Q01 fixture');
-  perform public.approve_store(v_store_b,'Q01 fixture');
   perform public.review_product(v_product_a,'publish');
   perform public.review_product(v_product_b,'publish');
   perform public.zz_q01_back();
@@ -143,15 +156,10 @@ begin
   if v_count<>0 then raise exception 'Buyer A can read Buyer B order items'; end if;
   select count(*) into v_count from public.order_secrets where order_id=v_order_b_id;
   if v_count<>0 then raise exception 'Buyer A can read Buyer B delivery secret'; end if;
-  v_result := public.zz_q01_try(format('update public.orders set status=%L where id=%L','paid',v_order_b_id));
-  select status into v_status from public.orders where id=v_order_b_id;
-  if v_status<>'paid' then
-    -- The update must not have modified Buyer B's row; its legitimate fixture status is paid.
-    null;
-  end if;
-  select count(*) into v_count from public.orders where id=v_order_b_id;
-  if v_count<>0 then raise exception 'Buyer A can still select Buyer B order after attempted update'; end if;
+  v_result := public.zz_q01_try(format('update public.orders set status=%L where id=%L','cancelled',v_order_b_id));
   perform public.zz_q01_back();
+  select status into v_status from public.orders where id=v_order_b_id;
+  if v_status<>'paid' then raise exception 'Buyer A changed Buyer B order status'; end if;
 
   -- Seller A may see only released seller-order and financial rows for Store A.
   perform public.zz_q01_as(v_seller_a);
