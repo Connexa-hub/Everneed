@@ -12,7 +12,7 @@ A second database, **staging** (`Everneed-staging`, ref `vjiadqygpyebpisxslbx`),
 - Verify the Supabase project reference before applying any migration. Never apply a migration to a different project based only on a copied project ID.
 
 ## How the app and website talk to the database
-- Browser client: `shared/supa.js` (`Supa.get`, `insert`, `patch`, `rpc`, `rpcAnon`, `upload`). Public anon key in `shared/config.js`, which also holds the staging key and picks one by page address.
+- Browser client: `shared/supa.js` (`Supa.get`, `insert`, `patch`, `rpc`, `rpcAnon`, `fn`, `upload`). Public waitlist and guest-support writes use the `public-forms` Edge Function when the page is running against staging. Public anon key in `shared/config.js`, which also holds the staging key and picks one by page address.
 - Row Level Security is **on for every public table**. RLS controls rows, but SQL object grants and function EXECUTE privileges are separate controls; review all three. The browser should never receive privileges beyond its intended role and policies.
 - Money movement and protected order/store transitions are implemented through privileged database functions and guards. Do not assume every SECURITY DEFINER routine has the same authorization pattern: the live inventory found 84 application routines, 58 SECURITY DEFINER functions, and six SECURITY DEFINER functions with PUBLIC EXECUTE. Their caller checks, ACLs, search paths, and exposed-schema reachability must be reviewed individually. The app and website should use approved RPCs rather than writing protected tables directly.
 - Payments: edge function `paystack` (HMAC-verified webhook, `verify_jwt` off by design). Not yet called by the website; app integration must be verified during the app audit.
@@ -77,22 +77,22 @@ Important gap: the seller app currently presents application and product managem
 | Function | Who | Web screen | Status |
 |---|---|---|---|
 | `chat_start`, `chat_send`, `chat_read`, `chat_set`, `chat_escalate` | members | Inbox (all roles), store chat page | DONE |
-| `support_guest_open`, `support_guest_ping`, `support_guest_close` | anyone (anon) | Support widget | DONE |
+| `support_guest_open`, `support_guest_ping`, `support_guest_close` | server only (`service_role`) | `public-forms` Edge Function, after Turnstile for open | DONE (staging boundary) |
 | `support_sla_public`, `support_tier`, `store_reply_stats` | anyone / system | Support widget, store pages | PARTIAL (verify each in `chat.js`) |
 | `support_sla_sweep()`, `chat_triage()` | scheduled / trigger | not scheduled yet | BLOCKED |
 
 ### Website
 | Function | Who | Web screen | Status |
 |---|---|---|---|
-| `join_waitlist(...)` | anyone (anon) | Early access form | DONE |
+| `join_waitlist(...)` | server only (`service_role`) | `public-forms` Edge Function, after Turnstile | DONE (staging boundary) |
 
 ### Public RPC security controls (migration 016; staging verified, production pending owner approval)
 - Guest support RPCs validate visitor IDs consistently (20–64 URL-safe characters); the frontend currently generates 24 random bytes with Web Crypto and keeps the identifier out of URLs.
 - Guest session creation, heartbeat and close calls are rate-limited by the Supabase-provided `X-Forwarded-For` request header. Waitlist joins are limited by both client IP and normalized email. Limits are transaction-serialized to prevent concurrent-request races.
 - Rate-limit identifiers are keyed pseudonyms using a random pepper held in the RLS-protected `kv` table; raw IP/email values are not persisted in `rate_limits`.
-- Public RPCs use an empty function search path and explicit `anon`/`authenticated` EXECUTE grants; internal helper EXECUTE is revoked from API roles. Public SLA and store-response RPCs remain intentional, aggregate-only read surfaces.
+- Migration 018 revokes direct `PUBLIC`, `anon` and `authenticated` EXECUTE on `join_waitlist` and all three guest-support write RPCs; only `service_role` can call them. The browser must call `public-forms`, which validates Cloudflare Turnstile for waitlist and guest-open requests before invoking the RPCs. Guest ping/close are proxied through the same Edge Function and require the unguessable visitor ID. The two aggregate-only read RPCs remain public.
 - Closed guest sessions cannot be reopened using the same identifier. Guest ping/close calls cannot mutate malformed identifiers.
-- The six anonymous SECURITY DEFINER warnings are intentionally retained for these public features; do not remove access blindly. Continue negative tests and review the function bodies/ACLs whenever these RPCs change.
+- The two public SECURITY DEFINER aggregate-read warnings (`support_sla_public`, `store_reply_stats`) are intentional. The four write-oriented guest/waitlist RPCs are no longer directly executable by API roles after migration 018.
 
 ### Authenticated SECURITY DEFINER audit and hardening (migration 017; staging verified 12 Nov 2026)
 - A read-only first-pass audit covered all 38 public SECURITY DEFINER routines executable by `authenticated`, including the six intentional public/anonymous endpoints.
@@ -122,7 +122,7 @@ Policy counts in brackets.
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 018.**
+Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 019.**
 
 | File | Live version | In repo | Applied live |
 |---|---|---|---|
@@ -140,7 +140,7 @@ Repo folder: `supabase/migrations/`. **Files replay in plain filename order, whi
 | `014_chat_start_official_store` | 20261111073320 | **yes, recovered 12 Nov 2026** | yes |
 | `015_support_sla_public` | 20261111073610 | **yes, recovered 12 Nov 2026** | yes |
 | `016_public_rpc_security_hardening` | 016 (repo sequence) | **yes, added 12 Nov 2026** | **staging only; live not applied** |
-| `017_authenticated_rpc_boundary_hardening` | 017 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied and regression-tested; live not applied** |
+| `017_authenticated_rpc_boundary_hardening` | 017 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied and regression-tested; live not applied** |\n| `018_turnstile_public_rpc_boundary` | 018 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied; ACL regression passed; live not applied** |
 
 **How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters.
 
