@@ -16,7 +16,7 @@
      The bare production address everneed.pages.dev and any custom domain stay on live. */
   var preview=/^(localhost|127\.0\.0\.1)$/.test(host)||/^[a-z0-9-]+\.everneed\.pages\.dev$/.test(host);
   var env=(STAGING_READY&&preview)?"staging":"live";
-  window.CFG={name:"Everneed",baseCurrency:"NGN",env:env,
+  window.CFG={name:"Everneed",baseCurrency:"NGN",env:env,turnstileSitekey:"0x4AAAAAAF-YbKL76rmC2Ywb",
     supabase:env==="staging"?STAGING:LIVE,
     collections:["Groceries","Electricals","Accessories","Skincare"],
     countries:{NG:"Nigeria",GH:"Ghana",KE:"Kenya",ZA:"South Africa",GB:"United Kingdom",US:"United States"}};
