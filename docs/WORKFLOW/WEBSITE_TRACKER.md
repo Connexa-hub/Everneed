@@ -11,7 +11,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 7 | 0 | 1 | 0 | 4 | 5 | 17 |
+| Foundation (F) | 7 | 1 | 0 | 0 | 4 | 5 | 17 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
@@ -19,7 +19,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
 | Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **26** | **7** | **1** | **0** | **4** | **53** | **91** |
+| **All** | **26** | **8** | **0** | **0** | **4** | **53** | **91** |
 
 Update this table when you change a status.
 
@@ -163,7 +163,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## Change log (newest first)
 | Date | Who | What |
 |---|---|---|
-| 12 Nov 2026 | ChatGPT coordinator | Staging reset run `43234686076` succeeded. Removed redundant `016_signup_profile_fields.sql`; all 19 migrations were compared to live stored SQL and executable bodies match after comment/format normalization. Schema, policy and RLS parity verified; four function differences are comments only. WEB-F07/F07b marked DONE. The no-op 016 metadata row was removed from staging; live Everneed01 was not reset. |
+| 12 Nov 2026 | ChatGPT coordinator | Staging reset run `43234686076` succeeded. Removed redundant `016_signup_profile_fields.sql` and its no-op staging history row. All 19 migrations were compared to live stored SQL; executable bodies match after comment/format normalization. Schema, policy and RLS parity verified; four function differences are comments only. Migration checker run `43237645367` passed after fixing version-prefix sorting. WEB-F07/F07b marked DONE. Live Everneed01 was not reset. |
 | 12 Nov 2026 | Claude | Renamed recovered migrations `002a`, `002b`, `003a` to `0030`, `0031`, `0040` (the Supabase CLI skips letter names); added `migrations-check.yml`. Created the staging project `Everneed-staging` (ref `vjiadqygpyebpisxslbx`, free tier, empty), `staging-db.yml` (refuses to run against live), staging selection in `shared/config.js` (off by default via `STAGING_READY=false`) and `ENVIRONMENTS.md`. Nothing applied to either database. |
 | 12 Nov 2026 | Claude | WEB-F07: recovered the eight missing migration SQL files verbatim from the live `supabase_migrations.schema_migrations` table (`011` to `015` and the three unnumbered ones). Sizes verified against the stored text. Updated `DB_CONTRACT.md` and `MIGRATION_RECOVERY.md`; added WEB-F07b (replay test). Read-only on the database. Also repaired literal `\n` characters in this change log. |
 | 12 Nov 2026 | Project workflow | PR #6 merged as `dfeaf27`; `web-portal` is synchronized with the released `main` history. All three PR6 CI jobs passed. |
