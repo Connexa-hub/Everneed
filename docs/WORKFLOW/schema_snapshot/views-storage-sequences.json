@@ -1,0 +1,33 @@
+{
+  "source": "read-only PostgreSQL catalog queries",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "inspection_date": "2026-11-12",
+  "warning": "Evidence only; not migration SQL. Re-export and compare before baseline acceptance.",
+  "views": [
+    {"schema":"public","name":"auto_offers","security_invoker":true,"definition":"SELECT id, name, kind, value, scope, target, min_total, starts, ends, cty FROM offers WHERE ((code IS NULL) AND active);"},
+    {"schema":"public","name":"product_ratings","security_invoker":true,"definition":"SELECT product_id, (round(avg(rating), 1))::double precision AS avg, (count(*))::integer AS n FROM reviews GROUP BY product_id;"},
+    {"schema":"public","name":"public_products","security_invoker":true,"definition":"SELECT p.id, p.name, p.col, p.price, p.old, p.stock, p.stocks, p.cty, p.code, p.img, p.images, p.descr, p.sizes, p.axes, p.chart, p.maker, p.maker_addr, p.origin, p.ships_from, p.sku, p.weight_g, p.dims, p.material, p.at, p.store_id, s.name AS store_name, s.slug AS store_slug, s.logo_url AS store_logo FROM products p JOIN stores s ON s.id = p.store_id;"},
+    {"schema":"public","name":"public_reviews","security_invoker":true,"definition":"SELECT id, product_id, rating, body, name, at FROM reviews;"},
+    {"schema":"public","name":"public_stores","security_invoker":true,"definition":"SELECT id, slug, name, tagline, about, logo_url, cover_url, accent, categories, country, state, city, is_official, created_at FROM stores;"}
+  ],
+  "storage_object_policies": [
+    {"name":"media admin all","command":"ALL","roles":["authenticated"],"using":"((bucket_id = 'media'::text) AND is_admin())","with_check":"((bucket_id = 'media'::text) AND is_admin())"},
+    {"name":"media admin upload","command":"INSERT","roles":["PUBLIC"],"using":null,"with_check":"((bucket_id = 'media'::text) AND is_admin())"},
+    {"name":"media read","command":"SELECT","roles":["PUBLIC"],"using":"(bucket_id = 'media'::text)","with_check":null},
+    {"name":"media store delete","command":"DELETE","roles":["authenticated"],"using":"((bucket_id = 'media'::text) AND ((storage.foldername(name))[1] = 'stores'::text) AND private.owns_store((storage.foldername(name))[2]))","with_check":null},
+    {"name":"media store insert","command":"INSERT","roles":["authenticated"],"using":null,"with_check":"((bucket_id = 'media'::text) AND ((storage.foldername(name))[1] = 'stores'::text) AND private.owns_store((storage.foldername(name))[2]))"},
+    {"name":"media store update","command":"UPDATE","roles":["authenticated"],"using":"((bucket_id = 'media'::text) AND ((storage.foldername(name))[1] = 'stores'::text) AND private.owns_store((storage.foldername(name))[2]))","with_check":null}
+  ],
+  "sequences": [
+    {"schema":"public","name":"audit_log_id_seq","owner":"postgres","data_type":"bigint","start":1,"increment":1,"min":1,"max":9223372036854776000,"cache":1,"cycle":false,"owned_by":null},
+    {"schema":"public","name":"ledger_entries_id_seq","owner":"postgres","data_type":"bigint","start":1,"increment":1,"min":1,"max":9223372036854776000,"cache":1,"cycle":false,"owned_by":null},
+    {"schema":"public","name":"support_rules_id_seq","owner":"postgres","data_type":"integer","start":1,"increment":1,"min":1,"max":2147483647,"cache":1,"cycle":false,"owned_by":"public.support_rules.id"}
+  ],
+  "custom_types": [],
+  "notes": [
+    "All five observed public views use security_invoker=true.",
+    "Storage policy roles reported as PUBLIC are represented as [PUBLIC]; authenticated-only policies are listed explicitly.",
+    "Two sequences (audit_log_id_seq and ledger_entries_id_seq) have no OWNED BY dependency in the catalog; confirm their application usage before baseline recreation.",
+    "The media bucket is public-read, but uploads and mutations are constrained by storage.objects RLS policies; this snapshot does not imply public write access."
+  ]
+}
