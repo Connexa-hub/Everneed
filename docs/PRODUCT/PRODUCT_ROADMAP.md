@@ -46,7 +46,7 @@ The roadmap is organised around the product's central objective: make a dependab
 - Inventory the customer app, web portal, admin console, shared code, Supabase schema/functions and deployment configuration.
 - Identify the authoritative Supabase project and the migrations/functions actually deployed.
 - Separate working production features from mockups, demonstrations, legacy code and unfinished flows.
-- Remove obsolete product instructions and any unwanted supplier/dropshipping remnants from the active product, build and documentation.
+- Remove obsolete product instructions and any unwanted legacy fulfilment integrations from the active product, build and documentation.
 - Establish repeatable development, test, preview and release procedures.
 - Create a feature status register with evidence and named owners.
 
