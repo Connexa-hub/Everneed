@@ -5,16 +5,14 @@
    The page picks one by its address. Anything not recognised as a preview address gets LIVE, so a custom domain
    or a new production host can never end up on staging by mistake. */
 (function(){
-  /* Switch: keep false until the staging database has all migrations applied and has been smoke-tested
-     (docs/WORKFLOW/ENVIRONMENTS.md, "Turning staging on"). While false, every address uses LIVE exactly as before. */
-  var STAGING_READY=false;
+  /* Preview-only staging switch. Production hosts (everneed.pages.dev and custom domains) remain LIVE. */
+  var STAGING_READY=true;
 
   var LIVE={url:"https://zpgasfweaixwsktlueje.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwZ2FzZndlYWl4d3NrdGx1ZWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMDE5NjQsImV4cCI6MjEwODc3Nzk2NH0.X6bf9sp2RC5q_icqcN3BUQyJVmIKF9H5pglpYeqPMZM"};
-  var STAGING={url:"https://vjiadqygpyebpisxslbx.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqaWFkcXlncHllYnBpc3hzbGJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0ODMzNzksImV4cCI6MjExMDA1OTM3OX0.DKdQaz5TKu5I2Le9m4Bq40h3_q9J5oYqXEn3IZZsKIU"};
+  var STAGING={url:"https://vjiadqygpyebpisxslbx.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqaWFkcXlncHllYnBpc3hzbGJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0ODMzNzksImV4cCI6MjExMDA1OTM3OX0.DKdQaz5TKu5I2Le9m4Bq40h3_q9J5oYqXEn3IZZsKIU"};
   var host=(typeof location!=="undefined"&&location.hostname)||"";
-  /* Staging only on: this computer, and Cloudflare preview addresses such as web-portal.everneed.pages.dev or abc123.everneed.pages.dev.
-     The bare production address everneed.pages.dev and any custom domain stay on live. */
-  var preview=/^(localhost|127\.0\.0\.1)$/.test(host)||/^[a-z0-9-]+\.everneed\.pages\.dev$/.test(host);
+  /* Only *.everneed.pages.dev previews and local development can select staging. */
+  var preview=/^(localhost|127\\.0\\.0\\.1)$/.test(host)||/^[a-z0-9-]+\\.everneed\\.pages\\.dev$/.test(host);
   var env=(STAGING_READY&&preview)?"staging":"live";
   window.CFG={name:"Everneed",baseCurrency:"NGN",env:env,turnstileSitekey:"0x4AAAAAAF-beiMNGf6-z7Eq",
     supabase:env==="staging"?STAGING:LIVE,
