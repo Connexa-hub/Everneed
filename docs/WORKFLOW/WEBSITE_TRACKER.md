@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — WEB-Q01 passed staging and CI; WEB-F18 implementation is staged and waiting for the owner to add the Turnstile secret; production remains untouched.
+**Last updated:** 12 Nov 2026 — WEB-F18 Sitekey correction in progress; staging secret reported added by owner; production remains untouched.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -54,7 +54,7 @@ Update this table when you change a status.
 | WEB-F15 | Real URLs instead of `#/` routes (+ `_redirects`) | P2 | TODO | `core.js` router | | | Needed for SEO and shareable store links. |
 | WEB-F16 | Harden public guest-support and waitlist RPCs | P0 | DONE | migration `016_public_rpc_security_hardening`, `supabase/tests/016_public_rpc_security_hardening.sql` | ChatGPT coordinator | web-portal | Applied to staging; public RPC regression tests passed in run `43245491269`. Six intended public RPCs remain callable; helpers are not callable by API roles. Production untouched. |
 | WEB-F17 | Audit and harden authenticated-callable SECURITY DEFINER RPCs | P0 | DONE (staging) | migration `017_authenticated_rpc_boundary_hardening`, `supabase/tests/017_authenticated_rpc_security.sql` | ChatGPT coordinator | web-portal | Reviewed all 38 functions. Staging migration run `43244981357` succeeded; SQL regression tests passed in `43245491269`; catalog check confirms 38/38 empty search paths and zero PUBLIC EXECUTE. CI web, migration and APK workflows passed on `6018cb0`. Production untouched. |
-| WEB-F18 | Require server-verified Cloudflare Turnstile for public waitlist and guest support | P0 | NEEDS OWNER | `supabase/functions/public-forms/`, migration `018_turnstile_public_rpc_boundary.sql`, website support/waitlist forms | owner | web-portal | Turnstile widget created for `everneed.pages.dev` (public sitekey stored in config); migration 018 applied to staging and ACL regression passed; `public-forms` Edge Function v1 is deployed ACTIVE with JWT verification. Owner must add `TURNSTILE_SECRET_KEY` to staging Edge Function secrets before end-to-end verification. Preview uses the legacy RPC path until `STAGING_READY=true`; production untouched. |
+| WEB-F18 | Require server-verified Cloudflare Turnstile for public waitlist and guest support | P0 | IN PROGRESS | `supabase/functions/public-forms/`, migration `018_turnstile_public_rpc_boundary.sql`, website support/waitlist forms | ChatGPT coordinator | web-portal | Owner reports `TURNSTILE_SECRET_KEY` added to staging. Cloudflare Sitekey mismatch identified; correcting `shared/config.js` to the owner-confirmed public Sitekey, then CI and staging end-to-end verification remain. Preview uses the legacy RPC path until `STAGING_READY=true`; production untouched. |
 
 ## M. Public site
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
