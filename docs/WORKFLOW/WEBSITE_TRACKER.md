@@ -74,7 +74,7 @@ Update this table when you change a status.
 ## A. Accounts
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal |
+| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `web/assets/js/site.js`, `web/assets/js/core.js`, `web/assets/js/home.js`, `web/assets/css/site.css` | ChatGPT | web-portal | Unified public sign-in and open registration; customer accounts land on My account, merchant/seller roles on portal, admin role on console. Seller/admin permissions remain backend-controlled. Preview build `c5b90fe` deployed; Web checks passed. Registration/login E2E and owner phone review still pending. |
 | WEB-A02 | Role redirect (admin to console, seller to portal) | P0 | DONE | `fixes.js`, `site.js` | | | |
 | WEB-A03 | Session refresh and sign out | P0 | DONE | `supa.js` | | | |
 | WEB-A04 | Theme saved to profile | P2 | DONE | `theme.js` | | | |
