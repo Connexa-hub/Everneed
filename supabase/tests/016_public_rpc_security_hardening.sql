@@ -17,7 +17,8 @@ end;
 $test$;
 
 select pg_catalog.set_config('request.headers', '{"x-forwarded-for":"198.51.100.20"}', true);
-set local role anon;
+-- Migration 018 restricts write RPCs to service_role; API-role denial is tested in 019.
+set local role service_role;
 
 do $test$
 begin
@@ -70,7 +71,8 @@ $test$;
 
 -- Per-IP guest-session creation limit: 12 opens per 10 minutes, then reject.
 select pg_catalog.set_config('request.headers', '{"x-forwarded-for":"198.51.100.21"}', true);
-set local role anon;
+-- Migration 018 restricts write RPCs to service_role; API-role denial is tested in 019.
+set local role service_role;
 do $test$
 declare
   i integer;
