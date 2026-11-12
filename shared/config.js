@@ -12,7 +12,7 @@
   var STAGING={url:"https://vjiadqygpyebpisxslbx.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqaWFkcXlncHllYnBpc3hzbGJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0ODMzNzksImV4cCI6MjExMDA1OTM3OX0.DKdQaz5TKu5I2Le9m4Bq40h3_q9J5oYqXEn3IZZsKIU"};
   var host=(typeof location!=="undefined"&&location.hostname)||"";
   /* Only *.everneed.pages.dev previews and local development can select staging. */
-  var preview=/^(localhost|127\\.0\\.0\\.1)$/.test(host)||/^[a-z0-9-]+\\.everneed\\.pages\\.dev$/.test(host);
+  var preview=/^(localhost|127\.0\.0\.1)$/.test(host)||/^[a-z0-9-]+\.everneed\.pages\.dev$/.test(host);
   var env=(STAGING_READY&&preview)?"staging":"live";
   window.CFG={name:"Everneed",baseCurrency:"NGN",env:env,turnstileSitekey:"0x4AAAAAAF-beiMNGf6-z7Eq",
     supabase:env==="staging"?STAGING:LIVE,
