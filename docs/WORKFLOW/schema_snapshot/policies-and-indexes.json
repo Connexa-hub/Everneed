@@ -1,0 +1,1305 @@
+{
+  "source": "read-only catalog query",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "inspection_date": "2026-11-12",
+  "warning": "Evidence only; not migration SQL. Re-export and compare before baseline acceptance.",
+  "data": [
+    {
+      "snapshot": {
+        "policies": [
+          {
+            "table": "audit_log",
+            "name": "audit admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "is_admin()",
+            "with_check": null
+          },
+          {
+            "table": "banners",
+            "name": "banners admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "banners",
+            "name": "banners read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "public"
+            ],
+            "command": "SELECT",
+            "using": "true",
+            "with_check": null
+          },
+          {
+            "table": "canned_replies",
+            "name": "canned_select",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(((scope = 'admin'::text) AND is_admin()) OR ((scope = 'seller'::text) AND ((owner IS NULL) OR (owner = auth.uid()))) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "canned_replies",
+            "name": "canned_write",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "(is_admin() OR ((scope = 'seller'::text) AND (owner = auth.uid())))",
+            "with_check": "(is_admin() OR ((scope = 'seller'::text) AND (owner = auth.uid())))"
+          },
+          {
+            "table": "cards",
+            "name": "cards own delete",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "DELETE",
+            "using": "(user_id = auth.uid())",
+            "with_check": null
+          },
+          {
+            "table": "cards",
+            "name": "cards own read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(user_id = auth.uid())",
+            "with_check": null
+          },
+          {
+            "table": "collections",
+            "name": "collections admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "collections",
+            "name": "collections read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "public"
+            ],
+            "command": "SELECT",
+            "using": "true",
+            "with_check": null
+          },
+          {
+            "table": "conversation_members",
+            "name": "cm_select",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "((user_id = auth.uid()) OR is_admin() OR chat_member(conversation_id))",
+            "with_check": null
+          },
+          {
+            "table": "conversations",
+            "name": "conv_admin_update",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "conversations",
+            "name": "conv_select",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR chat_member(id))",
+            "with_check": null
+          },
+          {
+            "table": "deliveries",
+            "name": "deliveries read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(private.buys(order_id) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "disputes",
+            "name": "disputes open",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "INSERT",
+            "using": null,
+            "with_check": "((opened_by = auth.uid()) AND private.buys(order_id) AND (status = 'open'::text))"
+          },
+          {
+            "table": "disputes",
+            "name": "disputes read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR (opened_by = auth.uid()) OR ((seller_order_id IS NOT NULL) AND private.sells(seller_order_id)))",
+            "with_check": null
+          },
+          {
+            "table": "ledger_entries",
+            "name": "ledger read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR ((store_id IS NOT NULL) AND private.owns_store(store_id)))",
+            "with_check": null
+          },
+          {
+            "table": "messages",
+            "name": "msg_select",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR ((kind <> 'note'::text) AND chat_member(conversation_id)))",
+            "with_check": null
+          },
+          {
+            "table": "notifications",
+            "name": "notifications mark read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "(user_id = auth.uid())",
+            "with_check": "(user_id = auth.uid())"
+          },
+          {
+            "table": "notifications",
+            "name": "notifications own",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "((user_id = auth.uid()) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "offers",
+            "name": "offers admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "offers",
+            "name": "offers public auto",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "((code IS NULL) AND active)",
+            "with_check": null
+          },
+          {
+            "table": "order_item_fees",
+            "name": "order_item_fees read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR (EXISTS ( SELECT 1\n   FROM (order_items i\n     JOIN seller_orders so ON ((so.id = i.seller_order_id)))\n  WHERE ((i.id = order_item_fees.order_item_id) AND so.released AND private.owns_store(so.store_id)))))",
+            "with_check": null
+          },
+          {
+            "table": "order_items",
+            "name": "order_items read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(private.buys(order_id) OR is_admin() OR (EXISTS ( SELECT 1\n   FROM seller_orders so\n  WHERE ((so.id = order_items.seller_order_id) AND so.released AND private.owns_store(so.store_id)))))",
+            "with_check": null
+          },
+          {
+            "table": "order_secrets",
+            "name": "order_secrets read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(private.buys(order_id) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "orders",
+            "name": "orders admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "orders",
+            "name": "orders read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "((user_id = auth.uid()) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "payouts",
+            "name": "payouts read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR private.owns_store(store_id))",
+            "with_check": null
+          },
+          {
+            "table": "product_private",
+            "name": "product_private owner insert",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "INSERT",
+            "using": null,
+            "with_check": "(EXISTS ( SELECT 1\n   FROM products p\n  WHERE ((p.id = product_private.product_id) AND private.owns_store(p.store_id))))"
+          },
+          {
+            "table": "product_private",
+            "name": "product_private owner update",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "(EXISTS ( SELECT 1\n   FROM products p\n  WHERE ((p.id = product_private.product_id) AND private.owns_store(p.store_id))))",
+            "with_check": "(EXISTS ( SELECT 1\n   FROM products p\n  WHERE ((p.id = product_private.product_id) AND private.owns_store(p.store_id))))"
+          },
+          {
+            "table": "product_private",
+            "name": "product_private read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR (EXISTS ( SELECT 1\n   FROM products p\n  WHERE ((p.id = product_private.product_id) AND private.owns_store(p.store_id)))))",
+            "with_check": null
+          },
+          {
+            "table": "products",
+            "name": "products admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "products",
+            "name": "products owner delete",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "DELETE",
+            "using": "(private.owns_store(store_id) AND (status = ANY (ARRAY['draft'::text, 'rejected'::text])))",
+            "with_check": null
+          },
+          {
+            "table": "products",
+            "name": "products owner insert",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "INSERT",
+            "using": null,
+            "with_check": "private.owns_store(store_id)"
+          },
+          {
+            "table": "products",
+            "name": "products owner read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "private.owns_store(store_id)",
+            "with_check": null
+          },
+          {
+            "table": "products",
+            "name": "products owner update",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "private.owns_store(store_id)",
+            "with_check": "private.owns_store(store_id)"
+          },
+          {
+            "table": "products",
+            "name": "products public read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "((status = 'published'::text) AND private.store_live(store_id))",
+            "with_check": null
+          },
+          {
+            "table": "profiles",
+            "name": "profile read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "((id = auth.uid()) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "profiles",
+            "name": "profile update",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "(id = auth.uid())",
+            "with_check": "((id = auth.uid()) AND (role = my_role()))"
+          },
+          {
+            "table": "refunds",
+            "name": "refunds read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR private.buys(order_id) OR ((seller_order_id IS NOT NULL) AND private.sells(seller_order_id)))",
+            "with_check": null
+          },
+          {
+            "table": "reviews",
+            "name": "reviews insert",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "INSERT",
+            "using": null,
+            "with_check": "((user_id = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM orders o\n  WHERE ((o.user_id = auth.uid()) AND (o.status = 'delivered'::text) AND (o.items @> jsonb_build_array(jsonb_build_object('id', reviews.product_id)))))))"
+          },
+          {
+            "table": "reviews",
+            "name": "reviews own delete",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "DELETE",
+            "using": "((user_id = auth.uid()) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "reviews",
+            "name": "reviews own update",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "(user_id = auth.uid())",
+            "with_check": "(user_id = auth.uid())"
+          },
+          {
+            "table": "reviews",
+            "name": "reviews read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "public"
+            ],
+            "command": "SELECT",
+            "using": "true",
+            "with_check": null
+          },
+          {
+            "table": "seller_orders",
+            "name": "seller_orders read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(is_admin() OR (released AND private.owns_store(store_id)))",
+            "with_check": null
+          },
+          {
+            "table": "settings",
+            "name": "settings admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "settings",
+            "name": "settings merchant hub",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "((id = 'hub'::text) AND (my_role() = 'merchant'::text))",
+            "with_check": null
+          },
+          {
+            "table": "settings",
+            "name": "settings read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(id = ANY (ARRAY['NG'::text, 'GH'::text, 'KE'::text, 'ZA'::text, 'GB'::text, 'US'::text]))",
+            "with_check": null
+          },
+          {
+            "table": "size_charts",
+            "name": "charts admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "size_charts",
+            "name": "charts read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "public"
+            ],
+            "command": "SELECT",
+            "using": "true",
+            "with_check": null
+          },
+          {
+            "table": "store_applications",
+            "name": "applications owner insert",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "INSERT",
+            "using": null,
+            "with_check": "private.owns_store(store_id)"
+          },
+          {
+            "table": "store_applications",
+            "name": "applications owner update",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "(private.owns_store(store_id) AND (decision IS NULL))",
+            "with_check": "(private.owns_store(store_id) AND (decision IS NULL))"
+          },
+          {
+            "table": "store_applications",
+            "name": "applications read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(private.owns_store(store_id) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "store_payments",
+            "name": "store payments read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(private.owns_store(store_id) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "store_plans",
+            "name": "plans admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "store_plans",
+            "name": "plans read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(active OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "store_private",
+            "name": "store_private owner",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(private.owns_store(store_id) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "store_private",
+            "name": "store_private owner insert",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "INSERT",
+            "using": null,
+            "with_check": "private.owns_store(store_id)"
+          },
+          {
+            "table": "store_private",
+            "name": "store_private owner update",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "private.owns_store(store_id)",
+            "with_check": "private.owns_store(store_id)"
+          },
+          {
+            "table": "store_subscriptions",
+            "name": "subscriptions read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(private.owns_store(store_id) OR is_admin())",
+            "with_check": null
+          },
+          {
+            "table": "stores",
+            "name": "stores admin read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "is_admin()",
+            "with_check": null
+          },
+          {
+            "table": "stores",
+            "name": "stores owner create",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "INSERT",
+            "using": null,
+            "with_check": "((owner_id = auth.uid()) AND (status = ANY (ARRAY['draft'::text, 'pending'::text])))"
+          },
+          {
+            "table": "stores",
+            "name": "stores owner read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "(owner_id = auth.uid())",
+            "with_check": null
+          },
+          {
+            "table": "stores",
+            "name": "stores owner update",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "UPDATE",
+            "using": "(owner_id = auth.uid())",
+            "with_check": "(owner_id = auth.uid())"
+          },
+          {
+            "table": "stores",
+            "name": "stores public read",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "command": "SELECT",
+            "using": "((status = 'approved'::text) AND private.store_live(id))",
+            "with_check": null
+          },
+          {
+            "table": "support_queue",
+            "name": "queue_admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "support_rules",
+            "name": "rules_admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "support_settings",
+            "name": "settings_admin",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          },
+          {
+            "table": "waitlist",
+            "name": "waitlist_admin_all",
+            "permissive": "PERMISSIVE",
+            "roles": [
+              "authenticated"
+            ],
+            "command": "ALL",
+            "using": "is_admin()",
+            "with_check": "is_admin()"
+          }
+        ],
+        "indexes": [
+          {
+            "table": "audit_log",
+            "name": "audit_log_pkey",
+            "definition": "CREATE UNIQUE INDEX audit_log_pkey ON public.audit_log USING btree (id)"
+          },
+          {
+            "table": "banners",
+            "name": "banners_pkey",
+            "definition": "CREATE UNIQUE INDEX banners_pkey ON public.banners USING btree (id)"
+          },
+          {
+            "table": "canned_replies",
+            "name": "canned_replies_pkey",
+            "definition": "CREATE UNIQUE INDEX canned_replies_pkey ON public.canned_replies USING btree (id)"
+          },
+          {
+            "table": "cards",
+            "name": "cards_code_key",
+            "definition": "CREATE UNIQUE INDEX cards_code_key ON public.cards USING btree (code)"
+          },
+          {
+            "table": "cards",
+            "name": "cards_pkey",
+            "definition": "CREATE UNIQUE INDEX cards_pkey ON public.cards USING btree (id)"
+          },
+          {
+            "table": "collections",
+            "name": "collections_name_key",
+            "definition": "CREATE UNIQUE INDEX collections_name_key ON public.collections USING btree (name)"
+          },
+          {
+            "table": "collections",
+            "name": "collections_pkey",
+            "definition": "CREATE UNIQUE INDEX collections_pkey ON public.collections USING btree (id)"
+          },
+          {
+            "table": "conversation_members",
+            "name": "cm_user",
+            "definition": "CREATE INDEX cm_user ON public.conversation_members USING btree (user_id)"
+          },
+          {
+            "table": "conversation_members",
+            "name": "conversation_members_pkey",
+            "definition": "CREATE UNIQUE INDEX conversation_members_pkey ON public.conversation_members USING btree (conversation_id, user_id)"
+          },
+          {
+            "table": "conversations",
+            "name": "conv_store_open",
+            "definition": "CREATE UNIQUE INDEX conv_store_open ON public.conversations USING btree (created_by, store_id, COALESCE(order_id, ''::text)) WHERE ((kind = 'store'::text) AND (status <> 'resolved'::text))"
+          },
+          {
+            "table": "conversations",
+            "name": "conv_support_open",
+            "definition": "CREATE UNIQUE INDEX conv_support_open ON public.conversations USING btree (created_by, kind, COALESCE(store_id, ''::text)) WHERE ((kind = ANY (ARRAY['support'::text, 'seller_admin'::text])) AND (status <> 'resolved'::text))"
+          },
+          {
+            "table": "conversations",
+            "name": "conversations_last",
+            "definition": "CREATE INDEX conversations_last ON public.conversations USING btree (last_message_at DESC)"
+          },
+          {
+            "table": "conversations",
+            "name": "conversations_pkey",
+            "definition": "CREATE UNIQUE INDEX conversations_pkey ON public.conversations USING btree (id)"
+          },
+          {
+            "table": "conversations",
+            "name": "conversations_status",
+            "definition": "CREATE INDEX conversations_status ON public.conversations USING btree (status, priority DESC)"
+          },
+          {
+            "table": "conversations",
+            "name": "conversations_store",
+            "definition": "CREATE INDEX conversations_store ON public.conversations USING btree (store_id)"
+          },
+          {
+            "table": "deliveries",
+            "name": "deliveries_order_id_key",
+            "definition": "CREATE UNIQUE INDEX deliveries_order_id_key ON public.deliveries USING btree (order_id)"
+          },
+          {
+            "table": "deliveries",
+            "name": "deliveries_pkey",
+            "definition": "CREATE UNIQUE INDEX deliveries_pkey ON public.deliveries USING btree (id)"
+          },
+          {
+            "table": "disputes",
+            "name": "disputes_pkey",
+            "definition": "CREATE UNIQUE INDEX disputes_pkey ON public.disputes USING btree (id)"
+          },
+          {
+            "table": "kv",
+            "name": "kv_pkey",
+            "definition": "CREATE UNIQUE INDEX kv_pkey ON public.kv USING btree (key)"
+          },
+          {
+            "table": "ledger_entries",
+            "name": "ledger_entries_pkey",
+            "definition": "CREATE UNIQUE INDEX ledger_entries_pkey ON public.ledger_entries USING btree (id)"
+          },
+          {
+            "table": "ledger_entries",
+            "name": "ledger_sale_once",
+            "definition": "CREATE UNIQUE INDEX ledger_sale_once ON public.ledger_entries USING btree (seller_order_id, kind) WHERE (kind = ANY (ARRAY['sale'::text, 'commission'::text]))"
+          },
+          {
+            "table": "ledger_entries",
+            "name": "ledger_store_idx",
+            "definition": "CREATE INDEX ledger_store_idx ON public.ledger_entries USING btree (store_id, status)"
+          },
+          {
+            "table": "messages",
+            "name": "messages_conv",
+            "definition": "CREATE INDEX messages_conv ON public.messages USING btree (conversation_id, created_at)"
+          },
+          {
+            "table": "messages",
+            "name": "messages_pkey",
+            "definition": "CREATE UNIQUE INDEX messages_pkey ON public.messages USING btree (id)"
+          },
+          {
+            "table": "notifications",
+            "name": "notifications_pkey",
+            "definition": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)"
+          },
+          {
+            "table": "notifications",
+            "name": "notifications_user_idx",
+            "definition": "CREATE INDEX notifications_user_idx ON public.notifications USING btree (user_id, created_at DESC)"
+          },
+          {
+            "table": "offers",
+            "name": "offers_code_key",
+            "definition": "CREATE UNIQUE INDEX offers_code_key ON public.offers USING btree (code)"
+          },
+          {
+            "table": "offers",
+            "name": "offers_pkey",
+            "definition": "CREATE UNIQUE INDEX offers_pkey ON public.offers USING btree (id)"
+          },
+          {
+            "table": "order_item_fees",
+            "name": "order_item_fees_pkey",
+            "definition": "CREATE UNIQUE INDEX order_item_fees_pkey ON public.order_item_fees USING btree (order_item_id)"
+          },
+          {
+            "table": "order_items",
+            "name": "order_items_order_idx",
+            "definition": "CREATE INDEX order_items_order_idx ON public.order_items USING btree (order_id)"
+          },
+          {
+            "table": "order_items",
+            "name": "order_items_pkey",
+            "definition": "CREATE UNIQUE INDEX order_items_pkey ON public.order_items USING btree (id)"
+          },
+          {
+            "table": "order_items",
+            "name": "order_items_seller_order_idx",
+            "definition": "CREATE INDEX order_items_seller_order_idx ON public.order_items USING btree (seller_order_id)"
+          },
+          {
+            "table": "order_secrets",
+            "name": "order_secrets_pkey",
+            "definition": "CREATE UNIQUE INDEX order_secrets_pkey ON public.order_secrets USING btree (order_id)"
+          },
+          {
+            "table": "orders",
+            "name": "orders_pkey",
+            "definition": "CREATE UNIQUE INDEX orders_pkey ON public.orders USING btree (id)"
+          },
+          {
+            "table": "payouts",
+            "name": "payouts_pkey",
+            "definition": "CREATE UNIQUE INDEX payouts_pkey ON public.payouts USING btree (id)"
+          },
+          {
+            "table": "payouts",
+            "name": "payouts_reference_key",
+            "definition": "CREATE UNIQUE INDEX payouts_reference_key ON public.payouts USING btree (reference)"
+          },
+          {
+            "table": "product_private",
+            "name": "product_private_pkey",
+            "definition": "CREATE UNIQUE INDEX product_private_pkey ON public.product_private USING btree (product_id)"
+          },
+          {
+            "table": "products",
+            "name": "products_pkey",
+            "definition": "CREATE UNIQUE INDEX products_pkey ON public.products USING btree (id)"
+          },
+          {
+            "table": "products",
+            "name": "products_search_idx",
+            "definition": "CREATE INDEX products_search_idx ON public.products USING gin (search)"
+          },
+          {
+            "table": "products",
+            "name": "products_store_status_idx",
+            "definition": "CREATE INDEX products_store_status_idx ON public.products USING btree (store_id, status)"
+          },
+          {
+            "table": "profiles",
+            "name": "profiles_pkey",
+            "definition": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)"
+          },
+          {
+            "table": "rate_limits",
+            "name": "rate_limits_lookup",
+            "definition": "CREATE INDEX rate_limits_lookup ON public.rate_limits USING btree (user_id, action, at DESC)"
+          },
+          {
+            "table": "refunds",
+            "name": "refunds_pkey",
+            "definition": "CREATE UNIQUE INDEX refunds_pkey ON public.refunds USING btree (id)"
+          },
+          {
+            "table": "reviews",
+            "name": "reviews_pkey",
+            "definition": "CREATE UNIQUE INDEX reviews_pkey ON public.reviews USING btree (id)"
+          },
+          {
+            "table": "reviews",
+            "name": "reviews_user_id_product_id_key",
+            "definition": "CREATE UNIQUE INDEX reviews_user_id_product_id_key ON public.reviews USING btree (user_id, product_id)"
+          },
+          {
+            "table": "seller_orders",
+            "name": "seller_orders_order_id_store_id_key",
+            "definition": "CREATE UNIQUE INDEX seller_orders_order_id_store_id_key ON public.seller_orders USING btree (order_id, store_id)"
+          },
+          {
+            "table": "seller_orders",
+            "name": "seller_orders_order_idx",
+            "definition": "CREATE INDEX seller_orders_order_idx ON public.seller_orders USING btree (order_id)"
+          },
+          {
+            "table": "seller_orders",
+            "name": "seller_orders_pkey",
+            "definition": "CREATE UNIQUE INDEX seller_orders_pkey ON public.seller_orders USING btree (id)"
+          },
+          {
+            "table": "seller_orders",
+            "name": "seller_orders_store_status_idx",
+            "definition": "CREATE INDEX seller_orders_store_status_idx ON public.seller_orders USING btree (store_id, status)"
+          },
+          {
+            "table": "settings",
+            "name": "settings_pkey",
+            "definition": "CREATE UNIQUE INDEX settings_pkey ON public.settings USING btree (id)"
+          },
+          {
+            "table": "size_charts",
+            "name": "size_charts_pkey",
+            "definition": "CREATE UNIQUE INDEX size_charts_pkey ON public.size_charts USING btree (id)"
+          },
+          {
+            "table": "store_applications",
+            "name": "store_applications_pkey",
+            "definition": "CREATE UNIQUE INDEX store_applications_pkey ON public.store_applications USING btree (id)"
+          },
+          {
+            "table": "store_applications",
+            "name": "store_applications_store_id_key",
+            "definition": "CREATE UNIQUE INDEX store_applications_store_id_key ON public.store_applications USING btree (store_id)"
+          },
+          {
+            "table": "store_payments",
+            "name": "store_payments_pkey",
+            "definition": "CREATE UNIQUE INDEX store_payments_pkey ON public.store_payments USING btree (id)"
+          },
+          {
+            "table": "store_payments",
+            "name": "store_payments_reference_key",
+            "definition": "CREATE UNIQUE INDEX store_payments_reference_key ON public.store_payments USING btree (reference)"
+          },
+          {
+            "table": "store_plans",
+            "name": "store_plans_pkey",
+            "definition": "CREATE UNIQUE INDEX store_plans_pkey ON public.store_plans USING btree (id)"
+          },
+          {
+            "table": "store_private",
+            "name": "store_private_pkey",
+            "definition": "CREATE UNIQUE INDEX store_private_pkey ON public.store_private USING btree (store_id)"
+          },
+          {
+            "table": "store_subscriptions",
+            "name": "store_subscriptions_pkey",
+            "definition": "CREATE UNIQUE INDEX store_subscriptions_pkey ON public.store_subscriptions USING btree (id)"
+          },
+          {
+            "table": "store_subscriptions",
+            "name": "store_subscriptions_store_id_key",
+            "definition": "CREATE UNIQUE INDEX store_subscriptions_store_id_key ON public.store_subscriptions USING btree (store_id)"
+          },
+          {
+            "table": "stores",
+            "name": "stores_owner_id_key",
+            "definition": "CREATE UNIQUE INDEX stores_owner_id_key ON public.stores USING btree (owner_id)"
+          },
+          {
+            "table": "stores",
+            "name": "stores_pkey",
+            "definition": "CREATE UNIQUE INDEX stores_pkey ON public.stores USING btree (id)"
+          },
+          {
+            "table": "stores",
+            "name": "stores_search_idx",
+            "definition": "CREATE INDEX stores_search_idx ON public.stores USING gin (search)"
+          },
+          {
+            "table": "stores",
+            "name": "stores_slug_key",
+            "definition": "CREATE UNIQUE INDEX stores_slug_key ON public.stores USING btree (slug)"
+          },
+          {
+            "table": "stores",
+            "name": "stores_status_idx",
+            "definition": "CREATE INDEX stores_status_idx ON public.stores USING btree (status)"
+          },
+          {
+            "table": "support_queue",
+            "name": "support_queue_pkey",
+            "definition": "CREATE UNIQUE INDEX support_queue_pkey ON public.support_queue USING btree (id)"
+          },
+          {
+            "table": "support_rules",
+            "name": "support_rules_pkey",
+            "definition": "CREATE UNIQUE INDEX support_rules_pkey ON public.support_rules USING btree (id)"
+          },
+          {
+            "table": "support_settings",
+            "name": "support_settings_pkey",
+            "definition": "CREATE UNIQUE INDEX support_settings_pkey ON public.support_settings USING btree (key)"
+          },
+          {
+            "table": "waitlist",
+            "name": "waitlist_email_uq",
+            "definition": "CREATE UNIQUE INDEX waitlist_email_uq ON public.waitlist USING btree (lower(email))"
+          },
+          {
+            "table": "waitlist",
+            "name": "waitlist_pkey",
+            "definition": "CREATE UNIQUE INDEX waitlist_pkey ON public.waitlist USING btree (id)"
+          }
+        ],
+        "rls": [
+          {
+            "table": "audit_log",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "banners",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "canned_replies",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "cards",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "collections",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "conversation_members",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "conversations",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "deliveries",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "disputes",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "kv",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "ledger_entries",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "messages",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "notifications",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "offers",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "order_item_fees",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "order_items",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "order_secrets",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "orders",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "payouts",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "product_private",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "products",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "profiles",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "rate_limits",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "refunds",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "reviews",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "seller_orders",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "settings",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "size_charts",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "store_applications",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "store_payments",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "store_plans",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "store_private",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "store_subscriptions",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "stores",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "support_queue",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "support_rules",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "support_settings",
+            "enabled": true,
+            "forced": false
+          },
+          {
+            "table": "waitlist",
+            "enabled": true,
+            "forced": false
+          }
+        ]
+      }
+    }
+  ]
+}

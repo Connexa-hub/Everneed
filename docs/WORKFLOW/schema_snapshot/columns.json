@@ -1,0 +1,3858 @@
+{
+  "source": "read-only catalog query",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "inspection_date": "2026-11-12",
+  "warning": "Evidence only; not migration SQL. Re-export and compare before baseline acceptance.",
+  "data": [
+    {
+      "table_name": "audit_log",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": null,
+          "identity": "ALWAYS",
+          "generated": "NEVER"
+        },
+        {
+          "name": "actor_id",
+          "ordinal": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "action",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "target_type",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "target_id",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "before",
+          "ordinal": 6,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "after",
+          "ordinal": 7,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "banners",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "title",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "text",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "type",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "priority",
+          "ordinal": 6,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": false,
+          "default": "1",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "starts",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "ends",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "cty",
+          "ordinal": 9,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "link",
+          "ordinal": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "img",
+          "ordinal": 11,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 12,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": "((EXTRACT(epoch FROM now()) * (1000)::numeric))::bigint",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "canned_replies",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "scope",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "owner",
+          "ordinal": 3,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "title",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "body",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 6,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "cards",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "brand",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "last4",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "exp",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "bank",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "code",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 9,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": "((EXTRACT(epoch FROM now()) * (1000)::numeric))::bigint",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "collections",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "grp",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "icon",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 5,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": "((EXTRACT(epoch FROM now()) * (1000)::numeric))::bigint",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "conversation_members",
+      "columns": [
+        {
+          "name": "conversation_id",
+          "ordinal": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "role",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "unread",
+          "ordinal": 4,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "last_read_at",
+          "ordinal": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "muted",
+          "ordinal": 6,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "false",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "joined_at",
+          "ordinal": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "conversations",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "kind",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "subject",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "order_id",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_by",
+          "ordinal": 6,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'open'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "priority",
+          "ordinal": 8,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "tier",
+          "ordinal": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "tags",
+          "ordinal": 10,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "assignee",
+          "ordinal": 11,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "escalated_at",
+          "ordinal": 12,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "escalation_reason",
+          "ordinal": 13,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "sla_due_at",
+          "ordinal": 14,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "admin_unread",
+          "ordinal": 15,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "false",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "first_reply_at",
+          "ordinal": 16,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "last_message_at",
+          "ordinal": 17,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "last_preview",
+          "ordinal": 18,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 19,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "resolved_at",
+          "ordinal": 20,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "deliveries",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "order_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "mode",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "courier_name",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "courier_phone",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "tracking_note",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "parcel_label",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'pending'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "dispatched_at",
+          "ordinal": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "delivered_at",
+          "ordinal": 10,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "proof",
+          "ordinal": 11,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "disputes",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "order_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "seller_order_id",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "opened_by",
+          "ordinal": 4,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": "auth.uid()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reason",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'open'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "resolution",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "resolved_by",
+          "ordinal": 8,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "resolved_at",
+          "ordinal": 10,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "kv",
+      "columns": [
+        {
+          "name": "key",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "value",
+          "ordinal": 2,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "ledger_entries",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": null,
+          "identity": "ALWAYS",
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "order_id",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "seller_order_id",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "kind",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "amount",
+          "ordinal": 6,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "currency",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'NGN'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'pending'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "note",
+          "ordinal": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 10,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "messages",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "conversation_id",
+          "ordinal": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "sender_id",
+          "ordinal": 3,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "sender_role",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "kind",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'text'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "body",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "meta",
+          "ordinal": 7,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "clock_timestamp()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "notifications",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "kind",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "title",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "body",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "data",
+          "ordinal": 6,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "read_at",
+          "ordinal": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "offers",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "kind",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "value",
+          "ordinal": 4,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "scope",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'all'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "target",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "code",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "min_total",
+          "ordinal": 8,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "starts",
+          "ordinal": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "ends",
+          "ordinal": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "limit_uses",
+          "ordinal": 11,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "used",
+          "ordinal": 12,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "active",
+          "ordinal": 13,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "true",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "cty",
+          "ordinal": 14,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 15,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": "((EXTRACT(epoch FROM now()) * (1000)::numeric))::bigint",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "order_item_fees",
+      "columns": [
+        {
+          "name": "order_item_id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "commission_rate",
+          "ordinal": 2,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "commission_amount",
+          "ordinal": 3,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "order_items",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "order_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "seller_order_id",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "product_id",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "size",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "unit_price",
+          "ordinal": 8,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "qty",
+          "ordinal": 9,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "line_total",
+          "ordinal": 10,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "order_secrets",
+      "columns": [
+        {
+          "name": "order_id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "delivery_code",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "orders",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": "auth.uid()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "items",
+          "ordinal": 3,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "total",
+          "ordinal": 4,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "country",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "pm",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "cust",
+          "ordinal": 7,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 9,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "ref",
+          "ordinal": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "paid_at",
+          "ordinal": 11,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "currency",
+          "ordinal": 12,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "track",
+          "ordinal": 13,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "coupon",
+          "ordinal": 14,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "discount",
+          "ordinal": 15,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "offer",
+          "ordinal": 16,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "card_id",
+          "ordinal": 17,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "received_at",
+          "ordinal": 18,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "payment_note",
+          "ordinal": 19,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "route",
+          "ordinal": 20,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "route_reason",
+          "ordinal": 21,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "delivery_fee",
+          "ordinal": 22,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "payment_status",
+          "ordinal": 23,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'awaiting_payment'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "auto_confirm_at",
+          "ordinal": 24,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "payouts",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "amount",
+          "ordinal": 3,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "currency",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'NGN'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reference",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "method",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'bank_transfer'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "paid_at",
+          "ordinal": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "recorded_by",
+          "ordinal": 8,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "period",
+          "ordinal": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "product_private",
+      "columns": [
+        {
+          "name": "product_id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "review_note",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reviewed_by",
+          "ordinal": 3,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reviewed_at",
+          "ordinal": 4,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "compliance_ref",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "products",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "col",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "price",
+          "ordinal": 4,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "old",
+          "ordinal": 5,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "stock",
+          "ordinal": 6,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "cty",
+          "ordinal": 7,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "code",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "img",
+          "ordinal": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "descr",
+          "ordinal": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 11,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": "((EXTRACT(epoch FROM now()) * (1000)::numeric))::bigint",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "images",
+          "ordinal": 12,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "chart",
+          "ordinal": 13,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "sizes",
+          "ordinal": 14,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "stocks",
+          "ordinal": 22,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "maker",
+          "ordinal": 23,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "maker_addr",
+          "ordinal": 24,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "origin",
+          "ordinal": 25,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "ships_from",
+          "ordinal": 26,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "sku",
+          "ordinal": 27,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "weight_g",
+          "ordinal": 28,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "dims",
+          "ordinal": 29,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "material",
+          "ordinal": 30,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "axes",
+          "ordinal": 31,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 32,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'published'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 34,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "search",
+          "ordinal": 35,
+          "data_type": "tsvector",
+          "udt_name": "tsvector",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "ALWAYS"
+        }
+      ]
+    },
+    {
+      "table_name": "profiles",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "phone",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "photo",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "country",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "role",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'customer'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created",
+          "ordinal": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "dob",
+          "ordinal": 9,
+          "data_type": "date",
+          "udt_name": "date",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "idv",
+          "ordinal": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "settings",
+          "ordinal": 11,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "rate_limits",
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "action",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "refunds",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "order_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "seller_order_id",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "opened_by",
+          "ordinal": 4,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reason",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "amount",
+          "ordinal": 6,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'requested'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "resolution",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "resolved_by",
+          "ordinal": 9,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 10,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "resolved_at",
+          "ordinal": 11,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "reviews",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "product_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 3,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": "auth.uid()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "order_id",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "rating",
+          "ordinal": 5,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "body",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 8,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": "((EXTRACT(epoch FROM now()) * (1000)::numeric))::bigint",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "seller_orders",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "order_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'pending'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "released",
+          "ordinal": 5,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "false",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "subtotal",
+          "ordinal": 6,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "commission",
+          "ordinal": 7,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "earning",
+          "ordinal": 8,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "accept_by",
+          "ordinal": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "rejected_reason",
+          "ordinal": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "accepted_at",
+          "ordinal": 11,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "ready_at",
+          "ordinal": 12,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "handed_over_at",
+          "ordinal": 13,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "hub_received_at",
+          "ordinal": 14,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "hub_check",
+          "ordinal": 15,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "delivered_at",
+          "ordinal": 16,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 17,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "settings",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "data",
+          "ordinal": 2,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 3,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": "((EXTRACT(epoch FROM now()) * (1000)::numeric))::bigint",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "size_charts",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "cols",
+          "ordinal": 3,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "rows",
+          "ordinal": 4,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": "'[]'::jsonb",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "at",
+          "ordinal": 5,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "nullable": false,
+          "default": "((EXTRACT(epoch FROM now()) * (1000)::numeric))::bigint",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "kind",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'clothing'::text",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "store_applications",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "submitted_at",
+          "ordinal": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reviewed_by",
+          "ordinal": 4,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reviewed_at",
+          "ordinal": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "decision",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reason",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "business_name",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "id_type",
+          "ordinal": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "id_ref",
+          "ordinal": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "bank_name",
+          "ordinal": 11,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "account_number",
+          "ordinal": 12,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "account_name",
+          "ordinal": 13,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "plan_id",
+          "ordinal": 14,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "store_payments",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "subscription_id",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "amount",
+          "ordinal": 4,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "currency",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'NGN'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "method",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reference",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'paid'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "paid_at",
+          "ordinal": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "recorded_by",
+          "ordinal": 10,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "store_plans",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "price",
+          "ordinal": 3,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "period",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'monthly'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "product_limit",
+          "ordinal": 5,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "commission_discount",
+          "ordinal": 6,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": false,
+          "default": "0",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "features",
+          "ordinal": 7,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": "'[]'::jsonb",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "active",
+          "ordinal": 8,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "true",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "store_private",
+      "columns": [
+        {
+          "name": "store_id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "pickup_address",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "phone",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status_note",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "direct_delivery_enabled",
+          "ordinal": 5,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "false",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "delivery_zones",
+          "ordinal": 6,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": "'[]'::jsonb",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "commission_override",
+          "ordinal": 7,
+          "data_type": "numeric",
+          "udt_name": "numeric",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "trusted",
+          "ordinal": 8,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "false",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "store_subscriptions",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "store_id",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "plan_id",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'trialing'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "current_period_start",
+          "ordinal": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "current_period_end",
+          "ordinal": 6,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "grace_until",
+          "ordinal": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "stores",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "(gen_random_uuid())::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "slug",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "tagline",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "about",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "logo_url",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "cover_url",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "accent",
+          "ordinal": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'forest'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "categories",
+          "ordinal": 10,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "country",
+          "ordinal": 11,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'NG'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "state",
+          "ordinal": 12,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "city",
+          "ordinal": 13,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 14,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'draft'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "is_official",
+          "ordinal": 15,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "false",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "is_demo",
+          "ordinal": 16,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "false",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 17,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "approved_at",
+          "ordinal": 18,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "search",
+          "ordinal": 19,
+          "data_type": "tsvector",
+          "udt_name": "tsvector",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "ALWAYS"
+        }
+      ]
+    },
+    {
+      "table_name": "support_queue",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "topic",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "page",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'waiting'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "claimed_by",
+          "ordinal": 6,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "last_seen",
+          "ordinal": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "support_rules",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": false,
+          "default": "nextval('support_rules_id_seq'::regclass)",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "pattern",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "applies_to",
+          "ordinal": 4,
+          "data_type": "ARRAY",
+          "udt_name": "_text",
+          "nullable": false,
+          "default": "'{store,support,seller_admin}'::text[]",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "action",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "tag",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "priority",
+          "ordinal": 7,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "nullable": false,
+          "default": "1",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reason",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "reply",
+          "ordinal": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "active",
+          "ordinal": 10,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "nullable": false,
+          "default": "true",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "support_settings",
+      "columns": [
+        {
+          "name": "key",
+          "ordinal": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "value",
+          "ordinal": 2,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    },
+    {
+      "table_name": "waitlist",
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "email",
+          "ordinal": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "role",
+          "ordinal": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'shopper'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "country",
+          "ordinal": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "interest",
+          "ordinal": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": null,
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "source",
+          "ordinal": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": true,
+          "default": "'website'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "status",
+          "ordinal": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "nullable": false,
+          "default": "'new'::text",
+          "identity": null,
+          "generated": "NEVER"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "nullable": false,
+          "default": "now()",
+          "identity": null,
+          "generated": "NEVER"
+        }
+      ]
+    }
+  ]
+}
