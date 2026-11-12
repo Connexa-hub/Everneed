@@ -49,8 +49,9 @@ for (const fn of readdirSync('supabase/functions')) {
   }
 }
 
-// 5. No dropshipping leftovers outside history files (baseline migration, audit and prompt docs).
-const BAN = /\b(cj|cjdropshipping|eprolo|supplier|sup_[a-z]+)\b/i;
+// 5. No retired dropshipping integrations outside history files. Do not ban the word
+// "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
+const BAN = /\b(cj|cjdropshipping|eprolo|sup_[a-z]+)\b/i;
 const SKIP = new Set(['node_modules', '.git', 'assets', 'keystore', 'android']);
 const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'tools/check.mjs']);
 const MANIFEST = existsSync('MANIFEST.txt') ? new Set(readFileSync('MANIFEST.txt', 'utf8').split('\n').filter(Boolean)) : null;
