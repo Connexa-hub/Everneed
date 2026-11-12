@@ -16,7 +16,7 @@ git push -u origin main                 # baseline
 git checkout -b marketplace-build       # the branch you test from
 git push -u origin marketplace-build    # starts the Action
 ```
-Keep the repository **private**: it contains the debug signing key (`keystore/debug.keystore`).
+The old debug keystore has been removed from the development branch. Keep signing keys only in owner-managed local storage and the protected GitHub Actions secret; never commit them.
 If you push over HTTPS with a token, the token needs the `workflow` scope or GitHub rejects changes to `.github/workflows`.
 
 ## Every new zip (works in Termux on a phone, and on a computer)
