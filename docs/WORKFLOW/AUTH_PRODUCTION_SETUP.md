@@ -61,7 +61,7 @@ To enable Google:
 5. Add the production and preview return URLs to Supabase's Auth redirect allow list. Keep the production Site URL set to the production website.
 6. Test a fresh Google account and an existing email/password account before enabling the provider on the production project.
 
-Google setup guide: https://supabase.com/docs/guides/auth/social-login/auth-google  
+Google setup guide: https://supabase.com/docs/guides/auth/social-sign-in/auth-google  
 Supabase redirect URL guide: https://supabase.com/docs/guides/auth/redirect-urls
 
 Apple, Facebook, and other providers each require their own developer-console credentials and Supabase provider configuration. Keep them disabled until those credentials and callback settings have been verified.
