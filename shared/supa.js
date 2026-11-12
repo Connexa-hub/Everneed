@@ -2,7 +2,7 @@
 (function(){
   var C=CFG.supabase,U=C.url.replace(/\/$/,""),K=C.key,sess=null,KEY="en_web_sess";
   try{sess=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){}
-  function save(j){if(j&&j.access_token){sess={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,uid:(j.user&&j.user.id)||(sess&&sess.uid)};try{localStorage.setItem(KEY,JSON.stringify(sess))}catch(e){}}return j}
+  function save(j){if(j&&j.access_token){var uid=(j.user&&j.user.id)||(sess&&sess.uid);if(!uid){try{uid=JSON.parse(atob(j.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||null}catch(e){}}sess={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,uid:uid};try{localStorage.setItem(KEY,JSON.stringify(sess))}catch(e){}}return j}
   function saveHashSession(){
     var rawHash=location.hash||"",p;
     if(rawHash.indexOf("#access_token=")!==0)return;
