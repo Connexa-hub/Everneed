@@ -155,7 +155,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## Q. Quality
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-Q01 | RLS test: seller A cannot read or change seller B | P1 | TODO | `tests/` | | | Needs 4 test users: admin, seller A, seller B, buyer. Do it on staging. |
+| WEB-Q01 | RLS test: buyer/seller/admin negative-access isolation | P1 | IN PROGRESS | `supabase/tests/018_rls_isolation_regression.sql`, `.github/workflows/build.yml` | ChatGPT coordinator | web-portal | Claim started 12 Nov 2026; staging only. Test real JWT role contexts for buyer A/B, seller A/B and non-admin/admin boundaries; no production changes. |
 | WEB-Q02 | Smoke test: sign up, apply, approve, list product, publish | P1 | TODO | | | | Do after F11 and ENV01, on staging. |
 | WEB-Q03 | Accessibility pass (focus, labels, contrast, 200% text) | P2 | TODO | | | | |
 | WEB-Q04 | Performance pass (Lighthouse, image sizes, script count) | P3 | TODO | | | | 11 scripts load in sequence today. |
