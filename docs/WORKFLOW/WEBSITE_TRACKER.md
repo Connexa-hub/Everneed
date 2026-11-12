@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — PR #7 merged; PR #8 branch sync merged; migration inventory expanded to all 19 live records.
+**Last updated:** 12 Nov 2026 — all eight missing migration SQL files recovered from the live migration table (WEB-F07); replay test is the remaining step (WEB-F07b).
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -11,7 +11,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 5 | 1 | 1 | 0 | 3 | 5 | 15 |
+| Foundation (F) | 5 | 2 | 0 | 0 | 3 | 6 | 16 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
@@ -19,16 +19,16 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
 | Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **24** | **8** | **1** | **0** | **3** | **53** | **89** |
+| **All** | **24** | **9** | **0** | **0** | **3** | **54** | **90** |
 
 Update this table when you change a status.
 
 ## Next up (in order)
-1. `WEB-F07` Recover and commit all eight missing applied migration SQL files (three earlier entries plus 011–015) before any further database changes.
+1. `WEB-F07b` Replay the full migration chain on a disposable database and confirm `000` to `010` match the stored SQL. Never on the live project.
 2. `WEB-F08` Remove the committed debug keystore safely and replace the CI signing setup; coordinate the one-time reinstall/rotation impact with the owner.
 3. `WEB-F11` Create the first admin account (owner action).
-4. `WEB-F09` Schedule and verify the background jobs, after the migration history is safely recovered.
-5. `APP-02` Remove the permissive local/demo admin fallback; admin access must never be inferred from a blank admin email setting.
+4. `WEB-F09` Schedule and verify the background jobs. Needs a migration numbered 016, after F07b.
+5. `APP-06` and `WEB-S05`/`WEB-S06`: seller order queue on both clients (the first real money flow).
 6. `APP-10` Run real-device app smoke tests and record the results.
 
 ---
@@ -42,9 +42,10 @@ Update this table when you change a status.
 | WEB-F04 | CI: syntax check, file references, global names | P0 | DONE | `.github/workflows/web-checks.yml`, `tools/check.mjs` | Claude | web-portal | `npm test` and token consistency passed; full Install/test, Database tests and APK build all passed on released main run `43147699406`. Database job remains configured `continue-on-error: true` and is not a release gate yet. |
 | WEB-F05 | Deploy on Cloudflare Pages | P0 | DONE | Cloudflare Pages project `everneed`, GitHub integration | owner | main | Git integration and production branch `main` verified; successful deployment confirmed on merge commit `c816c1b`. |
 | WEB-F06 | Release confirmed app and website changes from `web-portal` to `main` through reviewed PRs | P0 | DONE | git, GitHub Actions, Cloudflare Pages | owner + project coordinator | web-portal | PR #3 merged 12 Nov 2026 as `0bca163`; main run `43147699406` passed Install and test, Database tests and APK. The database job is currently non-blocking by workflow configuration. |
-| WEB-F07 | Recover and commit live migrations 011 to 015 into `supabase/migrations/` | P0 | IN PROGRESS | live DB, `DB_CONTRACT.md`, `MIGRATION_RECOVERY.md` | ChatGPT coordinator | web-portal | Read-only history now confirms 19 live records; eight applied SQL files are missing from the repo. Original SQL not recovered; search developer copies/backups/CI artifacts next. Do not fabricate or replay production migrations. Retire `shared/sql/011_website_sync.sql` only after verified replacement. |
+| WEB-F07 | Recover the eight missing applied migration SQL files into `supabase/migrations/` | P0 | PARTIAL | live `supabase_migrations.schema_migrations`, `DB_CONTRACT.md`, `MIGRATION_RECOVERY.md` | Claude (at owner's request) | web-portal | Recovered verbatim from the live migration table: `002a`, `002b`, `003a`, `011` to `015` (commits `c9b9e1c`, `9ba80b1`, `504dbd3`, `0aaf8be`). Sizes match the stored SQL. All 19 live records now have a file. Not DONE until F07b passes. `shared/sql/011_website_sync.sql` is superseded by `012`; retire it under X07 after F07b. |
+| WEB-F07b | Prove the migration chain: replay 000 to 015 on a disposable database and compare `000` to `010` with the stored SQL | P0 | TODO | `supabase/migrations/`, `supabase_migrations.schema_migrations` | | web-portal | Repo `000` to `010` are 6 to 40 percent larger than the stored SQL (likely added header comments, unconfirmed). Never replay on the live project (`zpgasfweaixwsktlueje`). Record the result in `MIGRATION_RECOVERY.md`. Edge function code, Auth settings and the `pg_cron` schedule are outside these files. |
 | WEB-F08 | Remove `keystore/` from git and rotate the key | P0 | NEEDS OWNER | `keystore/`, `.github/workflows/build.yml` | owner | | Debug key is committed and CI ships a debug build. Use GitHub Secrets. |
-| WEB-F09 | Schedule background jobs (install `pg_cron`, add a migration) | P0 | TODO | `run_scheduled_jobs`, `release_earnings`, `expire_rentals`, `support_sla_sweep` | | | Nothing runs on a timer today, so earnings never release and rentals never expire. |
+| WEB-F09 | Schedule background jobs (install `pg_cron`, add a migration) | P0 | TODO | `run_scheduled_jobs`, `release_earnings`, `expire_rentals`, `support_sla_sweep` | | | Nothing runs on a timer today, so earnings never release and rentals never expire. First new migration (016). |
 | WEB-F10 | Turn on leaked-password protection | P1 | NEEDS OWNER | Supabase Auth settings | owner | | One toggle in the dashboard. |
 | WEB-F11 | Create the first admin account | P0 | NEEDS OWNER | `profiles` (0 rows) | owner | | Sign up on the site, then set `role='admin'` for that profile. Needed to test every admin task. |
 | WEB-F12 | Fix stale hint in admin waitlist empty state | P3 | TODO | `admin.js` | | | It tells people to apply `shared/sql/011_website_sync.sql`, but the table already exists. |
@@ -131,7 +132,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 | WEB-X04 | `shared/status.js`: order, product and store status names, labels and colours | P1 | TODO | | | | Today each side has its own. |
 | WEB-X05 | `shared/money.js`: currency and country formatting (6 countries) | P1 | TODO | `shared/config.js` | | | Web is NGN only. |
 | WEB-X06 | App uses `shared/` instead of duplicated config, Supabase client and icons where appropriate | P2 | TODO | `js/`, `shared/` | | web-portal | App and website are developed in this same branch; coordinate through this tracker. |
-| WEB-X07 | Retire `shared/sql/`, use `supabase/migrations/` only | P1 | TODO | | | | After F07. |
+| WEB-X07 | Retire `shared/sql/`, use `supabase/migrations/` only | P1 | TODO | | | | After F07b. |
 
 ## APP. App audit
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
@@ -161,7 +162,12 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## Change log (newest first)
 | Date | Who | What |
 |---|---|---|
-| 12 Nov 2026 | Project workflow | PR #6 merged as `dfeaf27`; `web-portal` is synchronized with the released `main` history. All three PR6 CI jobs passed. |\n| 12 Nov 2026 | Project coordinator | Started WEB-F07 recovery: confirmed live migration versions 011–015, captured read-only table/function/RLS/trigger evidence in `MIGRATION_RECOVERY.md`, and marked drift IN PROGRESS. No live DB changes. |\n| 12 Nov 2026 | Project workflow | PR #3 merged as `0bca163`; `web-portal` is the development branch for app and website, `main` is reviewed release/Cloudflare production. All three release CI jobs passed on main run `43147699406`. |\n| 12 Nov 2026 | Project coordinator | Hardened legacy local sign-in so it cannot grant admin; all CI jobs passed on `web-portal` commit `2a2796c`. |
-| 12 Nov 2026 | Project workflow | Static Android app audit recorded in `DB_CONTRACT.md`; app backlog APP-02 to APP-11 added. No database migrations applied. |\n| 12 Nov 2026 | Project workflow | Synced existing `main` checker and roadmap fixes into `web-portal` through PR #2. |
+| 12 Nov 2026 | Claude | WEB-F07: recovered the eight missing migration SQL files verbatim from the live `supabase_migrations.schema_migrations` table (`002a`, `002b`, `003a`, `011` to `015`). Sizes verified against the stored text. Updated `DB_CONTRACT.md` and `MIGRATION_RECOVERY.md`; added WEB-F07b (replay test). Read-only on the database: nothing applied or changed. Also repaired literal `\n` characters in this change log. |
+| 12 Nov 2026 | Project workflow | PR #6 merged as `dfeaf27`; `web-portal` is synchronized with the released `main` history. All three PR6 CI jobs passed. |
+| 12 Nov 2026 | Project coordinator | Started WEB-F07 recovery: confirmed live migration versions 011–015, captured read-only table/function/RLS/trigger evidence in `MIGRATION_RECOVERY.md`, and marked drift IN PROGRESS. No live DB changes. |
+| 12 Nov 2026 | Project workflow | PR #3 merged as `0bca163`; `web-portal` is the development branch for app and website, `main` is reviewed release/Cloudflare production. All three release CI jobs passed on main run `43147699406`. |
+| 12 Nov 2026 | Project coordinator | Hardened legacy local sign-in so it cannot grant admin; all CI jobs passed on `web-portal` commit `2a2796c`. |
+| 12 Nov 2026 | Project workflow | Static Android app audit recorded in `DB_CONTRACT.md`; app backlog APP-02 to APP-11 added. No database migrations applied. |
+| 12 Nov 2026 | Project workflow | Synced existing `main` checker and roadmap fixes into `web-portal` through PR #2. |
 | 12 Nov 2026 | Claude | Created tracker, protocol and database contract. Merged `web-portal` into `main`. Added `shell.css`, `boot.js`, `web-checks.yml`, `_headers`. |
 | 12 Nov 2026 | owner | Fixed `mock.js` and store chat syntax errors; added Cloudflare packaging workflow. |
