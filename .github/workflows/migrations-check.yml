@@ -1,8 +1,7 @@
 name: Migration files
 
-# The Supabase CLI only applies files named <digits>_<name>.sql and silently skips everything else.
-# The CLI compares migration versions as strings, so filenames and remote history must have the same lexical order. This check fails the push if either rule is broken,
-# so a misnamed migration can never be skipped without anyone noticing.
+# The Supabase CLI applies only files named <digits>_<name>.sql.
+# Keep this exact list aligned with the version order in the live migration history.
 
 on:
   push:
@@ -27,21 +26,19 @@ jobs:
       - name: Every file is named digits_name.sql
         shell: bash
         run: |
-          set -uo pipefail
-          fail=0
+          set -euo pipefail
           for f in supabase/migrations/*; do
             n=$(basename "$f")
             if [[ ! "$n" =~ ^[0-9]+_[A-Za-z0-9_]+\.sql$ ]]; then
-              echo "::error file=$f::The Supabase CLI would skip this file. Use digits, an underscore, a name, then .sql (for example 016_add_thing.sql)."
-              fail=1
+              echo "::error file=$f::The Supabase CLI would skip this file. Use digits, an underscore, a name, then .sql."
+              exit 1
             fi
           done
-          exit $fail
 
       - name: No two files share a version
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           dupes=$(ls supabase/migrations | sed -E 's/^([0-9]+)_.*/\1/' | sort | uniq -d)
           if [ -n "$dupes" ]; then
             echo "::error::Duplicate migration versions: $dupes"
@@ -52,18 +49,9 @@ jobs:
       - name: Replay order is the order recorded in the docs
         shell: bash
         run: |
-          set -uo pipefail
-          # The live database applied these in this order. Filename order must reproduce it.
+          set -euo pipefail
           expected="000_baseline.sql 001_remove_cj.sql 002_hotfix.sql 0020_multivendor_foundation.sql 0021_multivendor_function_grants_hardening.sql 003_remove_unrecorded_multivendor.sql 0030_signup_profile_fields.sql 004_marketplace_core.sql 005_marketplace_backfill_guards.sql 006_marketplace_rls.sql 007_marketplace_functions.sql 008_hardening.sql 009_profile_settings.sql 010_seller_helpers.sql 011_plans_and_limits.sql 012_support_chat_and_waitlist.sql 013_support_chat_hardening.sql 014_chat_start_official_store.sql 015_support_sla_public.sql"
-          actual=$(for f in supabase/migrations/*.sql; do basename "$f"; done | awk -F_ '{print $1 "\t" $0}' | LC_ALL=C sort -t 
-          if [ "$actual" != "$expected" ]; then
-            echo "::error::The complete migration directory must contain exactly the 19 live migrations in recorded order (no missing or extra files)."
-            echo "expected: $expected"
-            echo "actual:   $actual"
-            exit 1
-          fi
-          echo "Order matches the live history."
-\t' -k1,1 | cut -f2- | tr '\n' ' ' | sed 's/ $//')
+          actual=$(for f in supabase/migrations/*.sql; do basename "$f"; done | awk -F_ '{print $1 " " $0}' | LC_ALL=C sort | cut -d' ' -f2- | paste -sd' ' -)
           if [ "$actual" != "$expected" ]; then
             echo "::error::The complete migration directory must contain exactly the 19 live migrations in recorded order (no missing or extra files)."
             echo "expected: $expected"
