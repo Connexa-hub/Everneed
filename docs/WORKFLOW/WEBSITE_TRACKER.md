@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — WEB-F18 Sitekey corrected; CI and Cloudflare preview deployment passed; staging end-to-end test still blocked because STAGING_READY=false; production remains untouched.
+**Last updated:** 12 Nov 2026 — Added WEB-M12 web-to-app shopping handoff requirement; no code or production settings changed.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -68,7 +68,7 @@ Update this table when you change a status.
 | WEB-M07 | SEO: titles, Open Graph, sitemap, robots | P2 | TODO | `index.html`, `_redirects` | | | Depends on F15 for real value. |
 | WEB-M08 | Public storefront page | P1 | TODO | `public_stores`, `public_products` | | | Cover, logo, rating, product grid, follow, chat button. |
 | WEB-M09 | Public product page | P1 | TODO | `public_products`, `public_reviews`, `product_ratings` | | | Gallery, "Sold by", delivery estimate. |
-| WEB-M10 | Web cart and checkout | P2 | TODO | `create_order`, `paystack` edge function | | | Today shoppers are sent to the app. Do after M08 and M09. |
+| WEB-M10 | Customer web-to-app shopping handoff (no web cart or checkout) | P1 | TODO | `site.js`, app download links/config | | | A normal customer may register/sign in on the website and access account features, but selecting Shop must show a clear app-only shopping message and published download choices. Use the official Google Play listing when published, a verified GitHub Releases APK/direct download when available, and other official platform listings as they launch. Hide unavailable destinations; never show placeholder, stale or unverified links. After installing, the customer signs in with the same Everneed account. Do not build a duplicate web catalogue, cart or checkout. |
 | WEB-M11 | Order tracking page | P2 | TODO | `order_tracking` | | | Buyer enters order id and delivery status. |
 
 ## A. Accounts
@@ -163,6 +163,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ---
 
 ## Change log (newest first)
+| 12 Nov 2026 | ChatGPT coordinator | Added WEB-M10 requirement: website customer registration/sign-in remains available, but the Shop entry hands customers to the mobile app with only verified, currently published Google Play, GitHub APK/release and future platform download links. Same Everneed account is used in the app; web cart/checkout and duplicate shopping catalogue are out of scope. Requirement recorded only; implementation pending. |
 | 12 Nov 2026 | ChatGPT coordinator | WEB-F17 completed for staging: migration 017 applied successfully in staging run `43244981357`; authenticated RPC regression tests passed in run `43245491269`; 38/38 authenticated-callable public SECURITY DEFINER functions have empty search paths and zero retain PUBLIC EXECUTE. Web checks, migration checks and Android APK build passed on `6018cb0418efc1f7eb700555b24afb28f795136c`. Production untouched; `STAGING_READY=false`. |
 | 12 Nov 2026 | ChatGPT coordinator | WEB-Q01 completed: buyer/seller/admin isolation SQL suite passed on staging and in CI run `43248544594`; fixtures rolled back and staging contains no Q01 fixture rows. WEB-F18 implementation staged: widget created for `everneed.pages.dev`, migration 018 applied to staging, ACL regression passed and `public-forms` Edge Function deployed ACTIVE. Owner action remains: set `TURNSTILE_SECRET_KEY` in staging before end-to-end verification. Production untouched. |
 | Date | Who | What |
