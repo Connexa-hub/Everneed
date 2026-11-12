@@ -30,6 +30,7 @@ create policy "published policy documents are readable" on public.policy_documen
 create policy "policy documents admin manage" on public.policy_documents
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 grant insert, update, delete on public.policy_documents to authenticated;
+grant all on public.policy_documents to service_role;
 
 create table if not exists public.policy_acceptances (
   id bigint generated always as identity primary key,
@@ -112,6 +113,7 @@ create policy "seller verification rules readable" on public.seller_verification
 create policy "seller verification rules admin manage" on public.seller_verification_rules
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 grant insert, update, delete on public.seller_verification_rules to authenticated;
+grant all on public.seller_verification_rules to service_role;
 
 -- Nigeria is the first enabled seller market. Other markets must be configured and legally/provider-ready
 -- before seller activation is enabled there.
@@ -141,6 +143,8 @@ revoke all on public.store_verification_checks from anon, authenticated;
 grant select on public.store_verification_checks to authenticated;
 create policy "seller reads own verification status" on public.store_verification_checks
   for select to authenticated using (private.owns_store(store_id) or public.is_admin());
+grant all on public.store_verification_checks to service_role;
+grant usage, select on sequence public.store_verification_checks_id_seq to service_role;
 -- No client write policy by design: only trusted service/provider workflows can write verification outcomes.
 
 create or replace function private.store_verification_complete(p_store text)
@@ -194,6 +198,7 @@ revoke all on public.seller_verification_reminder_state from anon, authenticated
 grant select on public.seller_verification_reminder_state to authenticated;
 create policy "seller reads own verification reminder state" on public.seller_verification_reminder_state
   for select to authenticated using (private.owns_store(store_id) or public.is_admin());
+grant all on public.seller_verification_reminder_state to service_role;
 
 create or replace function private.queue_seller_verification_reminders(p_store text,p_missing text[])
 returns integer language plpgsql security definer set search_path = ''
