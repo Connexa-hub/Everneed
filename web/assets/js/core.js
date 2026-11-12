@@ -1,6 +1,10 @@
-/* Core: helpers, router, layouts, appearance panel. Theme itself comes from the app's js/theme.js (copied at build). */
+/* Core: helpers, router, layouts, appearance panel. Theme itself comes from the app's js/theme.js (copied at build).
+   Routing uses real paths (/portal/products). Old #/ links and hash writes are converted automatically (see legacy and the history shim),
+   so files can be moved to real paths one at a time. */
 window.Core=(function(){
-  var V={},A={},F={},me=null,ic=Ico.svg;
+  var V={},A={},F={},me=null,ic=Ico.svg,rt=null;
+  /* Anything older code writes as "#/x" (history.replaceState, pushState) becomes a real path "/x". */
+  ["pushState","replaceState"].forEach(function(k){var o=history[k];history[k]=function(s,t,u){if(typeof u==="string"&&u.indexOf("#/")===0)u=u.slice(1);return o.call(history,s,t,u)}});
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
   function $(s,r){return(r||document).querySelector(s)}
   function money(n){try{return new Intl.NumberFormat("en-NG",{style:"currency",currency:CFG.baseCurrency,maximumFractionDigits:0}).format(n||0)}catch(e){return"₦"+(n||0)}}
@@ -11,41 +15,62 @@ window.Core=(function(){
   function ask(title,label,required){return new Promise(function(res){var d=document.createElement("dialog");
     d.innerHTML='<form method="dialog"><h3>'+esc(title)+'</h3><label class="lb">'+esc(label)+'<textarea rows="4" maxlength="300"'+(required?' required minlength="3"':"")+'></textarea></label><div class="row"><button class="btn o s" value="x" formnovalidate>Cancel</button><button class="btn s" value="ok">Confirm</button></div></form>';
     document.body.appendChild(d);d.addEventListener("close",function(){var v=d.returnValue==="ok"?$("textarea",d).value.trim():null;d.remove();res(v)});d.showModal()})}
-  function logo(){return'<a class="logo" href="#/"><img src="/favicon.svg" alt="" width="30" height="30"><span>Everneed</span></a>'}
+  function logo(){return'<a class="logo" href="/"><img src="/favicon.svg" alt="" width="30" height="30"><span>Everneed</span></a>'}
   function empty(t,s){return'<div class="empty"><b>'+esc(t)+"</b>"+(s?"<p>"+esc(s)+"</p>":"")+"</div>"}
   function appearance(){var T=window.Theme,m=T.mode(),p=T.palette(),dark=T.resolved()!=="light",am=localStorage.getItem("en_amoled")==="1";
     return'<div class="card"><h3>Mode</h3><div class="seg" role="radiogroup" aria-label="Mode">'+["system","light","dark"].map(function(x){return'<input type="radio" name="tmode" id="tm-'+x+'" value="'+x+'" data-tact="mode"'+(m===x?" checked":"")+'><label for="tm-'+x+'">'+x.charAt(0).toUpperCase()+x.slice(1)+"</label>"}).join("")+"</div>"
       +'<div class="sw"><span><b>AMOLED black</b><small style="display:block">'+(dark?"Pure black background in dark mode.":"Available in dark mode.")+'</small></span><button type="button" role="switch" aria-label="AMOLED black" aria-checked="'+(am&&dark)+'" data-tact="amoled"'+(dark?"":" disabled")+"></button></div>"
       +'<h3 style="margin-top:12px">Colour</h3><div class="swgrid" role="radiogroup" aria-label="Colour">'+T.palettes.map(function(x){return'<button type="button" class="swatch" role="radio" aria-checked="'+(p===x[0])+'" data-tact="pal" data-v="'+x[0]+'"><span class="dots2"><i style="background:'+x[3]+'"></i><i style="background:'+x[4]+'"></i></span><span><b>'+x[1]+"</b><small>"+esc(x[2])+"</small></span></button>"}).join("")+'</div><p class="sm" style="margin-top:14px">Saved in this browser'+(Supa.uid()?" and to your account, so it follows you to the app.":". Sign in to keep it on every device.")+"</p></div>"}
   function pub(inner,active){var L=[["sell","For sellers","store"],["pricing","Plans","tag"],["help","Support","help"],["about","About","info"]],
-      nav=L.map(function(n){return'<a href="#/'+n[0]+'"'+(active===n[0]?' class="on"':"")+">"+n[1]+"</a>"}).join(""),
+      nav=L.map(function(n){return'<a href="/'+n[0]+'"'+(active===n[0]?' class="on"':"")+">"+n[1]+"</a>"}).join(""),
       role=String(me&&me.role||"customer").toLowerCase(),
-      home=role==="admin"?"#/admin":(role==="merchant"||role==="seller"?"#/portal":"#/account"),
+      home=role==="admin"?"/admin":(role==="merchant"||role==="seller"?"/portal":"/account"),
       acct=me?'<a class="btn s hide-m" href="'+home+'">'+(role==="customer"?"My account":"Dashboard")+'</a>':'<a class="btn o s hide-m" href="/sign-in">Sign in</a><a class="btn s hide-m" href="/create-account">Create account</a>',
-      dr=L.map(function(n){return'<a href="#/'+n[0]+'">'+ic(n[2],20)+n[1]+'</a>'}).join("")+'<a href="#/shop">'+ic("bag",20)+'Shop in the app</a><a href="#/appearance">'+ic("palette",20)+'Theme and colour</a>'+(me?'<a class="btn" href="'+home+'">'+ic("dash",18)+(role==="customer"?"My account":"Dashboard")+'</a><button class="btn o" data-act="out">'+ic("exit",16)+'Sign out</button>':'<a href="/sign-in">'+ic("me",20)+'Sign in</a><a class="btn" href="/create-account">'+ic("me",18)+'Create account</a>');
-    return'<header class="top"><div class="w nav">'+logo()+'<nav aria-label="Main">'+nav+'</nav><span class="sp"></span><a class="btn o s hide-m" href="#/shop">Shop in app</a><button class="ib" data-tact="quick" aria-label="Switch light or dark"></button><a class="btn o s hide-m" href="#/appearance">'+ic("palette",16)+"Theme</a>"+acct
+      dr=L.map(function(n){return'<a href="/'+n[0]+'">'+ic(n[2],20)+n[1]+'</a>'}).join("")+'<a href="/shop">'+ic("bag",20)+'Shop in the app</a><a href="/appearance">'+ic("palette",20)+'Theme and colour</a>'+(me?'<a class="btn" href="'+home+'">'+ic("dash",18)+(role==="customer"?"My account":"Dashboard")+'</a><button class="btn o" data-act="out">'+ic("exit",16)+'Sign out</button>':'<a href="/sign-in">'+ic("me",20)+'Sign in</a><a class="btn" href="/create-account">'+ic("me",18)+'Create account</a>');
+    return'<header class="top"><div class="w nav">'+logo()+'<nav aria-label="Main">'+nav+'</nav><span class="sp"></span><a class="btn o s hide-m" href="/shop">Shop in app</a><button class="ib" data-tact="quick" aria-label="Switch light or dark"></button><a class="btn o s hide-m" href="/appearance">'+ic("palette",16)+"Theme</a>"+acct
       +'<button class="ib menu-b" data-act="menu" aria-label="Menu">'+ic("menu",20,1.8)+'</button></div><div class="drawer">'+dr+"</div></header><main>"+inner+'</main>'
       +'<footer class="foot"><div class="w"><div class="fg"><div>'+logo()+'<p class="m" style="margin-top:12px;max-width:30ch">One marketplace for shoppers and independent sellers. Shopping happens in the Everneed app.</p></div>'
-      +'<div><h4>Explore</h4><a href="#/shop">Shop in the app</a><a href="#/sell">For sellers</a><a href="#/pricing">Plans</a></div><div><h4>Company</h4><a href="#/about">About</a><a href="#/help">Support</a><a href="#/early-access">Early access</a></div><div><h4>Account</h4><a href="/sign-in">Sign in</a><a href="/create-account">Create account</a><a href="#/appearance">Theme and colour</a></div></div><div class="cp sm">© 2026 Everneed</div></div></footer>'}
+      +'<div><h4>Explore</h4><a href="/shop">Shop in the app</a><a href="/sell">For sellers</a><a href="/pricing">Plans</a></div><div><h4>Company</h4><a href="/about">About</a><a href="/help">Support</a><a href="/early-access">Early access</a></div><div><h4>Account</h4><a href="/sign-in">Sign in</a><a href="/create-account">Create account</a><a href="/appearance">Theme and colour</a></div></div><div class="cp sm">© 2026 Everneed</div></div></footer>'}
   function shell(kind,active,inner){var nav=kind==="admin"?[["admin","Overview","dash"],["inbox","Inbox","chat",1],["admin/applications","Applications","mail"],["admin/review","Product review","check"],["admin/stores","Stores","shop"],["admin/waitlist","Waitlist","users"],["supportset","Support settings","set"],["admin/appearance","Appearance","palette"]]:[["portal","Dashboard","dash"],["inbox","Messages","chat",1],["portal/products","Products","box"],["portal/apply","Store setup","store"],["portal/verification","Verification","check"],["portal/appearance","Appearance","palette"]];
-    return'<div class="shell"><aside class="side">'+logo()+'<small class="who">'+(kind==="admin"?"Admin console":"Seller portal")+'</small><nav aria-label="Sections">'+nav.map(function(n){return'<a href="#/'+n[0]+'"'+(n[0]===active?' class="on"':"")+">"+ic(n[2],20)+n[1]+(n[3]?'<span class="nbd" hidden>0</span>':"")+"</a>"}).join("")+'</nav><div class="grow"></div><div class="row"><button class="ib" data-tact="quick" aria-label="Switch light or dark"></button><button class="btn o s" data-act="out">'+ic("exit",16)+"Sign out</button></div></aside><section class=\"main\">"+inner+"</section></div>"}
+    return'<div class="shell"><aside class="side">'+logo()+'<small class="who">'+(kind==="admin"?"Admin console":"Seller portal")+'</small><nav aria-label="Sections">'+nav.map(function(n){return'<a href="/'+n[0]+'"'+(n[0]===active?' class="on"':"")+">"+ic(n[2],20)+n[1]+(n[3]?'<span class="nbd" hidden>0</span>':"")+"</a>"}).join("")+'</nav><div class="grow"></div><div class="row"><button class="ib" data-tact="quick" aria-label="Switch light or dark"></button><button class="btn o s" data-act="out">'+ic("exit",16)+"Sign out</button></div></aside><section class=\"main\">"+inner+"</section></div>"}
   function night(){var p=document.documentElement.getAttribute("data-palette")||"emerald";document.querySelectorAll(".night").forEach(function(n){n.setAttribute("data-mode","dark");n.setAttribute("data-palette",p)})}
   new MutationObserver(night).observe(document.documentElement,{attributes:true,attributeFilter:["data-palette"]});
   function thumbs(){document.querySelectorAll(".pth").forEach(function(el){if(el.querySelector("img"))return;var b=el.nextElementSibling&&el.nextElementSibling.querySelector("b");el.innerHTML='<img alt="" src="'+Art.guess(b?b.textContent:"")+'">'})}
   function loadMe(){if(!Supa.uid()){me=null;return Promise.resolve(null)}if(me)return Promise.resolve(me);return Supa.profile().then(function(p){me=p;if(window.Theme)Theme.fromProfile(p);return p}).catch(function(){return null})}
-  function route(){var path=location.pathname.replace(/\/+$/,"")||"/",authPath=path==="/sign-in"||path==="/create-account"||path==="/login"||path==="/login/new",h=location.hash.replace(/^#\/?/,"").split("?")[0],parts=h?h.split("/"):[],seg=authPath?"login":(parts[0]||"home"),args=authPath?[path==="/create-account"||path==="/login/new"?"new":"in"]:parts.slice(1),f=V[seg]||V.home,app=$("#root");document.body.classList.remove("dr","auth-page");
-    loadMe().then(function(){if(window.Chat&&me&&!authPath)Chat.boot(me);return f(args)}).then(function(r){if(r.redirect){location.hash=r.redirect;return}
+
+  /* ---------- Router: real paths ---------- */
+  /* A leftover "#/x/y" in the address bar (old links, emailed links, code that still sets location.hash) becomes "/x/y". OAuth "#access_token=" fragments are left alone. */
+  function legacy(){var h=location.hash;if(h&&h.indexOf("#/")===0){try{history.replaceState(null,"",h.slice(1))}catch(e){}}}
+  function curPath(){return location.pathname.replace(/\/+$/,"")||"/"}
+  function norm(to){to=String(to||"/");if(to.indexOf("#/")===0)to=to.slice(1);if(to.charAt(0)!=="/")to="/"+to;return to}
+  /* Same links written in the markup of older files as href="#/x" become real hrefs, so open-in-new-tab, copy link and long-press all work. */
+  function fixLinks(root){(root||document).querySelectorAll('a[href^="#/"]').forEach(function(a){a.setAttribute("href",a.getAttribute("href").slice(1))})}
+  function go(to,replace){to=norm(to);if(to!==location.pathname+location.search){try{history[replace?"replaceState":"pushState"](null,"",to)}catch(e){location.href=to;return}}route()}
+  function route(){legacy();
+    var path=curPath(),parts=path==="/"?[]:path.slice(1).split("/"),authPath=path==="/sign-in"||path==="/create-account"||path==="/login"||path==="/login/new",
+      seg=authPath?"login":(parts[0]||"home"),args=authPath?[path==="/create-account"||path==="/login/new"?"new":"in"]:parts.slice(1),f=V[seg],app=$("#root");
+    document.body.classList.remove("dr","auth-page");
+    if(!f){app.innerHTML=pub(empty("Page not found","That address does not exist. Check the link or go back to the home page."));document.title="Page not found · Everneed";window.scrollTo(0,0);Theme.apply();night();fixLinks(app);return}
+    loadMe().then(function(){if(window.Chat&&me&&!authPath)Chat.boot(me);return f(args)}).then(function(r){if(r.redirect){go(r.redirect,true);return}
       if(r.layout==="auth"){document.body.classList.add("auth-page");app.innerHTML=r.html}
       else app.innerHTML=r.layout==="pub"?pub(r.html,r.active):shell(r.layout,r.active,r.html);
-      document.title=(r.title?r.title+" · ":"")+"Everneed";window.scrollTo(0,0);Theme.apply();night();thumbs();if(window.Chat&&r.layout!=="auth"){Chat.mount(r.layout);Chat.refresh()}if(r.after)r.after()})
-    .catch(function(e){document.body.classList.remove("auth-page");app.innerHTML=pub(empty("Something went wrong",e&&e.message||"Please try again."))})}
+      fixLinks(app);document.title=(r.title?r.title+" · ":"")+"Everneed";window.scrollTo(0,0);Theme.apply();night();thumbs();if(window.Chat&&r.layout!=="auth"){Chat.mount(r.layout);Chat.refresh()}if(r.after)r.after()})
+    .catch(function(e){document.body.classList.remove("auth-page");app.innerHTML=pub(empty("Something went wrong",e&&e.message||"Please try again."));fixLinks(app)})}
+  /* Page-to-page navigation without a reload. Files, other sites, new tabs and modified clicks are left to the browser. */
+  document.addEventListener("click",function(e){if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+    var a=e.target.closest&&e.target.closest("a[href]");if(!a||(a.target&&a.target!=="_self")||a.hasAttribute("download"))return;
+    var h=a.getAttribute("href")||"";if(h.indexOf("#/")===0)h=h.slice(1);else if(h.charAt(0)!=="/"||h.charAt(1)==="/")return;
+    if(/^\/(assets|fonts)\//.test(h)||/\.[a-z0-9]{2,5}($|\?)/i.test(h))return;
+    e.preventDefault();go(h)});
 
   document.addEventListener("click",function(e){var b=e.target.closest("[data-act]");if(b){var f=A[b.getAttribute("data-act")];if(f){e.preventDefault();f(b,e)}}if(e.target.closest("[data-tact]"))setTimeout(ap,0)});
   document.addEventListener("change",function(e){if(e.target.getAttribute&&e.target.getAttribute("data-tact"))setTimeout(ap,0)});
   document.addEventListener("submit",function(e){var f=e.target.closest("[data-form]");if(!f)return;e.preventDefault();var h=F[f.getAttribute("data-form")];if(!h)return;var d={};new FormData(f).forEach(function(v,k){if(!(k in d))d[k]=v});h(f,d,e)});
   function ap(){var el=$("#apprw");if(el)el.innerHTML=appearance()}
-  A.out=function(){Supa.out();me=null;location.hash="#/";location.reload()};
+  A.out=function(){Supa.out();me=null;try{history.replaceState(null,"","/")}catch(e){}location.reload()};
   A.menu=function(){document.body.classList.toggle("dr")};
-  return{V:V,A:A,F:F,esc:esc,$:$,money:money,when:when,ago:ago,toast:toast,ask:ask,empty:empty,appearance:appearance,me:function(){return me},reset:function(){me=null},
-    start:function(){addEventListener("hashchange",route);addEventListener("popstate",route);route()}};
+  /* popstate (back and forward) and hashchange (old code, and the "re-render this page" event some screens dispatch) can both fire for one action, so they are merged. */
+  function soon(){clearTimeout(rt);rt=setTimeout(route,16)}
+  return{V:V,A:A,F:F,esc:esc,$:$,money:money,when:when,ago:ago,toast:toast,ask:ask,empty:empty,appearance:appearance,me:function(){return me},reset:function(){me=null},go:go,path:curPath,
+    start:function(){addEventListener("hashchange",soon);addEventListener("popstate",soon);route()}};
 })();
