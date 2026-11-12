@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — workflow aligned with the single-branch development and reviewed-release process.
+**Last updated:** 12 Nov 2026 — claimed the Android app audit under WEB-APP01.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -17,9 +17,9 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
 | Admin console (AD) | 5 | 1 | 0 | 0 | 0 | 13 | 19 |
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
-| App audit (APP) | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+| App audit (APP) | 0 | 0 | 1 | 0 | 0 | 0 | 1 |
 | Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **22** | **4** | **1** | **0** | **3** | **49** | **79** |
+| **All** | **22** | **4** | **2** | **0** | **3** | **48** | **79** |
 
 Update this table when you change a status.
 
@@ -136,7 +136,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## APP. App audit
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-APP01 | Audit the existing Android app in this repository and create an app-specific implementation backlog | P0 | TODO | `index.html`, `js/`, `android/`, `capacitor.config.json`, `package.json` | | web-portal | Do not assume app features are complete because website equivalents exist. Inspect the current app build and flows, verify what is shared, then add evidence-based tasks here. |
+| WEB-APP01 | Audit the existing Android app in this repository and create an app-specific implementation backlog | P0 | IN PROGRESS | `index.html`, `js/`, generated Capacitor Android project, `capacitor.config.json`, `package.json` | ChatGPT coordinator | web-portal | Static audit started from main after PR #3 release. APK CI is green; app UI/device and real-database flows still require verification. |
 
 ## Q. Quality
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
