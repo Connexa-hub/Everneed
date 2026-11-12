@@ -14,12 +14,12 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Foundation (F) | 9 | 1 | 1 | 0 | 4 | 5 | 20 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 3 | 0 | 1 | 0 | 0 | 2 | 6 |
-| Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
+| Seller portal (S) | 1 | 3 | 1 | 0 | 0 | 12 | 17 |
 | Admin console (AD) | 5 | 1 | 0 | 0 | 0 | 13 | 19 |
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 1 | 4 | 0 | 0 | 0 | 6 | 11 |
 | Quality (Q) | 1 | 0 | 0 | 0 | 0 | 3 | 4 |
-| **All** | **29** | **8** | **0** | **0** | **5** | **52** | **94** |
+| **All** | **28** | **9** | **1** | **0** | **5** | **52** | **95** |
 
 Update this table when you change a status.
 
