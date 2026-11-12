@@ -1,6 +1,6 @@
 # Everneed project tracker — app and website
 
-**Last updated:** 12 Nov 2026 — WEB-ENV01: staging Paystack function deployed; preview routing enabled and Cloudflare preview deployment succeeded; test accounts and E2E checks remain.
+**Last updated:** 12 Nov 2026 — WEB-A01: unified public account sign-in/registration flow claimed by ChatGPT; staging preview remains the test environment.
 **Rules:** `AI_PROTOCOL.md`. **Database map:** `DB_CONTRACT.md`. **Live vs staging:** `ENVIRONMENTS.md`.
 **Website hosting:** Cloudflare Pages, connected to GitHub with `main` as the production branch. **Development branch:** `web-portal` for both app and website. All confirmed work is merged to `main` through pull requests.
 
@@ -13,7 +13,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Foundation (F) | 9 | 1 | 1 | 0 | 4 | 5 | 20 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
-| Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
+| Accounts (A) | 3 | 0 | 1 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
 | Admin console (AD) | 5 | 1 | 0 | 0 | 0 | 13 | 19 |
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
@@ -74,7 +74,7 @@ Update this table when you change a status.
 ## A. Accounts
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
-| WEB-A01 | Sign up and sign in | P0 | DONE | `site.js`, `supa.js` | | | |
+| WEB-A01 | Sign up and sign in | P0 | IN PROGRESS | `site.js`, `supa.js` | ChatGPT | web-portal |
 | WEB-A02 | Role redirect (admin to console, seller to portal) | P0 | DONE | `fixes.js`, `site.js` | | | |
 | WEB-A03 | Session refresh and sign out | P0 | DONE | `supa.js` | | | |
 | WEB-A04 | Theme saved to profile | P2 | DONE | `theme.js` | | | |
