@@ -108,6 +108,28 @@ Before any function or privilege definitions are placed into the reconstructed f
 6. Document intentional public RPC endpoints and add negative tests for unauthorized callers.
 7. Test Paystack webhook and user-token flows against provider test events and a disposable database.
 
+## Public RPC hardening — migration 016 (12 Nov 2026)
+
+A compatibility-preserving hardening migration was added to web-portal and applied by the guarded workflow to **staging only**. The live Everneed01 project was not changed.
+
+Implemented controls:
+- A server-generated random pepper is initialized once in public.kv, which remains inaccessible to API roles under RLS.
+- private.request_client_ip() reads the Supabase/PostgREST X-Forwarded-For request header and validates it as an IP address. It is not executable by anon or authenticated.
+- private.enforce_public_rate_limit() serializes rate-limit checks with transaction-scoped advisory locks and stores keyed pseudonyms in rate_limits, not raw IP addresses or emails. It is not executable by API roles.
+- Guest support open, ping and close validate visitor IDs consistently. Open/ping/close have per-IP limits; closed sessions cannot be reopened with the same identifier.
+- Waitlist joins validate and normalize email, validate role/country inputs, and enforce both per-IP and per-email limits.
+- Public SECURITY DEFINER RPCs pin search_path to the empty path and use explicit anon/authenticated EXECUTE grants. The two public read RPCs remain intentionally available and return only public SLA settings or aggregate store response statistics.
+
+Limits used in migration 016:
+- Guest open: 12 per IP per 10 minutes.
+- Guest ping: 180 per IP per 10 minutes (heartbeat is sent every 25 seconds by the current widget).
+- Guest close: 30 per IP per 10 minutes.
+- Waitlist: 15 per IP per hour and 2 per normalized email per 24 hours.
+
+These are conservative initial controls, not a substitute for an edge challenge. Before a public launch or meaningful traffic increase, add Cloudflare Turnstile (server-side token verification) and monitor false positives, abuse patterns and rate-limit rejection rates. Confirm the Cloudflare/Supabase proxy path continues to supply the trusted X-Forwarded-For header.
+
+The six anonymous SECURITY DEFINER advisor warnings remain expected because these public features must be callable without accounts. Their presence is not a pass by itself: review the function bodies, grants, search paths, input bounds and abuse controls whenever they change. Staging verification and negative regression tests are required before any production rollout.
+
 ## Current decision
 
-Keep the live Everneed01 database untouched. Treat these findings as baseline-reconstruction and security-hardening work items. Any privilege/function changes require a separate reviewed migration, tests on a disposable database, and explicit approval before production application.
+Keep the live Everneed01 database untouched. Migration 016 is a staging-only candidate pending CI regression results, staging functional checks, review of the Supabase security advisor output, and the owner's explicit approval before production application. No live privileges, functions, policies, tables or data have been changed.
