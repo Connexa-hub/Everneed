@@ -3,6 +3,20 @@
   var C=CFG.supabase,U=C.url.replace(/\/$/,""),K=C.key,sess=null,KEY="en_web_sess";
   try{sess=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){}
   function save(j){if(j&&j.access_token){sess={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,uid:(j.user&&j.user.id)||(sess&&sess.uid)};try{localStorage.setItem(KEY,JSON.stringify(sess))}catch(e){}}return j}
+  function saveHashSession(){
+    var rawHash=location.hash||"",p;
+    if(rawHash.indexOf("#access_token=")!==0)return;
+    try{
+      p=new URLSearchParams(rawHash.slice(1));
+      var token=p.get("access_token"),refresh=p.get("refresh_token"),expires=+(p.get("expires_in")||3600);
+      if(!token)return;
+      var payload=JSON.parse(atob(token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
+      sess={access_token:token,refresh_token:refresh,expires_at:Date.now()+expires*1000,uid:payload.sub||null};
+      try{localStorage.setItem(KEY,JSON.stringify(sess))}catch(e){}
+      history.replaceState(null,"",location.pathname+location.search+(p.get("type")==="signup"?"#/account":""));
+    }catch(e){}
+  }
+  saveHashSession();
   function raw(path,o){o=o||{};var h={apikey:K,"Content-Type":"application/json",Authorization:"Bearer "+((!o.anon&&sess&&sess.access_token)||K)};for(var k in (o.h||{}))h[k]=o.h[k];
     return fetch(U+path,{method:o.m||"GET",headers:h,body:o.b===undefined?undefined:JSON.stringify(o.b)}).then(function(r){return r.text().then(function(t){var j=null;try{j=t?JSON.parse(t):null}catch(e){}
       if(!r.ok)throw new Error((j&&(j.msg||j.message||j.error_description||j.error))||"Request failed ("+r.status+")");return j})})}
