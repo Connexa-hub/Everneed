@@ -1,0 +1,22 @@
+{
+  "source": "read-only PostgreSQL catalog query",
+  "project_ref": "zpgasfweaixwsktlueje",
+  "inspection_date": "2026-11-12",
+  "warning": "Evidence only; Supabase-managed auth schema is not to be copied wholesale into an application baseline.",
+  "auth_triggers": [
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "trigger_name": "on_auth_user_created",
+      "trigger_definition": "CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION on_signup()",
+      "function_schema": "public",
+      "function_name": "on_signup",
+      "function_definition": "CREATE OR REPLACE FUNCTION public.on_signup()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  insert into public.profiles(id, email, phone, name, country, dob, photo)\n  values (\n    new.id,\n    new.email,\n    new.phone,\n    new.raw_user_meta_data->>'name',\n    new.raw_user_meta_data->>'country',\n    nullif(new.raw_user_meta_data->>'dob', '')::date,\n    nullif(new.raw_user_meta_data->>'photo', '')\n  );\n  return new;\nend\n$function$\n"
+    }
+  ],
+  "notes": [
+    "One application trigger was observed on auth.users: on_auth_user_created AFTER INSERT calls public.on_signup().",
+    "public.on_signup() inserts a matching public.profiles row and copies name, country, date of birth, and photo from raw_user_meta_data; these are profile attributes only and must never be treated as authorization claims.",
+    "The auth schema and its managed tables remain Supabase platform dependencies. Recreate only the application-owned trigger/function dependency through a reviewed migration where appropriate."
+  ]
+}
