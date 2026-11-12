@@ -11,7 +11,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Foundation (F) | 5 | 0 | 1 | 0 | 3 | 6 | 15 |
+| Foundation (F) | 4 | 1 | 1 | 0 | 3 | 6 | 15 |
 | Public site (M) | 5 | 0 | 0 | 0 | 0 | 6 | 11 |
 | Accounts (A) | 4 | 0 | 0 | 0 | 0 | 2 | 6 |
 | Seller portal (S) | 2 | 2 | 0 | 0 | 0 | 12 | 16 |
@@ -19,7 +19,7 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 | Shared with the app (X) | 2 | 0 | 0 | 0 | 0 | 5 | 7 |
 | App audit (APP) | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
 | Quality (Q) | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
-| **All** | **23** | **3** | **1** | **0** | **3** | **49** | **79** |
+| **All** | **22** | **4** | **1** | **0** | **3** | **49** | **79** |
 
 Update this table when you change a status.
 
@@ -37,9 +37,9 @@ Update this table when you change a status.
 | ID | Task | Pri | Status | Database / files | Owner | Branch | Notes |
 |---|---|---|---|---|---|---|---|
 | WEB-F01 | Fix syntax errors that blanked home and store chat | P0 | DONE | `mock.js`, store chat page | owner | web-portal | `e7db758`, `abd356a` |
-| WEB-F02 | Responsive admin and portal shell (no sideways scroll on phones) | P0 | DONE | `css/shell.css` | Claude | web-portal | `784cfdf`. Awaiting owner check on a phone. |
+| WEB-F02 | Responsive admin and portal shell (no sideways scroll on phones) | P0 | PARTIAL | `css/shell.css` | Claude | web-portal | `784cfdf`. Code is in place; still needs owner verification on a real phone before DONE. |
 | WEB-F03 | Boot diagnostic screen on blank or broken page | P0 | DONE | `js/boot.js`, `index.html` | Claude | web-portal | `d41cfb2`, `964f5dd`, `1e2828c` |
-| WEB-F04 | CI: syntax check, file references, global names | P0 | DONE | `.github/workflows/web-checks.yml` | Claude | web-portal | `1a08f8e`. Confirm first run is green. |
+| WEB-F04 | CI: syntax check, file references, global names | P0 | DONE | `.github/workflows/web-checks.yml`, `tools/check.mjs` | Claude | web-portal | `1a08f8e`. `npm test` and token consistency passed in GitHub Actions run `43146674947`; full APK and database jobs are still running. |
 | WEB-F05 | Deploy on Cloudflare Pages | P0 | DONE | Cloudflare Pages project `everneed`, GitHub integration | owner | main | Git integration and production branch `main` verified; successful deployment confirmed on merge commit `c816c1b`. |
 | WEB-F06 | Release confirmed app and website changes from `web-portal` to `main` through reviewed PRs | P0 | IN PROGRESS | git, GitHub Actions, Cloudflare Pages | owner + project coordinator | web-portal | Single development branch for both clients. Branches intentionally differ between releases; merge only after CI and confirmation. |
 | WEB-F07 | Export live migrations 011 to 015 into `supabase/migrations/` | P0 | TODO | live DB, `DB_CONTRACT.md` | | | Drift: chat, support, waitlist, plans exist only live. Delete `shared/sql/011_website_sync.sql` once exported. |
