@@ -1,18 +1,24 @@
-# Database contract (live Supabase `zpgasfweaixwsktlueje`)
+# Database contract for the Everneed app and website (live Supabase `zpgasfweaixwsktlueje`)
 
-Snapshot taken **12 Nov 2026** from the live database. This is the list of what the website may call and which screen uses it.
+Snapshot taken **12 Nov 2026** from the live database. This contract applies to the app and website because they are parts of the same Everneed platform and use the shared Supabase backend. The function map currently records the known website call sites; app call sites must be added as the app audit progresses. Do not assume a function is app-integrated merely because it exists in the database.
 If you change the database, update this file in the same commit. Status words are defined in `AI_PROTOCOL.md`.
 
-## How the website talks to the database
+## Branch and database workflow
+- App and website changes are developed together on `web-portal` and released together to `main` through a reviewed pull request.
+- Both clients must use the same documented function signatures, status rules, money rules and RLS expectations. Put reusable client helpers in `shared/`.
+- Database changes must be committed as numbered files in `supabase/migrations/` before they are applied to the live project. Update this contract and the project tracker in the same change.
+- Verify the Supabase project reference before applying any migration. Never apply a migration to a different project based only on a copied project ID.
+
+## How the app and website talk to the database
 - Browser client: `shared/supa.js` (`Supa.get`, `insert`, `patch`, `rpc`, `rpcAnon`, `upload`). Public anon key in `shared/config.js`.
 - Row Level Security is **on for every table**. The browser never has more rights than the signed-in user.
-- Anything that moves money or changes an order/store state is a **SECURITY DEFINER function** that checks the caller. The website calls the function, never writes those tables directly.
-- Payments: edge function `paystack` (HMAC-verified webhook, `verify_jwt` off by design). Not called by the website yet.
+- Anything that moves money or changes an order/store state is a **SECURITY DEFINER function** that checks the caller. The app and website call the function; clients never write those protected tables directly.
+- Payments: edge function `paystack` (HMAC-verified webhook, `verify_jwt` off by design). Not yet called by the website; app integration must be verified during the app audit.
 
-## Function map (what exists vs what the website calls)
+## Function map (what exists vs known app and website call sites)
 
 ### Stores and products
-| Function | Who | Web screen | Status |
+| Function | Who | App / web surface | Status |
 |---|---|---|---|
 | `submit_store(p_store)` | seller | Portal > Store setup | DONE |
 | `approve_store(p_store, p_note)` | admin | Admin > Applications, Stores (reinstate) | DONE |
