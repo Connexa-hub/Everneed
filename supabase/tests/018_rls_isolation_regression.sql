@@ -85,8 +85,7 @@ begin
   perform public.zz_q01_back();
 
   perform public.zz_q01_as(v_seller_a);
-  insert into public.store_private(store_id,pickup_address,phone)
-  values(v_store_a,'Q01 private address A','08000000011');
+  update public.store_private set pickup_address='Q01 private address A',phone='08000000011' where store_id=v_store_a;
   insert into public.products(name,col,price,stock,store_id,status)
   values('Q01 Product A','Test',1200,5,v_store_a,'draft')
   returning id into v_product_a;
@@ -96,8 +95,7 @@ begin
   perform public.zz_q01_back();
 
   perform public.zz_q01_as(v_seller_b);
-  insert into public.store_private(store_id,pickup_address,phone)
-  values(v_store_b,'Q01 private address B','08000000022');
+  update public.store_private set pickup_address='Q01 private address B',phone='08000000022' where store_id=v_store_b;
   insert into public.products(name,col,price,stock,store_id,status)
   values('Q01 Product B','Test',2400,5,v_store_b,'draft')
   returning id into v_product_b;
