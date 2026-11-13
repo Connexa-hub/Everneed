@@ -1,0 +1,30 @@
+/* Form building blocks shared by the seller setup, product editor and admin screens. Loaded after shell.css.
+   Fields are at least 44px tall, lay out in columns only when there is room, and never push the page sideways on a phone. */
+
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:0 16px}
+.fgrid>.full{grid-column:1/-1}
+.lb select,.lb input:not([type=checkbox]):not([type=radio]):not([type=file]),.lb textarea{min-height:46px;max-width:100%}
+.lb .hint{display:block;margin-top:6px;font-size:.82rem;color:var(--text-3,var(--text-2,#8a9a95))}
+.lb .err{display:block;margin-top:6px;font-size:.84rem;color:var(--danger,#e5484d)}
+
+/* Phone: country code on the left, the number as people say it on the right. No "+234" typing. */
+.ph{display:flex;gap:8px;align-items:stretch}
+.ph-cc{flex:0 0 auto;width:auto;min-width:104px;max-width:44%;padding-right:28px}
+.ph-no{flex:1 1 0;min-width:0}
+
+/* "We filled this in from your connection" note under the location fields */
+.geo-note{margin:-2px 0 16px;padding:10px 14px;border-radius:12px;border:1px solid var(--border,rgba(127,127,127,.25));background:var(--surface-2,rgba(127,127,127,.08));font-size:.86rem;line-height:1.45;color:var(--text-2,inherit)}
+.geo-note[hidden]{display:none}
+
+/* Step header for multi-step setup: labelled steps instead of an unlabelled bar */
+.stepper{display:flex;gap:6px;margin:0 0 22px;padding:0;list-style:none;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.stepper::-webkit-scrollbar{display:none}
+.stepper li{flex:1 0 auto;min-width:92px;display:flex;flex-direction:column;gap:6px;font-size:.78rem;color:var(--text-3,var(--text-2,#8a9a95))}
+.stepper li i{display:block;height:4px;border-radius:99px;background:var(--border,rgba(127,127,127,.3))}
+.stepper li.done i,.stepper li.on i{background:var(--brand,#1fa971)}
+.stepper li.on{color:var(--text-1,inherit);font-weight:600}
+
+/* Sticky action bar at the bottom of long forms, so Save and Continue are always in reach on a phone */
+.actbar{position:sticky;bottom:0;z-index:5;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin:24px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border,rgba(127,127,127,.25));background:var(--surface-1,var(--bg,#fff))}
+.actbar .btn{flex:0 1 auto}
+@media(max-width:560px){.actbar .btn{flex:1 1 0}.ph-cc{min-width:96px}}
