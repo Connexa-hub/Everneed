@@ -21,18 +21,36 @@ window.Core=(function(){
     return'<div class="card"><h3>Mode</h3><div class="seg" role="radiogroup" aria-label="Mode">'+["system","light","dark"].map(function(x){return'<input type="radio" name="tmode" id="tm-'+x+'" value="'+x+'" data-tact="mode"'+(m===x?" checked":"")+'><label for="tm-'+x+'">'+x.charAt(0).toUpperCase()+x.slice(1)+"</label>"}).join("")+"</div>"
       +'<div class="sw"><span><b>AMOLED black</b><small style="display:block">'+(dark?"Pure black background in dark mode.":"Available in dark mode.")+'</small></span><button type="button" role="switch" aria-label="AMOLED black" aria-checked="'+(am&&dark)+'" data-tact="amoled"'+(dark?"":" disabled")+"></button></div>"
       +'<h3 style="margin-top:12px">Colour</h3><div class="swgrid" role="radiogroup" aria-label="Colour">'+T.palettes.map(function(x){return'<button type="button" class="swatch" role="radio" aria-checked="'+(p===x[0])+'" data-tact="pal" data-v="'+x[0]+'"><span class="dots2"><i style="background:'+x[3]+'"></i><i style="background:'+x[4]+'"></i></span><span><b>'+x[1]+"</b><small>"+esc(x[2])+"</small></span></button>"}).join("")+'</div><p class="sm" style="margin-top:14px">Saved in this browser'+(Supa.uid()?" and to your account, so it follows you to the app.":". Sign in to keep it on every device.")+"</p></div>"}
-  /* Public pages: Home, About, How it works, For sellers, Help, then Sign in and Create account. Shopping happens in the app, so Shop goes to the app page. */
+
+  /* Who is signed in and where their own page is. A signed-in person is never shown Sign in or Create account. */
+  function intent(){var r=String(me&&me.role||"customer").toLowerCase();return{role:r,home:r==="admin"?"/admin":(r==="merchant"||r==="seller"?"/portal":"/account"),label:r==="customer"?"My account":"Dashboard",store:r==="customer"?"/portal/apply":"/portal"}}
+  function signedIn(){return!!(me||Supa.uid())}
+  /* Public pages: Home, About, How it works, For sellers, Help, then Sign in and Create account (only when signed out). Shopping happens in the app, so Shop goes to the app page. */
   function pub(inner,active){var L=[["","Home","home"],["about","About","info"],["how-it-works","How it works","help"],["sell","For sellers","store"],["help","Help","help"]],
       nav=L.map(function(n){var on=n[0]===""?curPath()==="/":active===n[0];return'<a href="/'+n[0]+'"'+(on?' class="on"':"")+">"+n[1]+"</a>"}).join(""),
-      role=String(me&&me.role||"customer").toLowerCase(),
-      home=role==="admin"?"/admin":(role==="merchant"||role==="seller"?"/portal":"/account"),
-      acct=me?'<a class="btn s hide-m" href="'+home+'">'+(role==="customer"?"My account":"Dashboard")+'</a>':'<a class="btn o s hide-m" href="/sign-in">Sign in</a><a class="btn s hide-m" href="/create-account">Create account</a>',
-      dr=L.map(function(n){return'<a href="/'+n[0]+'">'+ic(n[2],20)+n[1]+'</a>'}).join("")+'<a href="/shop">'+ic("bag",20)+'Shop in the app</a><a href="/pricing">'+ic("tag",20)+'Plans</a><a href="/appearance">'+ic("palette",20)+'Theme and colour</a>'+(me?'<a class="btn" href="'+home+'">'+ic("dash",18)+(role==="customer"?"My account":"Dashboard")+'</a><button class="btn o" data-act="out">'+ic("exit",16)+'Sign out</button>':'<a href="/sign-in">'+ic("me",20)+'Sign in</a><a class="btn" href="/create-account">'+ic("me",18)+'Create account</a>');
+      i=intent(),home=i.home,role=i.role,
+      acct=me?'<a class="btn s hide-m" href="'+home+'">'+i.label+'</a>':'<a class="btn o s hide-m" href="/sign-in">Sign in</a><a class="btn s hide-m" href="/create-account">Create account</a>',
+      dr=L.map(function(n){return'<a href="/'+n[0]+'">'+ic(n[2],20)+n[1]+'</a>'}).join("")+'<a href="/shop">'+ic("bag",20)+'Shop in the app</a><a href="/pricing">'+ic("tag",20)+'Plans</a><a href="/appearance">'+ic("palette",20)+'Theme and colour</a>'+(me?'<a class="btn" href="'+home+'">'+ic("dash",18)+i.label+'</a><button class="btn o" data-act="out">'+ic("exit",16)+'Sign out</button>':'<a href="/sign-in">'+ic("me",20)+'Sign in</a><a class="btn" href="/create-account">'+ic("me",18)+'Create account</a>'),
+      acctCol=me?'<a href="'+home+'">'+i.label+'</a><a href="/appearance">Theme and colour</a>':'<a href="/sign-in">Sign in</a><a href="/create-account">Create account</a><a href="/appearance">Theme and colour</a>';
     return'<header class="top"><div class="w nav">'+logo()+'<nav aria-label="Main">'+nav+'</nav><span class="sp"></span><a class="btn o s hide-m" href="/shop">Shop in app</a><button class="ib" data-tact="quick" aria-label="Switch light or dark"></button><a class="btn o s hide-m" href="/appearance">'+ic("palette",16)+"Theme</a>"+acct
       +'<button class="ib menu-b" data-act="menu" aria-label="Menu">'+ic("menu",20,1.8)+'</button></div><div class="drawer">'+dr+"</div></header><main>"+inner+'</main>'
       +'<footer class="foot"><div class="w"><div class="fg"><div>'+logo()+'<p class="m" style="margin-top:12px;max-width:30ch">One marketplace for shoppers and independent sellers. Shopping happens in the Everneed app.</p></div>'
-      +'<div><h4>Explore</h4><a href="/shop">Shop in the app</a><a href="/how-it-works">How it works</a><a href="/sell">For sellers</a><a href="/pricing">Plans</a></div><div><h4>Company</h4><a href="/about">About</a><a href="/help">Help</a><a href="/early-access">Early access</a></div><div><h4>Account</h4><a href="/sign-in">Sign in</a><a href="/create-account">Create account</a><a href="/appearance">Theme and colour</a></div></div><div class="cp sm">© 2026 Everneed</div></div></footer>'}
-  function shell(kind,active,inner){var nav=kind==="admin"?[["admin","Overview","dash"],["inbox","Inbox","chat",1],["admin/applications","Applications","mail"],["admin/review","Product review","check"],["admin/stores","Stores","shop"],["admin/waitlist","Waitlist","users"],["supportset","Support settings","set"],["admin/appearance","Appearance","palette"]]:[["portal","Dashboard","dash"],["inbox","Messages","chat",1],["portal/products","Products","box"],["portal/apply","Store setup","store"],["portal/verification","Verification","check"],["portal/appearance","Appearance","palette"]];
+      +'<div><h4>Explore</h4><a href="/shop">Shop in the app</a><a href="/how-it-works">How it works</a><a href="/sell">For sellers</a><a href="/pricing">Plans</a></div><div><h4>Company</h4><a href="/about">About</a><a href="/help">Help</a><a href="/early-access">Early access</a></div><div><h4>Account</h4>'+acctCol+'</div></div><div class="cp sm">© 2026 Everneed</div></div></footer>'}
+  /* Pages written before sign-in state was known still contain fixed "Create account" buttons. For a signed-in person they are rewritten here to lead somewhere useful, so no page can ever invite an existing member to create an account. */
+  function adapt(root){
+    if(!signedIn()||!root)return;
+    var i=intent();
+    root.querySelectorAll('a[href="/sign-in"]').forEach(function(a){if(a.parentNode)a.parentNode.removeChild(a)});
+    root.querySelectorAll(".band").forEach(function(b){if(!b.querySelector('a[href="/create-account"]'))return;b.innerHTML='<h2 class="h2x" style="max-width:none;margin:auto">Good to have you here.</h2><p>Your Everneed account is ready.</p><a class="btn" href="'+i.home+'">'+i.label+"</a>"});
+    root.querySelectorAll('a[href="/create-account"]').forEach(function(a){
+      var t=a.textContent||"";
+      if(/store|sell/i.test(t)){a.setAttribute("href",i.store);a.textContent=i.role==="customer"?"Open your store":"Go to my store"}
+      else{a.setAttribute("href",i.home);a.textContent=i.label}
+    });
+  }
+  /* Seller setup: a focused page. No Products, Messages or Orders while a store is still being set up. */
+  function setup(inner){return'<header class="top"><div class="w nav">'+logo()+'<span class="sp"></span><a class="btn o s" href="/account">Back to Everneed</a><button class="btn o s" data-act="out">'+ic("exit",16)+'Sign out</button></div></header><main><div class="w" style="max-width:820px;padding-top:24px;padding-bottom:80px">'+inner+"</div></main>"}
+  function shell(kind,active,inner){var nav=kind==="admin"?[["admin","Overview","dash"],["inbox","Inbox","chat",1],["admin/applications","Applications","mail"],["admin/review","Product review","check"],["admin/stores","Stores","shop"],["admin/waitlist","Waitlist","users"],["supportset","Support settings","set"],["admin/appearance","Appearance","palette"]]:[["portal","Dashboard","dash"],["inbox","Messages","chat",1],["portal/products","Products","box"],["portal/verification","Verification","check"],["portal/appearance","Appearance","palette"]];
     return'<div class="shell"><aside class="side">'+logo()+'<small class="who">'+(kind==="admin"?"Admin console":"Seller portal")+'</small><nav aria-label="Sections">'+nav.map(function(n){return'<a href="/'+n[0]+'"'+(n[0]===active?' class="on"':"")+">"+ic(n[2],20)+n[1]+(n[3]?'<span class="nbd" hidden>0</span>':"")+"</a>"}).join("")+'</nav><div class="grow"></div><div class="row"><button class="ib" data-tact="quick" aria-label="Switch light or dark"></button><button class="btn o s" data-act="out">'+ic("exit",16)+"Sign out</button></div></aside><section class=\"main\">"+inner+"</section></div>"}
   function night(){var p=document.documentElement.getAttribute("data-palette")||"emerald";document.querySelectorAll(".night").forEach(function(n){n.setAttribute("data-mode","dark");n.setAttribute("data-palette",p)})}
   new MutationObserver(night).observe(document.documentElement,{attributes:true,attributeFilter:["data-palette"]});
@@ -51,12 +69,14 @@ window.Core=(function(){
     var path=curPath(),parts=path==="/"?[]:path.slice(1).split("/"),authPath=path==="/sign-in"||path==="/create-account"||path==="/login"||path==="/login/new",
       seg=authPath?"login":(parts[0]||"home"),args=authPath?[path==="/create-account"||path==="/login/new"?"new":"in"]:parts.slice(1),f=V[seg],app=$("#root");
     document.body.classList.remove("dr","auth-page");
-    if(!f){app.innerHTML=pub(empty("Page not found","That address does not exist. Check the link or go back to the home page."));document.title="Page not found · Everneed";window.scrollTo(0,0);Theme.apply();night();fixLinks(app);return}
+    /* Someone who is already signed in has no reason to see Sign in or Create account: send them to their own page. */
+    if(authPath&&Supa.uid()){loadMe().then(function(){go(intent().home,true)});return}
+    if(!f){loadMe().then(function(){app.innerHTML=pub(empty("Page not found","That address does not exist. Check the link or go back to the home page."));document.title="Page not found · Everneed";window.scrollTo(0,0);Theme.apply();night();fixLinks(app);adapt(app)});return}
     loadMe().then(function(){if(window.Chat&&me&&!authPath)Chat.boot(me);return f(args)}).then(function(r){if(r.redirect){go(r.redirect,true);return}
       if(r.layout==="auth"){document.body.classList.add("auth-page");app.innerHTML=r.html}
-      else app.innerHTML=r.layout==="pub"?pub(r.html,r.active):shell(r.layout,r.active,r.html);
-      fixLinks(app);document.title=(r.title?r.title+" · ":"")+"Everneed";window.scrollTo(0,0);Theme.apply();night();thumbs();if(window.Chat&&r.layout!=="auth"){Chat.mount(r.layout);Chat.refresh()}if(r.after)r.after()})
-    .catch(function(e){document.body.classList.remove("auth-page");app.innerHTML=pub(empty("Something went wrong",e&&e.message||"Please try again."));fixLinks(app)})}
+      else app.innerHTML=r.layout==="pub"?pub(r.html,r.active):r.layout==="setup"?setup(r.html):shell(r.layout,r.active,r.html);
+      fixLinks(app);if(r.layout==="pub")adapt(app);document.title=(r.title?r.title+" · ":"")+"Everneed";window.scrollTo(0,0);Theme.apply();night();thumbs();if(window.Chat&&r.layout!=="auth"&&r.layout!=="setup"){Chat.mount(r.layout);Chat.refresh()}if(r.after)r.after()})
+    .catch(function(e){document.body.classList.remove("auth-page");app.innerHTML=pub(empty("Something went wrong",e&&e.message||"Please try again."));fixLinks(app);adapt(app)})}
   /* Page-to-page navigation without a reload. Files, other sites, new tabs and modified clicks are left to the browser. */
   document.addEventListener("click",function(e){if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
     var a=e.target.closest&&e.target.closest("a[href]");if(!a||(a.target&&a.target!=="_self")||a.hasAttribute("download"))return;
