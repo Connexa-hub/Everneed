@@ -27,7 +27,8 @@
       else if(sub==="products"&&P.store.status==="approved")h=plist();
       else if(sub==="product"&&P.store.status==="approved")h=pform(p[1]);
       else h=home();
-      return{layout:"portal",active:"portal"+(sub==="product"?"/products":sub?"/"+sub:""),html:h,title:"Seller portal",after:sub==="apply"?afterStep:null}})};
+      /* While a store is still being set up (no store yet, draft, in review, rejected, suspended) the page is a focused setup screen with no Products, Messages or Orders tabs. The full seller menu appears once the store is approved. */
+      return{layout:(P.store&&P.store.status==="approved")?"portal":"setup",active:"portal"+(sub==="product"?"/products":sub?"/"+sub:""),html:h,title:"Seller portal",after:sub==="apply"?afterStep:null}})};
   function intro(){return '<div class="card" style="max-width:760px;padding:clamp(24px,5vw,44px)"><p class="eyebrow">SELL WITH EVERNEED</p><h1 style="font-size:clamp(2rem,5vw,3rem)">Would you like to become a seller?</h1><p class="lead">Create your own store, list your products and manage orders from one seller hub. Shoppers discover your store in the Everneed app.</p><div class="g3" style="margin:24px 0"><div><b>Own your store</b><p class="sm">Your name, identity and categories.</p></div><div><b>Manage your business</b><p class="sm">Products, inventory and order tools.</p></div><div><b>Grow with Everneed</b><p class="sm">A marketplace built for independent sellers.</p></div></div><div class="row"><a class="btn" href="/portal/apply">Yes, I want to become a seller</a><a class="btn o" href="/">Not now</a></div></div>'}
   function home(){var s=P.store,st=s.status,pn=P.priv&&P.priv.status_note;
     if(st==="draft")return'<h1 style="font-size:2.2rem">'+esc(s.name)+'</h1><div class="note"><span><b>Your application is not finished</b>It is saved as a draft.</span></div><a class="btn" href="/portal/apply">Continue your application</a>';
@@ -101,7 +102,12 @@
     +docs.map(function(d,i){var url=String(d.content_url||"");var safe=/^(https:\/\/|\/)/i.test(url)?url:"";return'<label class="sw"><span><b>'+esc(d.title||d.policy_type.replace(/_/g," "))+'</b><small style="display:block">Version '+esc(d.version)+' · '+esc(d.locale||"en")+(safe?' · <a href="'+esc(safe)+'" target="_blank" rel="noopener">Read policy</a>':"")+'</small></span><span class="cc"><input type="checkbox" name="policy" value="'+esc(d.id)+'" required><span class="chip">I agree</span></span></label>'}).join("")
     +(missing.length?'<div class="note err"><span><b>Seller registration is not yet available in this region</b>Everneed has not published these required policies: '+esc(missing.join(", "))+'. Please contact support. You cannot submit until the regional policy pack is ready.</span></div>':"")
     +nav(true)+"</form>"}
-  function upsert(t,key,exists,row){return exists?Supa.patchBy(t,key,row[key],row).then(function(r){return r&&r[0]||row}):Supa.insert(t,row).then(function(r){return r&&r[0]||row})}
+  /* Save a row that may or may not exist yet. An owner may add the store_id when a row is created but may never change it afterwards (the database refuses, on purpose, so one store can never be re-pointed at another's private data). So updates leave store_id out. */
+  function upsert(t,key,exists,row){
+    if(!exists)return Supa.insert(t,row).then(function(r){return r&&r[0]||row});
+    var body=Object.assign({},row);delete body[key];
+    return Supa.patchBy(t,key,row[key],body).then(function(r){return r&&r[0]||row});
+  }
   A.wback=function(){P.step=Math.max(1,P.step-1);again()};
   F.w1=function(f,d){var name=clean(d.name,80);if(need([[name.length>=2,"Enter your store name (at least 2 characters)."]]))return;var body={name:name,tagline:clean(d.tagline,120)||null,about:area(d.about,2000)||null},logo=f.logo.files[0],cover=f.cover.files[0];
     var p=P.store?Supa.patch("stores",P.store.id,body).then(function(r){return r&&r[0]||Object.assign({},P.store,body)}):Supa.insert("stores",Object.assign({owner_id:Supa.uid(),status:"draft"},body)).then(function(r){return r[0]});
