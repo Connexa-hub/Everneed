@@ -1,105 +1,87 @@
 # Live migration recovery record
 
-**Project:** Everneed Supabase `zpgasfweaixwsktlueje`  
-**Inspection date:** 12 Nov 2026  
-**Status:** forensic inventory in progress; original SQL for eight applied migration records is missing from the repository and has not yet been recovered.
+**Project:** Everneed Supabase `zpgasfweaixwsktlueje`
+**Inspection date:** 12 Nov 2026
+**Status:** **Recovered and replay-verified on staging.** All 19 live migration records have matching repository files. A clean staging rebuild succeeded on 12 Nov 2026; executable SQL for all 19 files was compared with the stored live statements and matched after removing comments and formatting whitespace. No live database was changed.
 
-## Safety boundary
+## How it was recovered (12 Nov 2026, Claude)
 
-This document records read-only observations from the live database. It is **not** a replacement migration chain and must not be used to recreate production by applying inferred DDL. No migration was applied, no schema was changed, and no data was modified during this inspection.
+Supabase stores the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. A read-only `select` returned the stored text for each of the eight missing records, and each was written to `supabase/migrations/` without edits. No migration was applied, no schema was changed and no data was modified.
 
-Do not mark any of the eight missing migration records as recovered until their original SQL is found in a reliable source (for example a developer working copy, backup, CI artifact, or Supabase migration backup) and reconciled against this live inventory.
+The earlier version of this note concluded that the SQL could not be recovered. That was because the search covered repositories, archives and backups but not the migration table itself.
+
+Integrity check: for each file, the byte size equals the stored character length, plus one trailing newline where the stored text had none, plus two extra bytes for each multi-byte character.
+
+| File in repo | Stored characters | File bytes | Why they differ |
+|---|---:|---:|---|
+| `0020_multivendor_foundation.sql` | 7,462 | 7,463 | trailing newline |
+| `0021_multivendor_function_grants_hardening.sql` | 289 | 290 | trailing newline |
+| `0030_signup_profile_fields.sql` | 1,246 | 1,247 | trailing newline |
+| `011_plans_and_limits.sql` | 6,880 | 6,880 | none |
+| `012_support_chat_and_waitlist.sql` | 31,643 | 31,651 | two `••••` masks (3 bytes each, 1 character each) |
+| `013_support_chat_hardening.sql` | 528 | 528 | none |
+| `014_chat_start_official_store.sql` | 3,499 | 3,499 | none |
+| `015_support_sla_public.sql` | 387 | 387 | none |
 
 ## Confirmed migration history
 
-A fresh read-only call to the live Supabase migration-history endpoint returned **19 applied records**, not just the five newer records previously highlighted.
+A read-only call to the live migration table returned **19 applied records**.
 
-| Version | Live migration name | SQL file in repo |
+| Version | Live migration name | File in repo |
 |---|---|---|
-| 20261029014653 | 000_baseline | yes |
-| 20261029014658 | 001_remove_cj | yes |
-| 20261029014913 | 002_hotfix | yes |
-| 20261029044105 | multivendor_foundation | **NO — missing** |
-| 20261029044131 | multivendor_function_grants_hardening | **NO — missing** |
-| 20261029081939 | 003_remove_unrecorded_multivendor | yes |
-| 20261029134730 | signup_profile_fields | **NO — missing** |
-| 20261029184309 | 004_marketplace_core | yes |
-| 20261029184336 | 005_marketplace_backfill_guards | yes |
-| 20261029184403 | 006_marketplace_rls | yes |
-| 20261029184540 | 007_marketplace_functions | yes |
-| 20261030002325 | 008_hardening | yes |
-| 20261031105857 | 009_profile_settings | yes |
-| 20261102105101 | 010_seller_helpers | yes |
-| 20261104011326 | 011_plans_and_limits | **NO — missing** |
-| 20261111073217 | 012_support_chat_and_waitlist | **NO — missing** |
-| 20261111073234 | 013_support_chat_hardening | **NO — missing** |
-| 20261111073320 | 014_chat_start_official_store | **NO — missing** |
-| 20261111073610 | 015_support_sla_public | **NO — missing** |
+| 20261029014653 | 000_baseline | `000_baseline.sql` |
+| 20261029014658 | 001_remove_cj | `001_remove_cj.sql` |
+| 20261029014913 | 002_hotfix | `002_hotfix.sql` |
+| 20261029044105 | multivendor_foundation | `0020_multivendor_foundation.sql` (recovered) |
+| 20261029044131 | multivendor_function_grants_hardening | `0021_multivendor_function_grants_hardening.sql` (recovered) |
+| 20261029081939 | 003_remove_unrecorded_multivendor | `003_remove_unrecorded_multivendor.sql` |
+| 20261029134730 | signup_profile_fields | `0030_signup_profile_fields.sql` (recovered) |
+| 20261029184309 | 004_marketplace_core | `004_marketplace_core.sql` |
+| 20261029184336 | 005_marketplace_backfill_guards | `005_marketplace_backfill_guards.sql` |
+| 20261029184403 | 006_marketplace_rls | `006_marketplace_rls.sql` |
+| 20261029184540 | 007_marketplace_functions | `007_marketplace_functions.sql` |
+| 20261030002325 | 008_hardening | `008_hardening.sql` |
+| 20261031105857 | 009_profile_settings | `009_profile_settings.sql` |
+| 20261102105101 | 010_seller_helpers | `010_seller_helpers.sql` |
+| 20261104011326 | 011_plans_and_limits | `011_plans_and_limits.sql` (recovered) |
+| 20261111073217 | 012_support_chat_and_waitlist | `012_support_chat_and_waitlist.sql` (recovered) |
+| 20261111073234 | 013_support_chat_hardening | `013_support_chat_hardening.sql` (recovered) |
+| 20261111073320 | 014_chat_start_official_store | `014_chat_start_official_store.sql` (recovered) |
+| 20261111073610 | 015_support_sla_public | `015_support_sla_public.sql` (recovered) |
 
-The repository currently contains the eleven files numbered 000–010. The live database has **eight additional applied migration records whose SQL files are absent**: multivendor_foundation, multivendor_function_grants_hardening, signup_profile_fields, and 011–015. The earlier recovery note focused on 011–015; this expanded inventory corrects that incomplete scope.
+### Naming of the three records that had no number
+They were first saved as `002a`, `002b` and `003a`. The Supabase CLI only applies files named `digits_name.sql` and skips anything else, so those names would have been left out of any rebuild (including `signup_profile_fields`, which saves date of birth and photo at sign-up). They were first renamed to `0030`, `0031` and `0040`, but that introduced an ordering flaw: the CLI compares migration version strings, and remote history sorts `003` before `0030`/`0031`, even though raw filenames place `0030`/`0031` before `003_`. Before the staging replay, the files were resequenced to `0020`, `0021` and `0030`. The resulting CLI and remote version order is `002`, `0020`, `0021`, `003`, `0030`, `004`. SQL contents are unchanged.
 
-The old shared/sql/011_website_sync.sql is only a partial waitlist/site-sync script and is not equivalent to any of the missing migration records. No original SQL for the eight missing records has been recovered yet.
+`003_remove_unrecorded_multivendor` drops exactly what `0020` creates (stores, store members, order items, seller orders, fulfilment batches and the two helper functions), which is why `0030` and `0031` must run before it.
 
-## Live schema evidence
+The `Migration files` check (`.github/workflows/migrations-check.yml`) enforces the naming rule, rejects duplicate versions and checks that the first 19 files replay in the order in this table.
 
-Read-only catalog queries confirmed these tables and their columns:
+## What is still open
+
+1. **Environment configuration outside migrations.** Auth redirect URLs, the `media` storage bucket and its policies, test users, and the Paystack test Edge Function still need staging setup (`WEB-ENV01`). These are not part of the 19-file SQL chain.
+2. **Seeds and operational state.** `011` seeds three plans (Starter 3,000, Growth 8,000, Pro 20,000) and `012` seeds 8 support rules and 7 canned replies. They are guarded with `where not exists`. The closed support-queue row in live is operational state and is intentionally not seeded.
+3. **Things a migration file cannot capture.** Edge function code (`supabase/functions/`), Auth settings, storage bucket settings, and the missing `pg_cron` schedule (`WEB-F09`) live outside these files.
+
+## Safety boundary
+
+This document and the recovered files are read-only evidence plus source history. Do not apply any of them to the live project. The live project already contains all of it.
+
+## Live schema evidence (read-only observations, unchanged from the earlier pass)
 
 - Plans and billing: `store_plans`, `store_subscriptions`, `store_payments`.
 - Support and chat: `conversations`, `conversation_members`, `messages`, `canned_replies`, `support_queue`, `support_rules`, `support_settings`.
 - Website acquisition: `waitlist`.
 
-Notable observed fields include:
+Message triggers: `chat_guard_bi` (BEFORE INSERT, `chat_guard()`) and `chat_triage_ai` (AFTER INSERT, `chat_triage()`). RLS and grants are as described in `DB_CONTRACT.md` and the files under `schema_snapshot/`.
 
-- `store_plans`: name, price, period, product_limit, commission_discount, features, active.
-- `store_subscriptions`: store_id, plan_id, status, current_period_start, current_period_end, grace_until.
-- `store_payments`: store_id, subscription_id, amount, currency, method, reference, status, paid_at, recorded_by.
-- `conversations`: kind, subject, store_id, order_id, created_by, status, priority, tier, tags, assignee, escalation fields, SLA fields, unread/preview fields and timestamps.
-- `conversation_members`: conversation_id, user_id, role, unread, last_read_at, muted, joined_at.
-- `messages`: conversation_id, sender_id, sender_role, kind, body, meta, created_at.
-- `support_queue`: visitor id, name, topic, page, status, claimed_by, created_at, last_seen.
-- `support_rules`: name, pattern, applies_to, action, tag, priority, reason, reply, active.
-- `support_settings`: key, JSON value, updated_at.
-- `waitlist`: email, name, role, country, interest, source, status, created_at.
+## Replay and exact-SQL verification (12 Nov 2026)
 
-## Live security and trigger evidence
+- GitHub Actions reset run `43234686076` completed successfully against staging project `vjiadqygpyebpisxslbx`.
+- The staging migration history was rebuilt from the 19 repository files in the same order as live. A temporary `016_signup_profile_fields.sql` duplicated the already-correct `0030_signup_profile_fields.sql`; it has been removed from the repository. Its no-op row was removed from staging migration metadata after verifying it duplicated version `0030`.
+- Each of the 19 repository migrations was compared with its corresponding `supabase_migrations.schema_migrations.statements` entry on live. After ignoring SQL comments and formatting whitespace (including comments inside dollar-quoted function bodies), all 19 executable SQL bodies match.
+- Staging/live parity checks found matching public columns, RLS policies and RLS-enabled table sets. Four function-body hash differences were inspected and were comments only.
+- No SQL or data was changed on live. The staging reset affected staging only.
 
-RLS policies observed in the live catalog:
+## Conclusion
 
-- `store_plans`: active plans readable by authenticated users; all operations restricted to admins.
-- `store_subscriptions`: reads restricted to owning store or admin.
-- `store_payments`: reads restricted to owning store or admin.
-- `conversations`: members/admins can read; admin-only direct update policy.
-- `conversation_members`: user/member/admin read policy.
-- `messages`: members/admins can read; internal `note` messages are hidden from non-admins.
-- `canned_replies`: scoped admin/seller read and write policies.
-- `support_queue`, `support_rules`, `support_settings`: admin-only table policies.
-- `waitlist`: admin-only table policy.
-
-Observed message triggers:
-
-- `chat_guard_bi`: BEFORE INSERT calls `chat_guard()`.
-- `chat_triage_ai`: AFTER INSERT calls `chat_triage()`.
-
-## Function definitions captured from live catalog
-
-The following live function definitions were retrieved using `pg_get_functiondef` and should be preserved as evidence while the original migrations are sought:
-
-- Plans/subscriptions: `choose_plan`, `apply_rental_payment`, `apply_rental_payment_for`, `expire_rentals`, `support_tier`.
-- Chat: `chat_start`, `chat_send`, `chat_read`, `chat_set`, `chat_escalate`, `chat_escalate_core`, `chat_member`, `chat_guard`, `chat_triage`.
-- Guest support: `support_guest_open`, `support_guest_ping`, `support_guest_close`.
-- SLA: `support_sla_minutes`, `support_sla_public`, `support_sla_sweep`.
-- Waitlist: `join_waitlist`.
-
-These definitions are evidence of current live behavior, not proof of the exact historical migration contents. Some functions depend on helpers, triggers, policies, sequences, indexes, grants, and private-schema functions that must also be inventoried before a faithful reconstruction can be considered complete.
-
-## Recovery checklist
-
-1. Search the developer's original working copies, exported project ZIPs, CI artifacts and backup locations for the exact SQL files for all eight missing records.
-2. Compare each recovered file with the live definitions, including table constraints, indexes, policies, grants, triggers, helper functions and seed/configuration rows.
-3. Preserve exact historical files where available. If an original cannot be recovered, do not fabricate its historical contents; instead design a clearly labelled forward baseline/reconciliation strategy for a fresh database and document its limitations.
-4. Test the complete migration chain against a disposable database/project before proposing any production change.
-5. Keep production untouched until a reviewed plan proves that no already-applied migration will be replayed against the live project.
-
-## Current conclusion
-
-Migration drift remains open across eight missing applied SQL files. The current GitHub repository exposes only main and web-portal; the previous everneed01 branch is no longer present. A Library search did not surface a usable Everneed source archive. No original SQL has been recovered in this pass. This record improves the evidence but does not close drift or make a fresh database reproducible.
+`WEB-F07` and `WEB-F07b` are complete: all 19 live migrations are recovered, executable-SQL equivalent to the stored live statements, and successfully replayed on an empty staging database. Remaining staging readiness work is tracked separately under `WEB-ENV01`, `WEB-F09` and the quality/security tasks.
