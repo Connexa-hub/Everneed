@@ -185,3 +185,36 @@ An eligibility record should identify the trigger, affected seller order/lines/q
 9. Customer notifications reflect provider-confirmed status, not merely request submission.
 10. Refunds create linked accounting events suitable for the shared financial journal; they never rewrite the original payment.
 
+## 7. Repository reconciliation findings (read-only, 15 Nov 2026)
+
+The following existing implementation details were confirmed in `web-portal` migrations `000_baseline.sql`, `004_marketplace_core.sql`, `006_marketplace_rls.sql`, `007_marketplace_functions.sql`, `008_hardening.sql`, the current `supabase/functions/paystack/index.ts`, and `docs/WORKFLOW/ENVIRONMENTS.md`.
+
+### Existing order and refund schema
+
+- Parent order IDs, seller-order IDs and order-item IDs are text UUID strings, not PostgreSQL UUID columns. Migration 026 must preserve these exact FK types.
+- `orders.total`, `orders.delivery_fee`, `order_items.unit_price`, `order_items.line_total`, `refunds.amount` and seller ledger amounts are numeric major-unit values. The new payment-attempt layer should use integer minor units for provider amounts and preserve an explicit conversion boundary.
+- Existing `refunds` status constraint is limited to `requested`, `approved`, `processed`, `rejected`. It has no provider reference, provider status, idempotency key, currency, amount-minor, eligibility calculation version or checkout allocation snapshot.
+- `private.cancel_so` creates an `approved` refund row for a seller-order cancellation, sends a customer message that a refund is on its way, and alerts admins to process it. It does not call Paystack.
+- `public.refund` marks an admin refund `processed` immediately and writes seller ledger adjustments. It does not call Paystack or verify a provider refund. These legacy semantics must not be reused as proof that a card refund was sent or completed.
+- Current automatic partial refund calculation prorates seller line totals against parent total less delivery fee. It is a legacy allocation formula, not a sufficiently precise checkout-time refund allocation contract for discounts, taxes or line quantities.
+- Existing refund read RLS permits the buyer, admin and relevant seller to read refund rows; client write grants are revoked. Preserve privacy and ensure provider metadata remains private/admin-only.
+- `private.confirm_payment_core` locks the parent order and returns `already` when `payment_status='paid'`, without comparing the incoming provider transaction to the original successful attempt. It creates seller ledger entries and seller notifications on first settlement.
+- `public.create_order` stores item and parent-order snapshots, but does not currently persist a complete immutable payment quote including rate source/time, FX markup, offer allocation, delivery fee policy version and per-line refund allocation. The payment attempt/quote design must add this without rewriting legacy orders.
+- Existing SQL uses text amounts and numeric major units. Paystack API expects integer minor units. For the currently configured currencies (NGN, GHS, KES, ZAR, GBP, USD), all use two decimal places for minor-unit conversion; implement an explicit currency exponent map and tests rather than assuming that all currencies globally use 2 decimals.
+- The current SQL `create_order` sets a display rounding variable to zero for NGN and KES when creating `order_items.unit_price`, while the parent total and line totals are rounded to two decimal places. This is a separate pricing precision inconsistency to test and correct in a controlled way; do not silently rewrite existing orders.
+
+### Environment boundary
+
+- `docs/WORKFLOW/ENVIRONMENTS.md` states that staging has migrations through 025 and that 026 is the next numbered migration.
+- The staging workflow applies numbered migrations to `Everneed-staging`; live retains timestamped historical migrations and requires manual owner approval. Never run a generic migration push against live.
+- The 026 migration must be created on `web-portal`, with the repository's numeric naming convention, and tested only against staging. Do not infer that a repository migration file is already applied merely because a staging history row exists; verify the exact staging migration history before any apply.
+- This review was read-only. No migration was created or applied, no Edge Function was deployed, and no Supabase data was changed.
+
+### Implementation consequences
+
+1. Add payment-attempt and durable provider-event records in a private/server-only boundary, preserving text order IDs and user UUID ownership.
+2. Introduce a versioned immutable checkout/payment quote snapshot for new orders/attempts. Historical orders without trustworthy facts remain explicitly legacy/unreconciled; do not fabricate snapshots.
+3. Add a distinct provider refund lifecycle linked to legacy `refunds` rows or introduce a compatible extension with strict state transitions. Do not reinterpret legacy `approved` or `processed` as Paystack states.
+4. Separate refund eligibility, admin approval where required, provider submission, provider confirmation and accounting posting. Customer notifications must describe the actual stage accurately.
+5. Before enabling the new Paystack flow, update the Edge Function and SQL settlement path together; do not deploy only one side.
+6. Test and explicitly decide how historical/manual bank-transfer orders and pay-on-delivery are handled. They must not be misrepresented as Paystack payment attempts.
