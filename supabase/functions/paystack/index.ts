@@ -129,6 +129,7 @@ async function settle(tx: any) {
   const { data: o } = await db.from("orders").select("*").eq("id", oid).maybeSingle();
   if (!o) return false;
 
+  if (v.metadata?.user_id !== o.user_id) return false;
   if (o.pm === "card_later") return await settleLegacyPayOnDelivery(v, o);
 
   const { data: result, error } = await db.rpc("settle_verified_payment_attempt", {
