@@ -361,3 +361,20 @@ This is an implementation draft, not a release candidate:
 7. Pay-on-delivery charge/refund behavior, bank-transfer proof/settlement, and legacy card-order reconciliation remain separate work. Do not infer that these paths now use payment attempts.
 
 The current code is saved only on `web-portal`. No migration was applied, no provider request was made during this work, no Edge Function was deployed, no staging data was changed, and production remains untouched.
+
+
+### Artifact integrity and handoff snapshot
+
+Latest branch blob identifiers after the final review edits:
+
+| Artifact | Latest blob SHA |
+|---|---|
+| `supabase/migrations/027_payment_checkout_snapshot.sql` | `79797d0f70036dbcb9347687a92d94b9b5072238` |
+| `supabase/migrations/028_payment_attempt_rpc.sql` | `09b950d64e9cb1c3eb979a4cb10f64db3e506df8` |
+| `supabase/tests/027_payment_checkout_snapshot_checks.sql` | `55afdb09098f603592a294de0aa123eb7d60ece9` |
+| `supabase/tests/028_payment_attempt_rpc_checks.sql` | `3bc65ff7dd743dfe01c5ce22981d02f4009f1ec4` |
+| `supabase/functions/paystack/index.ts` | `6a6e122a2353a8dd2a7c9cff327fc2621a957255` |
+
+The branch implementation has had a source-level review against the current staging catalog and existing settlement function. This is not a substitute for TypeScript compilation, SQL parsing/execution, provider sandbox tests or concurrency tests. Known rollout blockers remain: legacy in-flight card orders, legacy admin/manual confirmation callers, stale initializing-attempt recovery, durable inbox retry worker, and pay-on-delivery/manual-payment separation.
+
+No pull request was opened, no deployment was triggered, no migration was applied and no production resource was changed.
