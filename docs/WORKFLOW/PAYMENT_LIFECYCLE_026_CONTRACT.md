@@ -122,3 +122,66 @@ Update `supabase/functions/paystack/index.ts` alongside the migration:
 ## Important implementation note
 
 Do not create the migration by guessing a filename. Use the repository's established migration naming convention and the Supabase CLI's `supabase migration new` workflow, then verify the staging migration history still ends at 025 before applying 026.
+
+## 6. Unfulfillable-order refund eligibility and controlled processing
+
+**Approved policy:** Everneed automatically determines refund eligibility when an order or seller-order portion cannot be fulfilled, while keeping the actual refund provider-confirmed and fully auditable. This policy applies to whole-order and partial multi-seller-order failures.
+
+### Eligibility triggers
+
+Evaluate refund eligibility when a fulfilment unit is explicitly marked unfulfillable, including:
+- seller cancellation or confirmed inability to supply;
+- stock or product unavailability discovered after payment;
+- parcel loss or confirmed damage in hub custody or carrier transit;
+- an admin-approved fulfilment failure;
+- a partial quantity shortfall where only some line quantities can be supplied.
+
+A delivery delay alone is not an automatic refund trigger unless the applicable customer policy says the deadline has been breached. A cancellation request, dispute or suspected fraud must follow its own review path.
+
+### Calculation rules
+
+- Calculate from the immutable checkout snapshot and captured payment allocation, never current catalogue prices, current FX rates or current offer settings.
+- Identify the exact affected seller order, order lines and quantities. A partial failure must not automatically refund fulfilled seller orders or unaffected quantities.
+- Allocate discounts and promotions proportionally using the checkout-time allocation rule, with deterministic minor-unit rounding and a documented remainder rule.
+- Include or exclude delivery charges, taxes, platform fees and other charges only under an approved customer-facing policy. Do not invent deductions or retain fees simply because they were incurred internally.
+- Enforce a cumulative refund ceiling: successful plus in-flight refunds for an attempt/order allocation may never exceed the captured amount available for refund.
+- Preserve the original payment, seller allocation and journal history. A refund is a separate linked financial event, not an edit to the original payment.
+
+### Eligibility and refund states
+
+Keep eligibility assessment separate from provider execution. Suggested states:
+- `not_evaluated`
+- `eligible`
+- `review_required`
+- `blocked`
+- `requested`
+- `processing`
+- `succeeded`
+- `failed`
+- `reconciliation_required`
+
+An eligibility record should identify the trigger, affected seller order/lines/quantities, calculated amount and currency, calculation version, source checkout snapshot, policy version, evidence/reason, actor or system source, timestamps and review decision.
+
+### Controlled automation
+
+- Automatically assess and create an eligible refund request for clear, policy-covered unfulfillable quantities.
+- Automatically submit only when the captured payment is verified, the allocation is unambiguous, the amount is within the refundable balance, there is no conflicting dispute/refund, and the provider supports the operation.
+- Route ambiguous cases to an admin review queue: partial delivery with disputed charges, delivery-fee allocation uncertainty, damaged goods with a replacement option, chargebacks, suspicious activity, and any case where the policy does not define the deduction or entitlement.
+- Use an idempotency key per refund request and persist the provider refund reference before treating submission as complete.
+- A timeout or unknown provider response is `reconciliation_required`, not `failed`; verify provider state before retrying to avoid duplicate refunds.
+- Mark `succeeded` only after provider confirmation or authoritative reconciliation. A successful API submission alone is not proof of a completed refund.
+- Notify the customer with the assessed amount, currency, affected items and status; do not expose internal fraud or risk signals.
+
+### Required refund tests
+
+1. Full unfulfillable order creates one eligible refund request bounded by the captured amount.
+2. One seller-order fails in a multi-seller checkout; unaffected seller orders remain payable/fulfillable and are not refunded.
+3. Partial line quantity failure refunds only the affected quantity and its correctly allocated discount.
+4. Repeated fulfilment-failure events create no duplicate refund request.
+5. Cumulative successful and in-flight refunds cannot exceed the captured refundable balance.
+6. Unknown provider outcome is reconciled before any retry.
+7. Provider rejection or refund failure remains visible and does not falsely mark the customer as refunded.
+8. Dispute/chargeback conflicts and ambiguous fee allocation route to review.
+9. Customer notifications reflect provider-confirmed status, not merely request submission.
+10. Refunds create linked accounting events suitable for the shared financial journal; they never rewrite the original payment.
+
