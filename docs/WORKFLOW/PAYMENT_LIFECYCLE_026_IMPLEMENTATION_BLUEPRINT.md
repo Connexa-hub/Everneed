@@ -299,3 +299,25 @@ The wrapper must be paired with an Edge Function change. Do not revoke the old `
 - The fetched Paystack Edge Function still calls `db.rpc("create_order", ...)`, recalculates price during payment initialization, and calls the legacy `confirm_payment` RPC. It has not yet been converted to payment attempts or the durable event inbox.
 
 This update corrects documentation only. It does not modify staging, production, payment data, migration records, or Edge Functions.
+
+
+### Migration 027 draft created on 2026-11-15
+
+The next additive implementation slice is now drafted on `web-portal`:
+
+- `supabase/migrations/027_payment_checkout_snapshot.sql`
+  - Wraps the existing `public.create_order` function rather than duplicating its stock, offer, commission, seller-order and delivery-routing logic.
+  - Creates the order and then builds a snapshot from persisted order/item rows in the same PostgreSQL transaction. Any snapshot validation or attachment failure rolls back the order creation.
+  - Adds `orders.checkout_snapshot_hash`, computes SHA-256 with the installed `extensions.digest`, and extends the write-once trigger to protect and verify the hash.
+  - Stores FX rate/source/fetch time, markup, effective rate and pricing-policy version supplied by the trusted server function; validates the effective-rate calculation and supported currency exponent.
+  - Stores persisted order totals and deterministic item-level net refundable allocations; delivery-fee refunds are explicitly marked for admin review.
+  - Exposes only a service-role execute grant for the new wrapper. The old `create_order` grant is intentionally not revoked in this draft because the current Edge Function still calls it; migration application and Edge Function cutover must be coordinated to avoid breaking checkout or leaving a permanent bypass.
+
+- `supabase/tests/027_payment_checkout_snapshot_checks.sql`
+  - Structural checks for the hash column, immutable trigger, wrapper signature, SECURITY DEFINER configuration and role grants.
+  - Includes a read-only count of complete/incomplete snapshot-hash pairs.
+  - Not run because 027 has not been applied.
+
+The draft is **not deployment-ready**. It has not been executed against PostgreSQL, and no SQL parser or database test has validated its syntax/behavior. In particular, test the wrapper against real order fixtures covering multi-item discount rounding, free/paid delivery thresholds, every supported currency, official and third-party sellers, offer redemption, stock rollback, and legacy/manual payment methods. A subsequent integration slice must create and bind payment attempts to `checkout_snapshot_hash`, update Paystack checkout/verification/webhooks, and remove the legacy bypass only as part of a coordinated cutover.
+
+This draft and documentation update do not change staging or production.
