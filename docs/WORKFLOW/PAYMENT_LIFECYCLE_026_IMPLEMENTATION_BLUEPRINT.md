@@ -221,6 +221,38 @@ These are policy/accounting decisions, not safe assumptions to hard-code:
 
 Until these are decided, the implementation must use conservative exception handling rather than inventing policy.
 
+
+## 11. Draft migration artifact created on 2026-11-15
+
+A first additive schema draft now exists at:
+
+- `supabase/migrations/026_payment_lifecycle.sql`
+- Target branch: `web-portal`
+- Latest migration blob SHA: `91e5725018f01b8296f4efb8e5be2176dc912ea6`
+
+It currently adds:
+
+- nullable versioned checkout snapshot columns on `public.orders`, with a write-once trigger;
+- private payment-attempt records with exact minor-unit amount, currency exponent, provider reference, idempotency key and immutable quote identity;
+- a durable private provider-event inbox with duplicate-event key and immutable event evidence;
+- private provider-refund execution records, separate from legacy `public.refunds`;
+- uniqueness/index constraints and private-only access (no direct client or service-role table CRUD; the intended application interface is narrow owner-controlled RPCs).
+
+**Important:** this is a schema foundation draft, not a complete payment lifecycle implementation. It deliberately does not yet replace `create_order`, `confirm_payment_core`, `cancel_so`, `public.refund`, or the Paystack Edge Function. It has not been applied to staging. It must not be deployed alone because the current payment flow does not yet populate checkout snapshots or create/settle attempts.
+
+### Read-only staging reconciliation on 2026-11-15
+
+The staging migration ledger confirms versions 000–025 are applied and 026 is not recorded. The catalog confirms:
+
+- `orders`, `seller_orders`, `order_items`, and `refunds` use text IDs; user IDs are UUID.
+- `orders` contains `currency`, `total`, `discount`, `delivery_fee`, `payment_status`, `paid_at` and `ref`, but no checkout snapshot columns yet.
+- `private.confirm_payment_core` returns `already` solely from the order's paid status, without matching a distinct successful provider attempt.
+- `private.cancel_so` creates legacy `approved` refunds and currently notifies the buyer that a refund is on its way without provider confirmation.
+- `public.refund` creates legacy `processed` refunds and seller-ledger entries without calling/confirming the payment provider.
+- Existing RLS on orders/refunds/ledger remains enabled; client writes to refunds are not granted by the current policy set.
+
+The next implementation step is to build the atomic snapshot-aware order creation path and narrow service-only attempt/event/refund RPCs, then update the Paystack Edge Function to use them. Settlement and refund behavior must be switched as one coordinated change. Do not apply this draft to staging until SQL validation and the complete integration/test package are ready.
+
 ## 10. Change boundary
 
 This blueprint is documentation only. It does not create `026_payment_lifecycle.sql`, modify the Edge Function, apply migrations, deploy functions, write staging data or touch production. Those are subsequent, separately reviewable steps.
