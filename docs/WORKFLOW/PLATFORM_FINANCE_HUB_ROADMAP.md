@@ -46,7 +46,16 @@ Existing foundations:
 - Server routines include `confirm_payment`, `seller_transition`, `hub_receive`, `hub_consolidate`, `dispatch`, `mark_delivered`, `confirm_received_for`, `release_earnings`, `refund`, `record_payout`, `store_balance` and `run_scheduled_jobs`.
 - Paystack Edge Function verifies transaction status and currency/amount before calling `confirm_payment`; it stores reusable authorization tokens, and includes a saved-card charge path.
 
-Critical gaps / risks to resolve before money movement:
+Critical gaps / risks to resolve before money movement (confirmed against Everneed-staging on 15 Nov):
+- `private.deliver()` is invoked by both `confirm_received_for()` and `mark_delivered()`; inspect its exact release and ledger effects before changing delivery or payout behavior.
+- `mark_delivered()` reads the raw `order_secrets.delivery_code` and compares it directly; the code is currently four digits and rate-limited to five attempts per ten minutes. Replace with a high-entropy one-time code stored as a hash, expiry, attempt counter and consumed timestamp.
+- `deliveries.order_id` is unique, and `hub_consolidate()` creates one delivery row per parent order. That cannot represent split consignments.
+- `release_earnings()` changes pending sale/commission rows to available only after delivered status plus the configured hold (default three days). The scheduled job is not yet installed, so the hold/release lifecycle is not automated.
+- `record_payout()` is an admin-entered manual record that inserts a payout and negative ledger entry; it does not call Paystack Transfers or confirm a provider transfer.
+- `refund()` currently inserts a refund directly as `processed` and posts ledger adjustments internally; it does not call the Paystack refund API or wait for provider confirmation. This must be separated into requested/approved/submitting/processing/processed/failed states.
+- `paystack/index.ts` marks a pay-on-delivery order delivered via `confirm_received_for()` before attempting `chargeSaved()`. If the saved-card charge fails, the order remains delivered with a failed collection result. This may be valid as a delivery fact, but it must never release seller funds until payment collection is confirmed; the failure must open a collection exception.
+- `store_balance()` is derived from legacy `ledger_entries`; it is not a provider cash balance and must not be shown as a guaranteed instantly withdrawable wallet.
+- Existing `ledger_entries` is a seller-facing balance record, not a full double-entry journal. It has no immutable transaction grouping, account chart, debit/credit postings or provider settlement reconciliation.
 - Legacy `ledger_entries` is a seller-facing balance record, not a full double-entry journal. It has no immutable transaction grouping, account chart, debit/credit postings or provider settlement reconciliation.
 - Existing `payouts` records a payout but the current documented/admin flow is manual recording; no verified automated Paystack transfer lifecycle is established.
 - Existing `deliveries` is unique per parent order, so it cannot represent multiple consignments if some seller packages cannot be consolidated or a split delivery is needed.
