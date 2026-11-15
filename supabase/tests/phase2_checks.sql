@@ -67,6 +67,19 @@ begin
   perform public.zz_anon(); r := r || public.zz_ok('anon cannot call next_slug', public.zz_try($q$select public.next_slug('x')$q$) like 'ERR%'); perform public.zz_back();
   perform public.zz_as(um1); r := r || public.zz_ok('merchant cannot call approve_store', public.zz_try(format('select public.approve_store(%L)', sA)) like 'ERR%'); perform public.zz_back();
   perform public.zz_as(ua); perform public.approve_store(sA, 'ok'); perform public.approve_store(sB, 'ok'); perform public.zz_back();
+
+  -- The regional activation gate (019) intentionally keeps approved stores offline
+  -- until every required provider verification has been recorded. Seed trusted,
+  -- verified outcomes for CI, then activate each store through its real owner RPC.
+  perform public.zz_svc();
+  insert into public.store_verification_checks(store_id,check_type,status,provider,provider_reference,reviewed_at)
+  select st.id, checks.check_type, 'verified', 'ci_fixture', 'ci-' || st.id || '-' || checks.check_type, now()
+  from public.stores st
+  cross join (values ('phone'),('identity'),('face_liveness'),('business_address')) as checks(check_type)
+  where st.id in (sA,sB);
+  perform public.zz_back();
+  perform public.zz_as(um1); perform public.request_store_activation(sA); perform public.zz_back();
+  perform public.zz_as(um2); perform public.request_store_activation(sB); perform public.zz_back();
   r := r || public.zz_ok('approval makes the owner a merchant', (select role from public.profiles where id = um1) = 'merchant');
   r := r || public.zz_ok('approval starts a trial subscription', (select status from public.store_subscriptions where store_id = sA) = 'trialing');
   perform public.zz_anon();
