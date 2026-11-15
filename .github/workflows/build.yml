@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.0.0
       - run: test -f supabase/config.toml || supabase init
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
       - name: Run Phase 2 checks
