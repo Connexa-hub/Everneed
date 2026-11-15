@@ -191,6 +191,7 @@ set search_path = ''
 as $$
 declare
   v_event private.provider_event_inbox%rowtype;
+  v_inserted integer;
 begin
   if p_event_key is null or length(p_event_key) not between 1 and 180
      or p_event_type is null or length(p_event_type) > 100
@@ -206,6 +207,7 @@ begin
     p_provider_transaction_id, true, p_payload
   )
   on conflict (provider, event_key) do nothing;
+  get diagnostics v_inserted = row_count;
 
   select * into v_event
     from private.provider_event_inbox
@@ -214,7 +216,7 @@ begin
   return jsonb_build_object(
     'event_id', v_event.id,
     'processing_status', v_event.processing_status,
-    'duplicate', v_event.received_at < now() - interval '1 second'
+    'duplicate', v_inserted = 0
   );
 end
 $$;
