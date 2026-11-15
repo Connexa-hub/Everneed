@@ -276,6 +276,30 @@ begin
     return jsonb_build_object('result', 'reconciliation_required', 'order_id', v_order.id);
   end if;
 
+  if v_attempt.user_id is distinct from v_order.user_id
+     or v_order.checkout_snapshot_hash is distinct from v_attempt.checkout_snapshot_hash
+     or v_order.checkout_snapshot_version is distinct from v_attempt.checkout_snapshot_version
+     or upper(v_order.currency) is distinct from v_attempt.currency then
+    update private.payment_attempts
+       set status = 'reconciliation_required',
+           provider_transaction_id = p_provider_transaction_id,
+           failure_code = 'order_attempt_integrity_mismatch',
+           failure_message = 'Order ownership, currency or checkout snapshot no longer matches the payment attempt.',
+           updated_at = now()
+     where id = v_attempt.id;
+    return jsonb_build_object('result', 'reconciliation_required', 'reason', 'order_attempt_integrity_mismatch');
+  end if;
+
+  if v_attempt.status in ('failed', 'cancelled') then
+    update private.payment_attempts
+       set status = 'reconciliation_required',
+           provider_transaction_id = p_provider_transaction_id,
+           failure_code = 'success_after_terminal_attempt',
+           failure_message = 'Provider reported a successful charge for a terminal payment attempt.',
+           updated_at = now()
+     where id = v_attempt.id;
+    return jsonb_build_object('result', 'reconciliation_required', 'reason', 'success_after_terminal_attempt');
+  end if;
   if v_attempt.status not in ('pending', 'processing', 'initializing') then
     return jsonb_build_object('result', 'attempt_not_payable', 'status', v_attempt.status);
   end if;
