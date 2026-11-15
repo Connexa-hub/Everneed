@@ -1,4 +1,4 @@
--- Phase 2 checks (migrations 000-007 applied). One transaction; ends with an exception carrying the report so nothing persists.
+-- Phase 2 integration checks (full migration replay 000-028). The report is raised as an exception so fixtures do not persist.
 create function public.zz_as(u uuid) returns void language plpgsql as $$ begin
   perform set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
   perform set_config('request.jwt.claim.sub', u::text, true); execute 'set local role authenticated'; end $$;
