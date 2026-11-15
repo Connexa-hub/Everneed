@@ -247,4 +247,91 @@ revoke all on table private.provider_refunds from service_role;
 -- No direct REST table access is granted, including to service_role. Trusted
 -- SECURITY DEFINER RPCs owned by postgres will be the only application interface.
 
+
+-- Immutable provider identity/quote fields. Trusted RPCs may advance lifecycle
+-- state, but must not rewrite the order, amount, currency, reference or snapshot.
+create or replace function private.guard_payment_attempt_immutable()
+returns trigger
+language plpgsql
+set search_path = ''
+as $
+begin
+  if row(
+    new.order_id, new.user_id, new.provider, new.idempotency_key,
+    new.provider_reference, new.amount_minor, new.currency,
+    new.currency_exponent, new.checkout_snapshot_version,
+    new.checkout_snapshot_hash
+  ) is distinct from row(
+    old.order_id, old.user_id, old.provider, old.idempotency_key,
+    old.provider_reference, old.amount_minor, old.currency,
+    old.currency_exponent, old.checkout_snapshot_version,
+    old.checkout_snapshot_hash
+  ) then
+    raise exception 'Payment attempt identity and quote fields are immutable.';
+  end if;
+  return new;
+end
+$;
+
+drop trigger if exists payment_attempts_immutable_fields
+  on private.payment_attempts;
+create trigger payment_attempts_immutable_fields
+before update on private.payment_attempts
+for each row execute function private.guard_payment_attempt_immutable();
+
+-- Provider event identity, signature result and sanitized payload are immutable.
+-- Only processing/retry bookkeeping may change after initial receipt.
+create or replace function private.guard_provider_event_immutable()
+returns trigger
+language plpgsql
+set search_path = ''
+as $
+begin
+  if row(
+    new.provider, new.event_key, new.event_type, new.provider_reference,
+    new.provider_transaction_id, new.signature_verified, new.payload,
+    new.received_at
+  ) is distinct from row(
+    old.provider, old.event_key, old.event_type, old.provider_reference,
+    old.provider_transaction_id, old.signature_verified, old.payload,
+    old.received_at
+  ) then
+    raise exception 'Provider event evidence is immutable.';
+  end if;
+  return new;
+end
+$;
+
+drop trigger if exists provider_event_inbox_immutable_evidence
+  on private.provider_event_inbox;
+create trigger provider_event_inbox_immutable_evidence
+before update on private.provider_event_inbox
+for each row execute function private.guard_provider_event_immutable();
+
+create or replace function private.guard_provider_refund_immutable()
+returns trigger
+language plpgsql
+set search_path = ''
+as $
+begin
+  if row(
+    new.refund_id, new.payment_attempt_id, new.provider, new.idempotency_key,
+    new.amount_minor, new.currency, new.currency_exponent
+  ) is distinct from row(
+    old.refund_id, old.payment_attempt_id, old.provider, old.idempotency_key,
+    old.amount_minor, old.currency, old.currency_exponent
+  ) then
+    raise exception 'Provider refund identity and amount fields are immutable.';
+  end if;
+  return new;
+end
+$;
+
+drop trigger if exists provider_refunds_immutable_fields
+  on private.provider_refunds;
+create trigger provider_refunds_immutable_fields
+before update on private.provider_refunds
+for each row execute function private.guard_provider_refund_immutable();
+
+
 commit;
