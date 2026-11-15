@@ -254,7 +254,7 @@ create or replace function private.guard_payment_attempt_immutable()
 returns trigger
 language plpgsql
 set search_path = ''
-as $
+as $$
 begin
   if row(
     new.order_id, new.user_id, new.provider, new.idempotency_key,
@@ -271,7 +271,7 @@ begin
   end if;
   return new;
 end
-$;
+$$;
 
 drop trigger if exists payment_attempts_immutable_fields
   on private.payment_attempts;
@@ -285,7 +285,7 @@ create or replace function private.guard_provider_event_immutable()
 returns trigger
 language plpgsql
 set search_path = ''
-as $
+as $$
 begin
   if row(
     new.provider, new.event_key, new.event_type, new.provider_reference,
@@ -300,7 +300,7 @@ begin
   end if;
   return new;
 end
-$;
+$$;
 
 drop trigger if exists provider_event_inbox_immutable_evidence
   on private.provider_event_inbox;
@@ -312,7 +312,7 @@ create or replace function private.guard_provider_refund_immutable()
 returns trigger
 language plpgsql
 set search_path = ''
-as $
+as $$
 begin
   if row(
     new.refund_id, new.payment_attempt_id, new.provider, new.idempotency_key,
@@ -325,7 +325,7 @@ begin
   end if;
   return new;
 end
-$;
+$$;
 
 drop trigger if exists provider_refunds_immutable_fields
   on private.provider_refunds;
