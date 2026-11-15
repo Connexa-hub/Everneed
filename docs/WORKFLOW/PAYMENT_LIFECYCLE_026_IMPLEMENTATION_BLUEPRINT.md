@@ -1,6 +1,6 @@
 # Payment Lifecycle 026 — Implementation Blueprint
 
-**Status:** design/implementation blueprint only. This document does not apply a database migration or deploy an Edge Function.  
+**Status:** 026 schema foundation is recorded as applied in `Everneed-staging`; end-to-end payment integration remains incomplete. This document does not authorize further migration application or Edge Function deployment.  
 **Target branch:** `web-portal`  
 **Next migration:** `026_payment_lifecycle.sql` (confirmed free on this branch)  
 **Staging target:** `Everneed-staging` only, after review and explicit staging-apply authorization. Production is out of scope.
@@ -257,4 +257,45 @@ The next implementation step is to build the atomic snapshot-aware order creatio
 
 ## 10. Change boundary
 
-The migration and schema-check SQL are drafts on `web-portal` only. They have not been applied to staging; no Edge Function has been modified or deployed; no staging data has been written; and production has not been touched. The draft is a schema foundation, not a deployable end-to-end payment lifecycle. It must be completed with atomic snapshot-aware order creation, narrowly scoped service RPCs, coordinated settlement/refund changes, and provider integration tests before staging application.
+The migration 026 schema foundation is now recorded in the `Everneed-staging` migration ledger. Its snapshot columns, private payment-attempt/event/refund tables and snapshot trigger are present in the staging catalog. This does not mean the payment lifecycle is operational: the current Paystack Edge Function still uses the legacy checkout/settlement path, and the snapshot fields are not yet populated by order creation. No Edge Function deployment or production change was performed as part of this follow-up. The next migration must be numbered 027, not 026, and must be coordinated with a compatible Edge Function release.
+
+
+## 12. Staging state re-check on 2026-11-15 (supersedes the earlier 026-not-applied note)
+
+A fresh read-only catalog and migration-ledger query against project `Everneed-staging` (ref `vjiadqygpyebpisxslbx`) returned migration version `026`, name `payment_lifecycle`. The catalog also contains:
+
+- `public.orders.checkout_snapshot_version` and `public.orders.checkout_snapshot`;
+- trigger `orders_checkout_snapshot_immutable` calling `private.guard_order_checkout_snapshot()`;
+- `private.payment_attempts`;
+- `private.provider_event_inbox`;
+- `private.provider_refunds`.
+
+Therefore, the earlier statement that 026 was not applied is stale and is superseded by this observed staging state. This check was read-only; it did not apply, modify, or backfill anything. The presence of the schema objects does not prove that the Edge Function has migrated to them or that behavioral tests pass.
+
+### Next implementation slice: atomic checkout snapshot wrapper (migration 027)
+
+The existing `public.create_order(...)` is a large SECURITY DEFINER function that atomically reserves stock and creates the order, seller-order rows, order-item rows, commission rows and offer redemption. Rewriting it wholesale would unnecessarily duplicate critical marketplace behavior.
+
+The safer direction is a new service-only wrapper that calls the existing `create_order` within the same database transaction, then builds and attaches a versioned snapshot from the persisted `orders` and `order_items` rows before returning. The wrapper must:
+
+1. accept only server-calculated pricing provenance (FX rate/source/fetched time, markup and pricing-policy version) from the trusted Edge Function;
+2. derive order ID, owner, currency, total, discount, delivery fee and item IDs/quantities/prices from persisted rows, not from client-provided snapshot JSON;
+3. validate currency exponent against an explicit supported-currency map and validate all numeric context;
+4. construct deterministic item-level refundable allocations, including deterministic handling of discount rounding; delivery-fee refund treatment remains an admin exception until policy is decided;
+5. compute a SHA-256 digest in PostgreSQL using the already-installed `extensions.digest` function, store it on the order, and bind future payment attempts to that exact hash;
+6. write the snapshot and hash once, in the same transaction as order creation, so any validation/attachment failure rolls back the order, stock reservations and offer redemption;
+7. retain a legacy path only for non-card/manual flows that are explicitly routed as exceptions; do not silently let card checkout create a snapshotless order.
+
+The wrapper must be paired with an Edge Function change. Do not revoke the old `create_order` grant or apply 027 until the Edge Function is ready to call the new wrapper; do not leave the legacy RPC as an alternate card-order creation path after cutover. The 027 implementation must also add a write-once `orders.checkout_snapshot_hash` column and extend the existing snapshot guard to protect it.
+
+### Current staging evidence
+
+- Staging migration ledger records `026 / payment_lifecycle`.
+- Staging catalog confirms the three private lifecycle tables and both snapshot columns.
+- Staging catalog confirms the snapshot immutability trigger.
+- Staging catalog confirms `order_items` uses text IDs and persists `unit_price`, `qty`, and `line_total`; `orders` persists numeric `total`, `discount`, and `delivery_fee`.
+- The `pgcrypto` extension is installed in schema `extensions`; `extensions.digest(bytea,text)` and `extensions.digest(text,text)` are available.
+- The live `public.create_order` function is owned by `postgres`, is SECURITY DEFINER, and remains the legacy entry point.
+- The fetched Paystack Edge Function still calls `db.rpc("create_order", ...)`, recalculates price during payment initialization, and calls the legacy `confirm_payment` RPC. It has not yet been converted to payment attempts or the durable event inbox.
+
+This update corrects documentation only. It does not modify staging, production, payment data, migration records, or Edge Functions.
