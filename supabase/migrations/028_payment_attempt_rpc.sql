@@ -263,19 +263,6 @@ begin
     return jsonb_build_object('result', 'reconciliation_required');
   end if;
 
-  if v_attempt.status = 'succeeded' then
-    if v_attempt.provider_transaction_id = p_provider_transaction_id then
-      return jsonb_build_object('result', 'already_settled', 'order_id', v_order.id);
-    end if;
-    update private.payment_attempts
-       set status = 'reconciliation_required',
-           failure_code = 'transaction_id_conflict',
-           failure_message = 'A different provider transaction ID was reported for a settled attempt.',
-           updated_at = now()
-     where id = v_attempt.id;
-    return jsonb_build_object('result', 'reconciliation_required', 'order_id', v_order.id);
-  end if;
-
   if v_attempt.user_id is distinct from v_order.user_id
      or v_order.checkout_snapshot_hash is distinct from v_attempt.checkout_snapshot_hash
      or v_order.checkout_snapshot_version is distinct from v_attempt.checkout_snapshot_version
@@ -290,6 +277,31 @@ begin
     return jsonb_build_object('result', 'reconciliation_required', 'reason', 'order_attempt_integrity_mismatch');
   end if;
 
+  if p_amount_minor <> v_attempt.amount_minor
+     or upper(p_currency) <> v_attempt.currency then
+    update private.payment_attempts
+       set status = 'reconciliation_required',
+           provider_transaction_id = p_provider_transaction_id,
+           failure_code = 'amount_or_currency_mismatch',
+           failure_message = 'Provider transaction did not exactly match the immutable payment attempt.',
+           updated_at = now()
+     where id = v_attempt.id;
+    return jsonb_build_object('result', 'reconciliation_required', 'reason', 'amount_or_currency_mismatch');
+  end if;
+
+  if v_attempt.status = 'succeeded' then
+    if v_attempt.provider_transaction_id = p_provider_transaction_id then
+      return jsonb_build_object('result', 'already_settled', 'order_id', v_order.id);
+    end if;
+    update private.payment_attempts
+       set status = 'reconciliation_required',
+           failure_code = 'transaction_id_conflict',
+           failure_message = 'A different provider transaction ID was reported for a settled attempt.',
+           updated_at = now()
+     where id = v_attempt.id;
+    return jsonb_build_object('result', 'reconciliation_required', 'order_id', v_order.id);
+  end if;
+
   if v_attempt.status in ('failed', 'cancelled') then
     update private.payment_attempts
        set status = 'reconciliation_required',
@@ -302,18 +314,6 @@ begin
   end if;
   if v_attempt.status not in ('pending', 'processing', 'initializing') then
     return jsonb_build_object('result', 'attempt_not_payable', 'status', v_attempt.status);
-  end if;
-
-  if p_amount_minor <> v_attempt.amount_minor
-     or upper(p_currency) <> v_attempt.currency then
-    update private.payment_attempts
-       set status = 'reconciliation_required',
-           provider_transaction_id = p_provider_transaction_id,
-           failure_code = 'amount_or_currency_mismatch',
-           failure_message = 'Provider transaction did not exactly match the immutable payment attempt.',
-           updated_at = now()
-     where id = v_attempt.id;
-    return jsonb_build_object('result', 'reconciliation_required', 'reason', 'amount_or_currency_mismatch');
   end if;
 
   if v_order.payment_status = 'paid' or v_order.paid_at is not null then
