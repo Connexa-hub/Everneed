@@ -164,3 +164,27 @@ Do not expose finance, identity, bank, or customer-private data beyond the calle
 ## 11. Open configuration decision
 
 The Free plan's exact active-product cap and daily new-product cap remain intentionally unset pending product-owner approval. Keep both values configurable. This is the only plan-limit decision blocking a fully specified Free-plan seed; the architecture, existing paid-tier limits, and activation policy can be implemented without guessing those numbers.
+
+
+## 12. Verified staging findings (2026-11-15)
+
+Read-only inspection of staging project `vjiadqygpyebpisxslbx` confirmed:
+
+- Migrations currently end at `025 storefront_details_seller_grant`; migration `026` has not been applied.
+- Nigeria currently has four enabled, required checks in `seller_verification_rules`: phone, identity, face_liveness, and business_address. The current activation RPC treats all four as mandatory for every store, irrespective of subscription plan.
+- `approve_store` currently writes `stores.status='approved'` and `activation_status='verification_required'`, creates a trial subscription with `plan_id=NULL`, and sends a notification that verification must be completed. This explains the seller/admin mismatch.
+- Admin UI must therefore show Application = Approved and Store = Not live / verification or plan prerequisites pending, not Live.
+- Existing plans are Starter (NGN 3,000/month, 25 products), Growth (NGN 8,000/month, 200 products), and Pro (NGN 20,000/month, unlimited products). No Free plan currently exists. These prices and limits were observed, not changed.
+- Shopflow and the official EverNeed store currently have subscriptions with `plan_id=NULL`; Shopflow is trialing and EverNeed's subscription is active. Do not silently infer either store's tier from a null plan ID.
+- `private.products_guard()` already enforces the existing active-product limit on product insert and archive restore. It does not enforce a daily new-product quota. It currently derives limits directly from `store_plans.product_limit`.
+- Product writes are guarded by a BEFORE INSERT/UPDATE trigger, so quota enforcement can be extended at the database boundary. New daily quota logic must use a durable usage/event record or equivalent concurrency-safe accounting; a simple client counter is insufficient.
+- Existing `choose_plan(p_plan)` lets a store owner select an active plan during a trial, but it does not establish a Free tier or resolve null-plan entitlement behavior.
+
+### Implementation implications
+
+1. Add a first-class plan entitlement representation and seed the three existing paid plans without changing their prices or limits.
+2. Keep null-plan subscriptions in a non-activatable/needs-plan state until the product owner chooses a Free plan or selects a paid plan. Do not treat null as unlimited or automatically map it to Starter.
+3. Separate the current Nigeria verification rules into mandatory compliance versus commercial seller verification. The current four required flags must not automatically become mandatory legal checks merely because they are marked `required`; confirm their legal/business classification before moving them into the mandatory compliance gate.
+4. Refactor the activation function only after the rule classification is represented explicitly in schema. Until then, do not bypass the current gate by manually setting stores live.
+5. Preserve the existing product-limit trigger while moving its source of truth to effective entitlements; add a separate concurrency-safe daily listing quota.
+6. The Free plan remains unseeded until its active-product and daily-listing caps are approved.
