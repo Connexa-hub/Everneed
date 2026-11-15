@@ -249,3 +249,48 @@ Non-billing discovery can be developed while finance foundations progress, but n
 2. Produce the shared finance chart-of-accounts and posting contract for 027, including currency and FX treatment.
 3. Finalise entitlement source-of-truth and the seller advertising entitlement key without inventing Free plan limits.
 4. Only then draft migration 026 using the Supabase CLI migration workflow; apply to staging after review, never to production automatically.
+
+
+## 11. Function-level reconciliation verified against staging
+
+The following live staging function definitions were inspected read-only and compared with repository migrations:
+
+### Payment and seller-ledger behaviour
+
+- `private.confirm_payment_core(p_order, p_reference, p_actor)` locks the parent order, returns `already` when `orders.payment_status='paid'`, updates order payment state, then creates seller sale and commission rows in `ledger_entries` for each active seller order. This is the existing commerce settlement path, not a reusable advertising funding API.
+- The current `already` return does not reconcile a second distinct successful Paystack reference. This confirms the 026 payment-attempt contract must precede advertising funding.
+- The repository's migration 007 explicitly states that seller ledger, seller-order and fee values are NGN base currency, while customer-facing order totals and item prices are in the order currency. Ad wallets must therefore be currency-specific and cannot assume that a customer order currency is the seller payable currency.
+- `public.record_payout` is an admin-recorded manual transfer: it checks the seller balance, inserts a payout record and a negative `ledger_entries` row. It does not execute a provider transfer. Advertising funding must not reuse this function.
+- `public.refund` writes a refund row with status `processed` and seller-ledger adjustments but does not call Paystack. It is not suitable for campaign wallet refunds or payment-provider reversals. Use the new provider-confirmed refund lifecycle.
+- `public.release_earnings` changes eligible seller ledger statuses after delivered seller orders and the configured hold. It is seller payout availability logic, not an advertising revenue recognition process.
+
+### Catalog and entitlement behaviour
+
+- Migration 011's `private.products_guard()` reads `store_subscriptions` joined to `store_plans` and enforces `product_limit` only when the resulting limit is non-null.
+- Therefore, a missing subscription/plan row or a null `product_limit` currently skips the product cap. The seller-entitlement contract's rule that a null plan must not silently mean Free or unlimited requires a separate effective-entitlement resolver and a guard refactor. This is a prerequisite for advertising entitlement checks as well.
+- The same trigger uses product status values `draft`, `pending_review`, `published`, `rejected`, and `archived`; ad eligibility must use the canonical published state and the store's effective live/operational state, not client booleans.
+- `public.choose_plan` can set a selected plan during a trial but does not itself define a Free plan or resolve existing null-plan subscriptions.
+
+### Implementation consequences
+
+1. Keep advertising funding entirely separate from order settlement and seller payout RPCs.
+2. Make 026 payment attempts a shared provider lifecycle that can be referenced by subscription, wallet and campaign funding contexts without coupling their business state.
+3. Establish the shared double-entry journal before recording advertising wallet liabilities, deferred revenue, recognised ad revenue or reversals.
+4. Resolve null-plan and product-limit semantics in the entitlement workstream before allowing campaign activation.
+5. Do not rely on existing `banners`, `store_payments`, `ledger_entries`, `record_payout`, or `refund` as substitutes for the new ad campaign, funding, journal or provider-refund models.
+
+## 12. Reconciliation status
+
+| Area | Status | Next action |
+|---|---|---|
+| Canonical product/store/order IDs and columns | Verified | Reuse exact existing text IDs and canonical tables |
+| Existing seller subledger | Verified | Preserve; bridge to shared journal, do not replace abruptly |
+| Paystack attempt lifecycle | Gap confirmed | Implement and test 026 |
+| Double-entry accounting | Gap confirmed | Define chart of accounts and 027 posting contract |
+| Provider-confirmed refunds | Gap confirmed | Implement after journal/payment foundation |
+| Plan/entitlement resolution | Gap confirmed | Fix null-plan ambiguity before promotion entitlement |
+| Region hierarchy | Not present in inspected core schema | Add canonical region mapping before geo-targeted ads |
+| Seller ad campaigns and creatives | Not present | Add after payment, journal and entitlement gates |
+| Wallet and campaign funding | Not present | Add only on shared payment/journal services |
+| Impressions/clicks/attribution | Not present | Add after event and campaign foundation |
+| Production | Untouched | Remains outside this workstream |
