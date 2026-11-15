@@ -228,7 +228,9 @@ A first additive schema draft now exists at:
 
 - `supabase/migrations/026_payment_lifecycle.sql`
 - Target branch: `web-portal`
-- Latest migration blob SHA: `91e5725018f01b8296f4efb8e5be2176dc912ea6`
+- Latest migration blob SHA: `9f281c7ac85fdfa5aef83e099a476904623501c2`
+
+A read-only post-application structural check is also drafted at `supabase/tests/026_payment_lifecycle_schema_checks.sql`. It checks the private-table RLS/access boundary, snapshot columns/trigger and key uniqueness structures. It has not been run because 026 has not been applied.
 
 It currently adds:
 
@@ -255,4 +257,4 @@ The next implementation step is to build the atomic snapshot-aware order creatio
 
 ## 10. Change boundary
 
-This blueprint is documentation only. It does not create `026_payment_lifecycle.sql`, modify the Edge Function, apply migrations, deploy functions, write staging data or touch production. Those are subsequent, separately reviewable steps.
+The migration and schema-check SQL are drafts on `web-portal` only. They have not been applied to staging; no Edge Function has been modified or deployed; no staging data has been written; and production has not been touched. The draft is a schema foundation, not a deployable end-to-end payment lifecycle. It must be completed with atomic snapshot-aware order creation, narrowly scoped service RPCs, coordinated settlement/refund changes, and provider integration tests before staging application.
