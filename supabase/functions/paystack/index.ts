@@ -332,6 +332,7 @@ Deno.serve(async (req) => {
           try { savedUrl = JSON.parse(attempt.gateway_response).authorization_url || null; } catch { /* legacy gateway text */ }
         }
         if (savedUrl) return json({ url: savedUrl, reference, attempt_id: attempt.attempt_id, reused: true });
+        if (attempt.reused) return json({ status: attempt.status, reference, attempt_id: attempt.attempt_id, verify_required: true }, 202);
         const r = await ps("/transaction/initialize", { email: u.user.email, amount: amt, currency: cur, reference, metadata });
         if (!r.status) {
           await db.rpc("record_payment_attempt_initialization", {
