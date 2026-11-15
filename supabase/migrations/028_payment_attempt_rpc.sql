@@ -83,6 +83,7 @@ begin
       'currency', v_existing.currency,
       'currency_exponent', v_existing.currency_exponent,
       'status', v_existing.status,
+      'gateway_response', v_existing.gateway_response,
       'reused', true
     );
   end if;
@@ -94,7 +95,21 @@ begin
    order by created_at desc
    limit 1;
   if found then
-    raise exception 'A payment attempt is already active for this order.';
+    if v_existing.checkout_snapshot_hash <> v_hash
+       or v_existing.amount_minor <> v_amount_minor
+       or v_existing.currency <> v_currency then
+      raise exception 'The active payment attempt does not match the current checkout snapshot.';
+    end if;
+    return jsonb_build_object(
+      'attempt_id', v_existing.id,
+      'reference', v_existing.provider_reference,
+      'amount_minor', v_existing.amount_minor,
+      'currency', v_existing.currency,
+      'currency_exponent', v_existing.currency_exponent,
+      'status', v_existing.status,
+      'gateway_response', v_existing.gateway_response,
+      'reused', true
+    );
   end if;
 
   v_reference := 'en_' || replace(gen_random_uuid()::text, '-', '');
@@ -116,6 +131,7 @@ begin
     'currency', v_attempt.currency,
     'currency_exponent', v_attempt.currency_exponent,
     'status', v_attempt.status,
+    'gateway_response', v_attempt.gateway_response,
     'reused', false
   );
 end
