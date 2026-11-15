@@ -321,3 +321,43 @@ The next additive implementation slice is now drafted on `web-portal`:
 The draft is **not deployment-ready**. It has not been executed against PostgreSQL, and no SQL parser or database test has validated its syntax/behavior. In particular, test the wrapper against real order fixtures covering multi-item discount rounding, free/paid delivery thresholds, every supported currency, official and third-party sellers, offer redemption, stock rollback, and legacy/manual payment methods. A subsequent integration slice must create and bind payment attempts to `checkout_snapshot_hash`, update Paystack checkout/verification/webhooks, and remove the legacy bypass only as part of a coordinated cutover.
 
 This draft and documentation update do not change staging or production.
+
+
+### Payment-attempt RPC and Paystack integration draft (migration 028)
+
+The next implementation slice is now drafted on `web-portal`:
+
+- `supabase/migrations/028_payment_attempt_rpc.sql`
+  - `create_payment_attempt`: locks the order, verifies owner and card-payment eligibility, recomputes the persisted snapshot SHA-256, derives exact minor-unit amount/currency/exponent from the snapshot, enforces idempotency, and reuses an existing active attempt instead of creating a second active charge.
+  - `record_payment_attempt_initialization`: records pending/failed initialization outcomes without allowing the client to set payment state.
+  - `record_verified_provider_event`: accepts only service-role calls from the HMAC-verifying Edge Function and inserts minimal sanitized event evidence idempotently.
+  - `settle_verified_payment_attempt`: locks attempt/order, validates owner/snapshot/currency identity and exact provider amount/currency, prevents duplicate settlement, and routes second charges, mismatches, terminal-attempt successes and paid-after-cancellation into reconciliation. For a first valid payment it updates the attempt and calls the existing settlement core in the same database transaction.
+  - `mark_provider_event_processed`: records processed/retry/quarantined state and safe errors.
+  - All RPCs have empty search paths and service-role-only execute grants.
+
+- `supabase/tests/028_payment_attempt_rpc_checks.sql`
+  - Checks the five RPC signatures, SECURITY DEFINER status, explicit search paths and client/service-role grants.
+  - Read-only summary counts for succeeded/reconciliation attempts and provider-event backlog.
+  - Not run because migration 028 is unapplied.
+
+The Paystack Edge Function at `supabase/functions/paystack/index.ts` has also been updated on the branch:
+
+- Card order creation now calls `create_order_with_snapshot` and passes server-generated FX provenance; manual bank transfer, WhatsApp and pay-on-delivery retain their existing path for now.
+- Card initialization/charge now creates or reuses a snapshot-bound attempt and uses the exact stored `amount_minor`, currency and provider reference. It no longer reprices an existing card order on each initialization/retry.
+- Successful charge settlement first re-verifies the transaction directly with Paystack, then calls `settle_verified_payment_attempt`.
+- Webhooks verify the Paystack HMAC, persist a sanitized durable inbox record, re-verify successful transactions with Paystack, and record processed/retry/quarantined outcomes.
+- Pay-on-delivery saved-card collection remains on its legacy route and is explicitly not represented as a snapshot-backed payment attempt.
+
+### Integration limitations and required next work
+
+This is an implementation draft, not a release candidate:
+
+1. Migrations 027 and 028 have not been applied or SQL-executed. No Edge Function was deployed.
+2. Existing card orders created before this cutover have no immutable snapshot/attempt. Their late provider successes are not auto-settled by the new attempt RPC; they need a controlled legacy reconciliation path before rollout.
+3. The legacy `public.confirm_payment`/admin confirmation route still exists. The Edge Function's new card path no longer calls it, but all alternate grants/callers must be audited and closed or explicitly retained for admin/manual payment flows before production cutover.
+4. Provider event retry states are persisted, but a scheduled worker/cron to drain retries and stale `initializing` attempts has not been implemented.
+5. Paystack authorization URL recovery after a crash between provider initialization and recording its response needs a retry/verification design; the current code avoids duplicate initialization on a reused pending attempt but may return a verification-required state when no URL was persisted.
+6. A failed charge after provider acceptance, transaction timeout, duplicate webhook, and concurrency race need behavioral tests with a mocked Paystack API and a disposable database.
+7. Pay-on-delivery charge/refund behavior, bank-transfer proof/settlement, and legacy card-order reconciliation remain separate work. Do not infer that these paths now use payment attempts.
+
+The current code is saved only on `web-portal`. No migration was applied, no provider request was made during this work, no Edge Function was deployed, no staging data was changed, and production remains untouched.
