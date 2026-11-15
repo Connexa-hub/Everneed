@@ -235,7 +235,8 @@ begin
     ),
     'amounts', jsonb_build_object(
       'gross_merchandise_minor', v_gross_minor,
-      'discount_minor', v_discount_minor,
+      'recorded_order_discount_minor', v_discount_minor,
+      'allocated_discount_minor', v_gross_minor - v_net_merch_minor,
       'net_merchandise_minor', v_net_merch_minor,
       'delivery_fee_minor', round(coalesce(v_order.delivery_fee, 0) * 100)::bigint,
       'total_minor', round(v_order.total * 100)::bigint
