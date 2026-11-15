@@ -22,6 +22,27 @@ begin
     (uc2, 'c2@t.local', 'authenticated', 'authenticated'), (um1, 'm1@t.local', 'authenticated', 'authenticated'), (um2, 'm2@t.local', 'authenticated', 'authenticated');
   update public.profiles set role = 'admin' where id = ua;
 
+  -- CI fixtures: publish the four current Nigerian seller policies and explicitly accept
+  -- each one as both test sellers. Production policy publication remains an admin action.
+  insert into public.policy_documents(policy_type,country,locale,version,title,content_url,effective_at,published,requires_acceptance)
+  values
+    ('seller_terms','NG','en','ci-v1','CI seller terms','/ci/seller-terms',now()-interval '1 day',true,true),
+    ('seller_privacy','NG','en','ci-v1','CI seller privacy','/ci/seller-privacy',now()-interval '1 day',true,true),
+    ('marketplace_rules','NG','en','ci-v1','CI marketplace rules','/ci/marketplace-rules',now()-interval '1 day',true,true),
+    ('returns_refunds','NG','en','ci-v1','CI returns and refunds','/ci/returns-refunds',now()-interval '1 day',true,true);
+  perform public.zz_as(um1);
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_terms' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_privacy' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='marketplace_rules' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='returns_refunds' and country='NG' and version='ci-v1'),'NG');
+  perform public.zz_back();
+  perform public.zz_as(um2);
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_terms' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_privacy' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='marketplace_rules' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='returns_refunds' and country='NG' and version='ci-v1'),'NG');
+  perform public.zz_back();
+
   -- merchants create and submit stores ------------------------------------------------------------------
   perform public.zz_as(um1);
   insert into public.stores(owner_id, name, about, status, country, state, city) values (um1, 'Urban Finds', 'Bags', 'draft', 'NG', 'Lagos', 'Ikeja') returning id into sA;
