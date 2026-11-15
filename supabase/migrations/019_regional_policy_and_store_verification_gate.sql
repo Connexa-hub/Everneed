@@ -66,7 +66,7 @@ end $$;
 -- Seller applications require explicit acceptance of the current regional seller policy pack.
 create or replace function public.submit_store(p_store text)
 returns void language plpgsql security definer set search_path = ''
-as $
+as $$
 declare a record; s record; missing_policies text[];
 begin
   if auth.uid() is null then raise exception 'Please sign in.'; end if;
@@ -92,7 +92,7 @@ begin
   update public.stores set status='pending',activation_status='verification_required' where id=p_store;
   update public.store_applications set submitted_at=now(),decision=null,reason=null,reviewed_by=null,reviewed_at=null where store_id=p_store;
   perform private.notify_admins('store_submitted','A store is waiting for approval',s.name,jsonb_build_object('store_id',p_store));
-end $;
+end $$;
 revoke execute on function public.submit_store(text) from public, anon;
 grant execute on function public.submit_store(text) to authenticated;
 
@@ -202,7 +202,7 @@ grant all on public.seller_verification_reminder_state to service_role;
 
 create or replace function private.queue_seller_verification_reminders(p_store text,p_missing text[])
 returns integer language plpgsql security definer set search_path = ''
-as $
+as $$
 declare k text; n integer:=0; changed integer;
 begin
   foreach k in array coalesce(p_missing,'{}'::text[]) loop
@@ -220,7 +220,7 @@ begin
     end if;
   end loop;
   return n;
-end $;
+end $$;
 revoke execute on function private.queue_seller_verification_reminders(text,text[]) from public, anon, authenticated;
 grant execute on function private.queue_seller_verification_reminders(text,text[]) to service_role;
 
