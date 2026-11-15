@@ -363,12 +363,13 @@ Deno.serve(async (req) => {
         });
         return json({ error: r.message }, 400);
       }
+      const chargeFailed = String(r.data.status || "").toLowerCase() === "failed";
       await db.rpc("record_payment_attempt_initialization", {
-        p_attempt_id: attempt.attempt_id, p_initialized: true,
-        p_gateway_message: String(r.data.gateway_response || "Charge accepted by Paystack."),
-        p_failure_code: null,
+        p_attempt_id: attempt.attempt_id, p_initialized: !chargeFailed,
+        p_gateway_message: String(r.data.gateway_response || (chargeFailed ? "Charge failed." : "Charge accepted by Paystack.")),
+        p_failure_code: chargeFailed ? "paystack_charge_declined" : null,
       });
-      return json({ paid: await settle(r.data), status: r.data.status, message: r.data.gateway_response, reference });
+      return json({ paid: chargeFailed ? false : await settle(r.data), status: r.data.status, message: r.data.gateway_response, reference });
     }
     if (b.action === "verify") {
       const r = await ps("/transaction/verify/" + encodeURIComponent(b.reference));
