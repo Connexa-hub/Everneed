@@ -36,7 +36,8 @@ jobs:
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
       - name: Run Phase 2 checks
         run: |
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt || true
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt
           grep -q "FAIL: 0" /tmp/p2.txt
       - name: Public RPC security regression tests
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/016_public_rpc_security_hardening.sql
@@ -46,6 +47,10 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/018_rls_isolation_regression.sql
       - name: Turnstile public RPC ACL regression tests
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/019_turnstile_public_rpc_acl.sql
+      - name: Payment checkout snapshot structural tests (027)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/027_payment_checkout_snapshot_checks.sql
+      - name: Payment attempt RPC security tests (028)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/028_payment_attempt_rpc_checks.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
   apk:
