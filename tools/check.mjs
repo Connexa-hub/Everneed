@@ -53,7 +53,7 @@ for (const fn of readdirSync('supabase/functions')) {
 // "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
 const BAN = /\b(cj|cjdropshipping|eprolo|sup_[a-z]+)\b/i;
 const SKIP = new Set(['node_modules', '.git', 'assets', 'keystore', 'android']);
-const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'tools/check.mjs']);
+const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'docs/WORKFLOW/REPOSITORY_AND_PRODUCT_AUDIT_2026-11-12.md', 'tools/check.mjs']);
 const MANIFEST = existsSync('MANIFEST.txt') ? new Set(readFileSync('MANIFEST.txt', 'utf8').split('\n').filter(Boolean)) : null;
 // A second copy of the project inside the repository means a zip was unpacked one level too deep.
 for (const n of readdirSync('.')) {
