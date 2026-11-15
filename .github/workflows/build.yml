@@ -27,15 +27,13 @@ jobs:
     name: Database tests
     runs-on: ubuntu-latest
     # Starts a local Supabase stack, applies every migration, then runs the SQL test suite.
-    # Non-blocking until it has been seen passing once on GitHub.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
           version: latest
       - run: test -f supabase/config.toml || supabase init
-      - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,inbucket,realtime,mailpit
+      - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
       - name: Run Phase 2 checks
         run: |
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt || true
