@@ -88,6 +88,7 @@ declare
   v_exponent smallint;
   v_gross_minor bigint;
   v_net_merch_minor bigint;
+  v_item_count integer;
   v_discount_minor bigint;
   v_snapshot jsonb;
   v_hash text;
@@ -152,8 +153,8 @@ begin
     raise exception 'Persisted order currency does not match checkout currency.';
   end if;
 
-  select coalesce(sum(round(i.line_total * 100)::bigint), 0)
-    into v_gross_minor
+  select coalesce(sum(round(i.line_total * 100)::bigint), 0), count(*)::integer
+    into v_gross_minor, v_item_count
     from public.order_items i
    where i.order_id = v_order.id;
 
@@ -162,7 +163,7 @@ begin
 
   if v_gross_minor <= 0
      or v_net_merch_minor < 0
-     or v_net_merch_minor > v_gross_minor
+     or v_net_merch_minor > v_gross_minor + v_item_count
      or v_discount_minor < 0 then
     raise exception 'Persisted order totals cannot form a safe checkout allocation.';
   end if;
@@ -210,7 +211,8 @@ begin
       'unit_price', unit_price,
       'gross_minor', gross_minor,
       'net_refundable_minor', net_refundable_minor,
-      'discount_allocation_minor', gross_minor - net_refundable_minor
+      'discount_allocation_minor', greatest(gross_minor - net_refundable_minor, 0),
+      'rounding_adjustment_minor', greatest(net_refundable_minor - gross_minor, 0)
     ) order by id
   )
   into v_snapshot
@@ -236,7 +238,8 @@ begin
     'amounts', jsonb_build_object(
       'gross_merchandise_minor', v_gross_minor,
       'recorded_order_discount_minor', v_discount_minor,
-      'allocated_discount_minor', v_gross_minor - v_net_merch_minor,
+      'allocated_discount_minor', greatest(v_gross_minor - v_net_merch_minor, 0),
+      'rounding_adjustment_minor', greatest(v_net_merch_minor - v_gross_minor, 0),
       'net_merchandise_minor', v_net_merch_minor,
       'delivery_fee_minor', round(coalesce(v_order.delivery_fee, 0) * 100)::bigint,
       'total_minor', round(v_order.total * 100)::bigint
