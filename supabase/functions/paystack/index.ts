@@ -316,6 +316,16 @@ Deno.serve(async (req) => {
       const cur = String(attempt.currency);
       const metadata = { order_id: o.id, user_id: u.user.id, payment_attempt_id: attempt.attempt_id };
 
+      if (attempt.status === "failed" || attempt.status === "cancelled") {
+        return json({ error: "This payment attempt is terminal. Start a new payment attempt to retry.", status: attempt.status }, 409);
+      }
+      if (attempt.reused && attempt.status === "initializing") {
+        return json({ status: "initializing", reference, attempt_id: attempt.attempt_id, retryable: true }, 202);
+      }
+      if (attempt.reused && b.action === "charge") {
+        return json({ status: attempt.status, reference, attempt_id: attempt.attempt_id, verify_required: true }, 202);
+      }
+
       if (b.action === "init") {
         let savedUrl: string | null = null;
         if (attempt.gateway_response) {
