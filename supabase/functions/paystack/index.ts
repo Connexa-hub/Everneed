@@ -138,7 +138,7 @@ async function settle(tx: any) {
     p_currency: String(v.currency || "").toUpperCase(),
   });
   if (error) throw new Error(error.message);
-  const settled = ["paid", "already_settled"].includes(result?.result);
+  const settled = ["paid", "already", "already_settled"].includes(result?.result);
   if (settled) {
     const a = v.authorization;
     if (a && a.reusable && a.authorization_code && o.user_id) {
