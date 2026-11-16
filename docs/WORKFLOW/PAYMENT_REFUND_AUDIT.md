@@ -51,6 +51,6 @@ Official Paystack documentation:
 
 - Refunds depend on the verified payment-attempt lifecycle and immutable checkout snapshot.
 - Migration 032 currently hardens legacy payment wrappers only; no refund schema or provider behaviour has been changed.
-- The next new repository migration number is 033, but no refund migration has been created yet.
+- The next new repository migration number is 034, but no refund migration has been created yet; migration 033 is reserved for the finance journal foundation.
 - The delivery-fee refund policy and the treatment of platform transaction fees still need a business decision.
 - No staging migration, Edge Function deployment, scheduler or production action was performed for this audit.
