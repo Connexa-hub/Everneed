@@ -29,6 +29,11 @@ jobs:
     # Starts a local Supabase stack, applies every migration, then runs the SQL test suite.
     steps:
       - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check payment recovery worker
+        run: deno check supabase/functions/payment-recovery/index.ts
       - uses: supabase/setup-cli@v3
         with:
           version: 3.1.0
