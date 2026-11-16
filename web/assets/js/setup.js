@@ -5,19 +5,21 @@
      step 1  stores: name, tagline, about, accent (palette id), logo_url, cover_url
      step 2  stores: categories, country, state, city      store_private: phone (international format)
      step 3  store_private: pickup_address, direct_delivery_enabled, delivery_zones
-     step 4  store_applications: bank_name, account_number, account_name
+     step 4  wallet explainer only: nothing is typed or saved (external payout bank details are collected later, when the seller can withdraw)
      step 5  store_applications: business_name; policy acceptance (accept_policy); submit_store
-   An owner may add store_id when a row is created but never change it, so updates never send it. */
+   An owner may add store_id when a row is created but never change it, so updates never send it.
+   Submission without bank details depends on migration 034 (defer_seller_payout_details). Until it is applied to a database,
+   submit_store there still asks for bank details and the seller sees that message. */
 (function(){
   var C=Core,esc=C.esc,$=C.$,V=C.V,A=C.A,F=C.F,enc=encodeURIComponent,base=V.portal;
   var S={uid:null,store:null,priv:null,app:null,cats:[],pol:[],step:0,at:0,zones:[],accent:"emerald"};
-  var STEPS=[["Your store","Name and look"],["About you","Categories and location"],["Pickup","Where items are kept"],["Payout","Where we pay you"],["Review","Business and policies"]];
+  var STEPS=[["Your store","Name and look"],["About you","Categories and location"],["Pickup","Where items are kept"],["Wallet","How you get paid"],["Review","Business and policies"]];
   var SCENE=[0,1,2,4,5,6];
   var HEAD=[null,
     ["Let’s set up your store","Choose a name, add your logo and pick a colour. Shoppers see this first."],
     ["Tell us about your business","Pick what you sell and where you are, so we can show your store to the right shoppers."],
     ["Pickup and delivery areas","Tell us where your items are kept and which areas you can deliver to yourself."],
-    ["Where should we pay you?","Add the bank account for your earnings. Only the Everneed team can see it."],
+    ["Your Everneed wallet","Your earnings and subscription payments live in an Everneed wallet. There is nothing to enter now."],
     ["Review and send","Check everything, accept the seller policies and send your store for review."]];
   var N=STEPS.length;
 
@@ -76,7 +78,7 @@
     if(n===1)return!!s;
     if(n===2)return!!(s&&s.categories&&s.categories.length&&s.state&&s.city&&p.phone);
     if(n===3)return!!p.pickup_address;
-    if(n===4)return!!(a.account_number&&a.bank_name&&a.account_name);
+    if(n===4)return walletSeen()||!!(a.account_number&&a.bank_name&&a.account_name);
     return!!s&&s.status!=="draft"&&s.status!=="rejected";
   }
   function canGo(k){for(var j=1;j<k;j++){if(!done(j))return false}return true}
@@ -213,25 +215,25 @@
     upsert("store_private","store_id",!!S.priv,{store_id:S.store.id,pickup_address:pk,direct_delivery_enabled:dr,delivery_zones:dr?zones:[]}).then(function(){S.step=4;return load(true)}).then(again).catch(function(e){busy(f,false);fail(e)});
   };
 
+  /* Step 4 is information only. No bank or account number is asked for, and no wallet or account state is invented. */
+  function walletKey(){return"en_wseen_"+(S.store&&S.store.id||"")}
+  function walletSeen(){try{return localStorage.getItem(walletKey())==="1"}catch(e){return false}}
+  function markWallet(){try{localStorage.setItem(walletKey(),"1")}catch(e){}}
   function body4(){
-    var a=S.app||{},cc=(S.store&&S.store.country)||"NG",banks=window.Geo&&Geo.banks[cc],ng=cc==="NG";
-    var bank=banks?'<label class="lb">Bank<select name="bank" required><option value="">Choose your bank</option>'+(a.bank_name&&banks.indexOf(a.bank_name)<0?"<option selected>"+esc(a.bank_name)+"</option>":"")+banks.map(function(b){return"<option"+(b===a.bank_name?" selected":"")+">"+esc(b)+"</option>"}).join("")+"</select></label>":fld("bank","Bank name",a.bank_name,{max:80,req:1});
-    return card("Bank account","Your earnings are paid to this account after the holding period.",
-        bank+'<div class="row2">'+fld("acct",ng?"Account number (10 digits)":"Account number",a.account_number,{mode:"numeric",max:ng?10:20,req:1,ph:ng?"0123456789":""})+fld("acname","Account name",a.account_name,{max:120,req:1,ph:"Name on the account"})+"</div>")
-      +card("Keep it matching","The account name must match the name on your bank account. Payouts to a different name are held for review.","");
+    var a=S.app||{},old=a.account_number&&a.bank_name,rows=[
+      ["Everneed wallet","Holds your marketplace earnings and pays your subscription. Its real status is shown in your dashboard."],
+      ["Everneed account number","Created for you automatically through our payment partner, where your account is eligible. You never type it in, and it is not your bank account. It is not set up yet."],
+      ["Your bank account","Added later, only when you want to withdraw, and checked before any money moves."]];
+    return card("How you get paid","Setting up your store does not need any bank details.",'<div class="rvl">'+rows.map(function(r){return"<div><span>"+esc(r[0])+"</span><b>"+esc(r[1])+"</b></div>"}).join("")+"</div>")
+      +(old?card("Bank details you added before","These stay private and are not used until withdrawals are available to you.",'<div class="rvl"><div><span>Bank</span><b>'+esc(a.bank_name)+" · ends "+esc(String(a.account_number).slice(-4))+"</b></div></div>"):"");
   }
-  F.ss4=function(f,d){
-    var cc=(S.store&&S.store.country)||"NG",b=clean(d.bank,80),a=String(d.acct||"").replace(/\s+/g,""),n=clean(d.acname,120),ok=cc==="NG"?/^[0-9]{10}$/.test(a):/^[0-9]{8,20}$/.test(a);
-    if(need([[b,"Choose your bank."],[ok,cc==="NG"?"A Nigerian account number has exactly 10 digits.":"Enter your account number (digits only)."],[n,"Enter the account name."]]))return;
-    busy(f,true);
-    upsert("store_applications","store_id",!!S.app,{store_id:S.store.id,bank_name:b,account_number:a,account_name:n}).then(function(){S.step=5;return load(true)}).then(again).catch(function(e){busy(f,false);fail(e)});
-  };
+  F.ss4=function(){markWallet();S.step=5;again()};
 
   var POLICY_TYPES=["seller_terms","seller_privacy","marketplace_rules","returns_refunds"];
   function latest(t){return S.pol.filter(function(d){return d.policy_type===t}).sort(function(x,y){return String(y.effective_at).localeCompare(String(x.effective_at))})[0]}
   function body5(){
     var s=S.store||{},p=S.priv||{},a=S.app||{},docs=POLICY_TYPES.map(latest).filter(Boolean),missing=POLICY_TYPES.filter(function(t){return!latest(t)});
-    var rows=[["Store",s.name],["Categories",(s.categories||[]).join(", ")],["Location",[s.city,s.state,(CFG.countries||{})[s.country]].filter(Boolean).join(", ")],["Contact phone",p.phone],["Pickup address",p.pickup_address],["Delivery",p.direct_delivery_enabled?"You deliver to "+(p.delivery_zones||[]).join(", ")+", and Everneed handles the rest":"Everneed collects and delivers"],["Payout",a.bank_name?a.bank_name+" · ends "+String(a.account_number||"").slice(-4):""]];
+    var rows=[["Store",s.name],["Categories",(s.categories||[]).join(", ")],["Location",[s.city,s.state,(CFG.countries||{})[s.country]].filter(Boolean).join(", ")],["Contact phone",p.phone],["Pickup address",p.pickup_address],["Delivery",p.direct_delivery_enabled?"You deliver to "+(p.delivery_zones||[]).join(", ")+", and Everneed handles the rest":"Everneed collects and delivers"],["Payout","Added later, when you withdraw"]];
     return card("Check your details","If something is wrong, use the steps on the left (or Back) to change it.",'<div class="rvl">'+rows.map(function(r){return"<div><span>"+esc(r[0])+"</span><b>"+esc(r[1]||"Not added")+"</b></div>"}).join("")+"</div>")
       +card("Business","Everneed reviews your application. Identity and address checks are a separate step before your store can go live.",fld("biz","Business or trading name",a.business_name||s.name,{max:120,req:1}))
       +card("Seller policies for "+((CFG.countries||{})[s.country]||s.country||"your country"),"Read each policy, then accept it.",
