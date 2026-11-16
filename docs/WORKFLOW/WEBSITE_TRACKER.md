@@ -17,6 +17,15 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 - `APP-08` remains open: Android app staging/production environment selection is not yet wired to the shared config.
 - Historical task scoreboard and change log below contain dated snapshots; use the dated evidence and current statuses rather than assuming every old note is current.
 
+
+## Shopflow approval-to-portal regression — 16 Nov 2026 (ChatGPT fallback)
+
+- Recreated Shopflow on Everneed-staging; current row is store `382b84b5-5bd9-4448-bd07-b0bada0121ca`, owner `e8349848-7c00-454e-9f02-8616d233674c`, status `approved`, activation `verification_required`. The fresh account reproduces the same blank/error after admin approval, so the old account data was not the cause.
+- Code audit found that `workspace.js` overrides `V.portal` and performs a required data load before routing an approved store back to `portal.js` for its not-live verification screen. That override had no catch; a rejected request escaped to the global router instead of the portal's recoverable error view.
+- Fixed on `web-portal` in commit `97f334bd465ba8fbd6c76620fcf7d63ada2f5432`: workspace load/render failures now hand back to the original portal, whose existing recovery UI reports the underlying message and offers retry. This does not mark the store live or bypass verification.
+- Staging schema confirms `products.at` exists, so the products ordering field is not a schema mismatch. Exact failing request/exception is still unconfirmed; obtain the visible `PORTAL-LOAD` error or browser Network/Console evidence on the preview. Verify with an approved + `verification_required` account with zero products and zero verification rows.
+- This is a containment/fallback fix, not proof that the original failed request is fixed. Await CI and authenticated browser E2E. Production untouched; PR #31 remains open/unmerged.
+
 ## Scoreboard
 | Area | Done | Partial | In progress | Blocked | Needs owner | Todo | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
