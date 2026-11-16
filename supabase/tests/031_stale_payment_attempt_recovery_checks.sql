@@ -55,6 +55,12 @@ begin
     raise exception 'Stale-attempt completion must be lease-token fenced and support reconciliation';
   end if;
 
+  select pg_get_functiondef(v_guard::oid) into v_def;
+  if position('succeeded' in lower(v_def)) = 0
+     or position('reconciliation_required' in lower(v_def)) = 0 then
+    raise exception 'New attempts must be blocked after successful or unresolved payment attempts';
+  end if;
+
   if not exists (
     select 1 from pg_trigger
     where tgname='payment_attempts_block_new_after_reconciliation'
