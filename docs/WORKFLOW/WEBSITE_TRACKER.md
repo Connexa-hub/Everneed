@@ -359,3 +359,16 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Commit: `87fdf0f64da2f9d4f8fda7b040a9579298c12dce` (`web/assets/js/portal.js`).
 - Staging read-only verification: Free is active with 5 active products / 2 daily listings; Starter remains ₦3,000 / 25 products; Growth ₦8,000 / 200 products; Pro ₦20,000 / unlimited. Shopflow is approved on a valid Free trial; entitlement snapshot is configured and `private.store_verification_complete()` returns true. Its stored `activation_status` remains `verification_required` until the seller uses the portal's authenticated activation action.
 - Remaining verification: run CI for the onboarding correction, deploy/verify the staging preview, and complete authenticated Shopflow browser E2E. No direct status mutation was made. Production untouched; PR #31 remains open/unmerged.
+
+
+## 2026-11-17 — Owner-approved streamlined seller journey / Claude frontend handoff
+
+- Owner wants store creation simplified: no generic identity, face/liveness, address, bank/payout or verification messaging during basic store creation. Collect store essentials and concise seller-policy consent only.
+- After store setup, require an explicit plan choice in a polished horizontally sliding 3D-style plan carousel. Use backend plan data and save the choice through the authenticated plan-selection action.
+- The selected plan determines the next screens: Free/Entry (5 active products, 2 new listings/day) and Starter (₦3,000 / 25 products) skip optional commercial verification; Growth (₦8,000 / 200 products) and Pro (₦20,000 / unlimited) proceed through their included commercial verification flow.
+- Genuine mandatory regional/product/provider requirements remain scoped to the specific capability they govern. Do not turn wallet/payout KYC into a universal storefront gate.
+- Seller overview should focus on commerce and actionable work. Remove the permanent generic Verification navigation item and avoid verification warnings for Free/Starter.
+- Platform admin overview should prioritise marketplace operations and must count truly live stores, not merely approved applications. Dedicated Seller operations retains application review, Growth/Pro verification cases, confirmed mandatory compliance, suspension and audit workflows. No global verification backlog KPI on the overview.
+- New authoritative frontend handoff: `docs/PRODUCT/SELLER_ONBOARDING_SIMPLIFICATION_AND_PLAN_SELECTOR.md`.
+- Code inspection found the current five-step `setup.js` still ends with submit/review and routes to `/portal`; it has no plan-selection stage. `core.js` currently exposes a permanent seller Verification nav item. `admin.js` currently counts `stores.status === 'approved'` as "Live stores". These are explicit Claude frontend tasks; no competing UI implementation was made by ChatGPT.
+- Owner-approved plan prices/limits are unchanged. Backend remains source of truth. Staging only; production untouched; PR #31 remains open/unmerged.
