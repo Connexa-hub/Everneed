@@ -310,3 +310,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Follow-up source audit confirmed the workspace loader now short-circuits product/private inventory requests when an approved store is not live. However, its route dispatcher still sent `/portal/products` and `/portal/product/*` to the workspace solely because the store was approved; only the root route checked activation status. This left a route-level gap for direct/deep links before activation.
 - Updated `web/assets/js/workspace.js` in commit `5da76685ece3d412310ebf5f1a2c5b062456db6b`: every workspace route now hands approved-but-not-live stores back to the original portal verification flow. Inventory pages are reachable only after `activation_status === "live"`. No database rows or verification state were changed.
 - This closes the identified deep-link/route-gating gap. It does **not** yet prove the original blank `/portal` report is resolved; authenticated staging browser E2E and actual runtime diagnostics remain required. Production untouched; PR #31 remains open/unmerged.
+
+
+## Free Entry and trial defaults correction — 17 Nov 2026
+
+- Owner reversed the earlier decision to leave Free limits unset pending platform-admin configuration. The Free/Entry plan and its free trial now have seeded defaults: **5 active products** and **2 new product listings per seller-local calendar day**. Admin controls remain available to change policy, but configuration is no longer a prerequisite for seller onboarding or plan activation.
+- Added migration `20261117090000_free_entry_defaults_and_trial_assignment.sql` on `web-portal` (migration commit `4dc5d17e910d8875e3de7ce6012073781b6fa5d7`). Applied successfully to Everneed-staging only.
+- Updated product specification (commit `f84c86a2ab51cd2463da48b678ba4bb51a04b5ea`) and seller entitlement contract (commit `b9c5c4bbf79c9f6b37537d6ceb813ba08b350837`).
+- Staging verification: Free is active with 5 active products / 2 new listings per day; Starter remains ₦3,000 / 25 products; Growth ₦8,000 / 200 products; Pro ₦20,000 / unlimited. No paid-tier values changed.
+- Shopflow's valid trial subscription was assigned `plan-free`; its plan/quota configuration blocker is resolved. Its activation status remains `verification_required` because Nigeria's phone, identity, face/liveness and business-address rules are still `unclassified`. No rule was silently waived and the store was not marked live.
+- Remaining work: determine the correct capability/scope for each Nigerian check, then correct activation/UI reason handling. Authenticated seller E2E, CI and deployment verification remain outstanding. Production untouched; PR #31 remains open/unmerged.
