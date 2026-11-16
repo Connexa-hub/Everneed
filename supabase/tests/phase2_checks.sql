@@ -68,6 +68,12 @@ begin
   perform public.zz_as(um1); r := r || public.zz_ok('merchant cannot call approve_store', public.zz_try(format('select public.approve_store(%L)', sA)) like 'ERR%'); perform public.zz_back();
   perform public.zz_as(ua); perform public.approve_store(sA, 'ok'); perform public.approve_store(sB, 'ok'); perform public.zz_back();
 
+  -- The entitlement migration requires an explicit plan before seller activation or catalogue writes.
+  -- CI selects the existing Starter plan for both fixtures; no production plan defaults are changed.
+  perform public.zz_svc();
+  update public.store_subscriptions set plan_id='plan-starter' where store_id in (sA,sB);
+  perform public.zz_back();
+
   -- The regional activation gate (019) intentionally keeps approved stores offline
   -- until every required provider verification has been recorded. Seed trusted,
   -- verified outcomes for CI, then activate each store through its real owner RPC.
