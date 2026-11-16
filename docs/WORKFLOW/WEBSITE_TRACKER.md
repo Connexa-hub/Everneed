@@ -330,3 +330,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Verified staging: Shopflow is approved, on a valid `plan-free` trial, with 5 active products / 2 daily new listings. `private.store_verification_complete(Shopflow)` now returns true. The stored activation status is still `verification_required` pending the authenticated seller activation action; no direct status mutation was made.
 - Migration committed to `web-portal` in commit `73e3a9d7ad74525a81750bcdb015459eebe9f3c9`. Product spec, backend contract and tracker updated in subsequent documentation commits.
 - Remaining: verify that the portal exposes the correct activation action and reason state; run authenticated Shopflow browser E2E and CI. Production untouched; PR #31 remains open/unmerged.
+
+
+## 2026-11-17 — Seller activation UI follows plan entitlements
+
+- Updated `web/assets/js/portal.js` to load the trusted `my_store_entitlements()` snapshot and calculate which verification checks actually block activation for the seller's tier. Free/Starter commercial checks are labelled optional; mandatory/unclassified checks and Growth/Pro commercial checks remain blockers. The UI fails closed if the entitlement snapshot is unavailable.
+- Replaced the blanket “complete identity and business verification” message with plan-aware activation guidance. The activation action now maps backend reason codes (`PLAN_NOT_SELECTED`, `PLAN_NOT_CONFIGURED`, `MANDATORY_COMPLIANCE_MISSING`, `PLAN_VERIFICATION_REQUIRED`, `SUBSCRIPTION_INACTIVE`, `STORE_SUSPENDED`, `APPLICATION_NOT_APPROVED`) to specific seller-facing messages.
+- Frontend changes: `453debd636e2b870fb20d73c9d02dd7cc9ae68dc` plus fail-closed entitlement handling `8ff8128ad4eb62373bd1091cc72f31324df941af`.
+- CI on current PR head: Web checks passed; migration file/order check passed. Android build remains pending. Earlier migration-order failure was caused by the new migration not yet being included in the replay manifest; the manifest is now aligned and the latest migration check passes.
+- Staging backend confirms Shopflow's Free entitlement (5 active products, 2 daily new listings) and `private.store_verification_complete()` returns true. Its activation status remains unchanged pending the authenticated seller activation action. Browser E2E and deployed-preview verification are still outstanding; do not claim Shopflow is live until that action succeeds.
+- Production remains untouched; PR #31 remains open and unmerged.
