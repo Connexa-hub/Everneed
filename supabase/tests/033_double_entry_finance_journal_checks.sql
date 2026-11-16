@@ -1,7 +1,7 @@
 -- Structural and behavioural checks for finance journal migration 033.
 
 begin;
-do $
+do $$
 declare
   v_fn regprocedure;
   v_journal_id uuid;
