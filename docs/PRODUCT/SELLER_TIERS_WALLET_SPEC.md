@@ -268,3 +268,8 @@ Migration `20261116201132_seller_onboarding_entitlements_and_quotas` is applied 
 - Admin plan settings are written through `public.admin_set_plan_entitlements(...)`; verification rule classification is written through `public.admin_set_verification_scope(...)`.
 - Existing Nigerian verification rules are deliberately still unclassified and fail closed. No rule was assumed to be legally mandatory or commercially optional.
 - Structural staging assertions pass. Full CI, auth abuse tests, concurrency tests and browser E2E remain release blockers.
+
+
+## 14. Quota enforcement security correction — 16 November 2026
+
+Follow-up staging migration `20261116201843_seller_product_quota_trigger_privilege_fix` changes `private.products_guard()` to a SECURITY DEFINER trigger with explicit trusted-role bypass checks. This is necessary for seller product requests to read private entitlement rows and insert immutable quota events without granting sellers direct write access to the event table. A staging-only rollback test verified the first product succeeds and the second product is rejected at a one-per-day test quota. No test data persisted.
