@@ -34,6 +34,13 @@ begin
     end if;
   end loop;
 
+  if not (select prosecdef from pg_proc where oid=v_guard::oid)
+     or not (select coalesce(array_to_string(proconfig, ','), '') like '%search_path=%' from pg_proc where oid=v_guard::oid)
+     or has_function_privilege('anon', v_guard::oid, 'EXECUTE')
+     or has_function_privilege('authenticated', v_guard::oid, 'EXECUTE') then
+    raise exception 'Attempt insertion guard must be SECURITY DEFINER, fixed-search-path and unavailable to client roles';
+  end if;
+
   select pg_get_functiondef(v_claim::oid) into v_def;
   if position('skip locked' in lower(v_def)) = 0
      or position('recovery_lease_expires_at' in lower(v_def)) = 0
