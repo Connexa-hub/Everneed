@@ -32,6 +32,16 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 
 Update this table when you change a status.
 
+## Seller workspace priority update — 16 Nov 2026
+
+- Owner-approved direction is documented in [SELLER_TIERS_WALLET_SPEC.md](../PRODUCT/SELLER_TIERS_WALLET_SPEC.md). Claude's exact implementation handoff is [CLAUDE_SELLER_WORKSPACE_HANDOFF.md](CLAUDE_SELLER_WORKSPACE_HANDOFF.md).
+- Current frontend audit: setup.js requires ordinary bank payout details in step 4; migration 019 submit_store() independently rejects submissions without bank_name, account_number and account_name. This is a cross-layer blocker: backend migration/contract must be changed before the frontend can safely remove that step.
+- Current workspace.js loads products, store/application/private details and notifications only. Its dashboard has four product-status KPIs and a setup checklist; no wallet, virtual-account, effective-plan, entitlement or subscription data is loaded.
+- Existing SELLER_ENTITLEMENTS_AND_VERIFICATION_CONTRACT.md already defines Free/Starter optional commercial verification and Growth/Pro included verification. Migration 019's current activation/live functions do not implement that tier-aware distinction; backend work is required.
+- No seller wallet or virtual-account tables were found in staging schema inspection. Finance journal migrations 030–033 are foundations, not a seller wallet or Paystack virtual-account implementation.
+- Claude: implement low-friction seller setup and the tier-aware dashboard shell; preserve required policy acceptance and all mandatory compliance checks. Do not show fake wallet balances, virtual-account numbers or transfer outcomes. ChatGPT coordinator must supply the staging-only backend change for submit_store and activation policy before the relevant UI is released.
+- Free product and daily listing limits remain unset pending owner decision; do not invent them. Existing paid-tier pricing and product limits remain unchanged.
+
 ## Next up — website MVP first (fast-track)
 1. **Owner test gate:** open `https://web-portal.everneed.pages.dev` on a phone and test direct URLs, sign-up/sign-in, store setup save/resume, product create/edit/submit and storefront display. Report only concrete failures/screenshots; CI syntax success is not browser E2E.
 2. **Claude — seller fulfilment MVP:** implement `WEB-S05` order list and `WEB-S06` safe order actions against existing RPCs, with clear loading/empty/error/success states and no fake actions. Keep the existing hub workflow and don't invent a dispatch event.
