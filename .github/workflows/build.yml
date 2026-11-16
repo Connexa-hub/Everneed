@@ -29,9 +29,9 @@ jobs:
     # Starts a local Supabase stack, applies every migration, then runs the SQL test suite.
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
-          version: 3.3.3
+          version: 3.1.0
       - run: test -f supabase/config.toml || supabase init
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
       - name: Run Phase 2 checks
