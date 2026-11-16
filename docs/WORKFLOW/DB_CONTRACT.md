@@ -214,7 +214,7 @@ The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_RE
 ## How to add a database change
 1. Read the table or function you are changing in the live database first.
 2. Number it **030** or higher (staging and repository migration history verified through 029 on 16 Nov 2026). Digits, underscore, name, `.sql`.
-3. Push it to `web-portal` for CI only. The `Database tests` job replays it locally. Staging application requires manual workflow dispatch and explicit owner approval; run the security advisors and compare the result with the intended schema/security contract.
+3. Push it to `web-portal` for CI only. The `Database tests` job replays it locally. Staging application requires manual workflow dispatch with the explicit `APPLY` input (default `NO`) and owner approval; run the security advisors and compare the result with the intended schema/security contract.
 4. Commit the reviewed migration and update this contract and the project tracker in the same PR.
 5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline, and never run `supabase db push` against live.
 
