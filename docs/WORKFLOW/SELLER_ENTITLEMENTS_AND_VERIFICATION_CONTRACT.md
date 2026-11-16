@@ -197,3 +197,14 @@ Read-only inspection of staging project `vjiadqygpyebpisxslbx` confirmed:
 - Admin configuration is optional policy management, not a prerequisite for Entry plan availability.
 - Migration `20261116233544_free_entry_defaults_and_trial_assignment.sql` activates `plan-free`, seeds both bounded limits, and maps valid `trialing` subscriptions with a null plan to `plan-free`. Paid subscriptions and expired trials are not rewritten.
 - This fixes the missing-plan / unconfigured-quota condition. It does not classify or bypass the four existing Nigerian verification rules; those remain a distinct activation blocker until each is assigned its correct scope.
+
+
+## 14. Nigerian seller checks — owner decision and staging implementation (17 November 2026)
+
+The four existing enabled/required Nigerian seller checks (`phone`, `identity`, `face_liveness`, `business_address`) are classified as `commercial` for storefront activation. They are not a universal prerequisite for Free/Entry or Starter activation. Growth and Pro continue to require commercial verification through their plan entitlements.
+
+Staging migration `20261117090000_ng_seller_checks_commercial_tier_activation.sql` applies this classification. The checks remain present, enabled and required for plans that include/require commercial verification. This classification does not assert that the checks are unnecessary for financial services. Payment-provider eligibility, AML/KYC, wallet funding/holding, virtual-account provisioning and withdrawals must each enforce their own confirmed requirements. Do not reuse the storefront activation flag as a substitute for those capability gates.
+
+For Free/Starter, `private.store_verification_complete(store)` excludes commercial checks; for Growth/Pro it includes them. Mandatory compliance checks, if confirmed and added with `requirement_scope='mandatory_compliance'`, continue to block all applicable tiers. Unclassified rules continue to fail closed.
+
+Shopflow staging state after the Free defaults and classification migrations: approved application; active trial subscription on `plan-free`; 5 active-product limit; 2 new listings/day; no commercial verification requirement for activation. The database verification helper returns complete. Its activation status remains `verification_required` until the authenticated owner invokes `public.request_store_activation()`. Never mutate the store directly to live to simulate this user action.
