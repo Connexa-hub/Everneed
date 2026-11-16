@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
         p_error_code: "webhook_processing_error",
         p_error_message: String((e as Error).message || e).slice(0, 240),
       });
-      return json({ ok: true, queued: true });
+      return json({ ok: false, retry: true }, 503);
     }
     return json({ ok: true });
   }
