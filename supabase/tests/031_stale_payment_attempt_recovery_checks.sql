@@ -5,13 +5,15 @@ do $$
 declare
   v_claim regprocedure;
   v_finish regprocedure;
+  v_guard regprocedure;
   v_oid oid;
   v_def text;
 begin
   v_claim := to_regprocedure('public.claim_stale_payment_attempt_recovery(integer,integer,integer,integer)');
   v_finish := to_regprocedure('public.finish_stale_payment_attempt_recovery(uuid,uuid,text,text,text,integer)');
+  v_guard := to_regprocedure('private.block_new_attempt_after_reconciliation()');
 
-  if v_claim is null or v_finish is null then
+  if v_claim is null or v_finish is null or v_guard is null then
     raise exception 'Migration 031 stale-attempt recovery RPC is missing';
   end if;
 
@@ -44,6 +46,15 @@ begin
      or position('p_outcome is null' in lower(v_def)) = 0
      or position('reconciliation_required' in lower(v_def)) = 0 then
     raise exception 'Stale-attempt completion must be lease-token fenced and support reconciliation';
+  end if;
+
+  if not exists (
+    select 1 from pg_trigger
+    where tgname='payment_attempts_block_new_after_reconciliation'
+      and tgrelid='private.payment_attempts'::regclass
+      and not tgisinternal
+  ) then
+    raise exception 'New payment attempts must be blocked while reconciliation is unresolved';
   end if;
 
   if not exists (
