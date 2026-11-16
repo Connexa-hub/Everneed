@@ -6,6 +6,8 @@ declare
   v_fn regprocedure;
   v_journal_id uuid;
   v_repeat_id uuid;
+  v_reversal_id uuid;
+  v_reversal_repeat_id uuid;
   v_failed boolean := false;
   v_line_count integer;
   v_debits numeric;
@@ -94,7 +96,47 @@ begin
   if not v_failed then
     raise exception 'Idempotency key reuse with different content was accepted.';
   end if;
+
+  v_reversal_id := public.reverse_finance_journal(
+    v_journal_id,'ci-phase3-reversal','CI reversal test','{"test":true}'::jsonb
+  );
+  if not exists (
+    select 1 from private.finance_journals
+    where id=v_reversal_id and reversal_of=v_journal_id
+  ) then
+    raise exception 'The reversal journal is not linked to its original.';
+  end if;
+  if not exists (
+    select 1 from private.finance_journal_lines
+    where journal_id=v_reversal_id and direction='credit' and amount_minor=12500
+      and account_id=(select account_id from private.finance_journal_lines where journal_id=v_journal_id and direction='debit')
+  ) or not exists (
+    select 1 from private.finance_journal_lines
+    where journal_id=v_reversal_id and direction='debit' and amount_minor=12500
+      and account_id=(select account_id from private.finance_journal_lines where journal_id=v_journal_id and direction='credit')
+  ) then
+    raise exception 'Reversal lines do not exactly invert the original journal.';
+  end if;
+
+  v_reversal_repeat_id := public.reverse_finance_journal(
+    v_journal_id,'ci-phase3-reversal','CI reversal test','{"test":true}'::jsonb
+  );
+  if v_reversal_repeat_id <> v_reversal_id then
+    raise exception 'An identical reversal retry created a second journal.';
+  end if;
+
+  v_failed := false;
+  begin
+    perform public.reverse_finance_journal(
+      v_journal_id,'ci-phase3-reversal-2','Different reversal request','{"test":true}'::jsonb
+    );
+  exception when others then
+    v_failed := true;
+  end;
+  if not v_failed then
+    raise exception 'A second conflicting reversal was accepted.';
+  end if;
 end
-$$;
+$;
 
 rollback;
