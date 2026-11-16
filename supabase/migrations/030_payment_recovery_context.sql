@@ -29,9 +29,9 @@ security definer
 set search_path = ''
 as $$
 begin
-  if p_batch_size not between 1 and 50
-     or p_lease_seconds not between 30 and 900
-     or p_max_attempts not between 1 and 20 then
+  if p_batch_size is null or p_batch_size not between 1 and 50
+     or p_lease_seconds is null or p_lease_seconds not between 30 and 900
+     or p_max_attempts is null or p_max_attempts not between 1 and 20 then
     raise exception 'Invalid provider-event recovery limits.';
   end if;
 
@@ -117,5 +117,62 @@ grant execute on function public.get_payment_attempt_recovery_context(text) to s
 
 comment on function public.get_payment_attempt_recovery_context(text) is
   'Service-only lookup of persisted payment attempt and order context for provider-verified recovery.';
+
+
+-- Tighten argument validation on the lease completion RPC as well.
+create or replace function public.finish_provider_event_recovery(
+  p_event_id uuid,
+  p_lease_token uuid,
+  p_processing_status text,
+  p_error_code text default null,
+  p_error_message text default null,
+  p_max_attempts integer default 8
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_rows integer;
+begin
+  if p_event_id is null
+     or p_lease_token is null
+     or p_processing_status is null
+     or p_processing_status not in ('processed', 'retry', 'quarantined')
+     or p_max_attempts is null
+     or p_max_attempts not between 1 and 20 then
+    raise exception 'Invalid provider-event recovery completion.';
+  end if;
+
+  update private.provider_event_inbox
+     set processing_status = case
+           when p_processing_status = 'retry' and attempts >= p_max_attempts then 'dead_lettered'
+           else p_processing_status
+         end,
+         processed_at = case when p_processing_status = 'processed' then now() else processed_at end,
+         dead_lettered_at = case
+           when p_processing_status = 'retry' and attempts >= p_max_attempts then now()
+           else null
+         end,
+         next_attempt_at = case
+           when p_processing_status = 'retry' and attempts < p_max_attempts
+             then now() + make_interval(mins => least(360, power(2, least(attempts, 8))::integer))
+           else null
+         end,
+         lease_token = null,
+         lease_expires_at = null,
+         last_error_code = left(p_error_code, 80),
+         last_error_message = left(p_error_message, 240)
+   where id = p_event_id
+     and processing_status = 'processing'
+     and lease_token = p_lease_token;
+  get diagnostics v_rows = row_count;
+  return v_rows = 1;
+end
+$;
+
+revoke all on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) from public, anon, authenticated;
+grant execute on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) to service_role;
 
 commit;
