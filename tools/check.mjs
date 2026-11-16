@@ -58,6 +58,27 @@ if (paystackSource.includes('return json({ ok: true, queued: true });')) {
   fail('Paystack webhook processing failure must not return a successful 2xx acknowledgement without a retry worker');
 }
 
+// 4c. Payment recovery worker must authenticate service-role calls and verify with Paystack before settlement.
+const recoveryWorkerPath = 'supabase/functions/payment-recovery/index.ts';
+if (existsSync(recoveryWorkerPath)) {
+  const recoverySource = readFileSync(recoveryWorkerPath, 'utf8');
+  for (const required of [
+    'claim_provider_event_recovery',
+    'finish_provider_event_recovery',
+    '/transaction/verify/',
+    'settle_verified_payment_attempt',
+    'Bearer " + SERVICE_KEY',
+  ]) {
+    if (!recoverySource.includes(required)) fail(recoveryWorkerPath + ' is missing required recovery safety check: ' + required);
+  }
+  if (recoverySource.includes('settle_verified_payment_attempt', recoverySource.indexOf('Deno.serve'))) {
+    // Settlement must remain downstream of the Paystack verification branch.
+    if (recoverySource.indexOf('verifyPaystack(') > recoverySource.indexOf('settle_verified_payment_attempt', recoverySource.indexOf('Deno.serve'))) {
+      fail(recoveryWorkerPath + ' must verify Paystack before invoking settlement');
+    }
+  }
+}
+
 // 5. No retired dropshipping integrations outside history files. Do not ban the word
 // "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
 const BAN = /\b(cj|cjdropshipping|eprolo|sup_[a-z]+)\b/i;
