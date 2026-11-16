@@ -35,13 +35,13 @@ Update this table when you change a status.
 ## Seller workspace priority update — 16 Nov 2026
 
 - Owner-approved direction is documented in [SELLER_TIERS_WALLET_SPEC.md](../PRODUCT/SELLER_TIERS_WALLET_SPEC.md). Claude's exact implementation handoff is [CLAUDE_SELLER_WORKSPACE_HANDOFF.md](CLAUDE_SELLER_WORKSPACE_HANDOFF.md).
-- Current frontend audit: setup.js requires ordinary bank payout details in step 4. Backend fix is now drafted in `034_defer_seller_payout_details.sql`: submission still requires business_name and latest seller policy acceptance, but no longer requires bank_name/account_number/account_name. Migration 034 is committed but not yet applied; frontend must coordinate against the staging-applied contract before removing the step.
+- Current frontend audit: setup.js requires ordinary bank payout details in step 4. Backend fix is applied in `20261116201132_seller_onboarding_entitlements_and_quotas.sql`: submission still requires business_name and latest seller policy acceptance, but no longer requires bank_name/account_number/account_name. Claude can now wire the setup flow to the staging contract.
 - Current workspace.js loads products, store/application/private details and notifications only. Its dashboard has four product-status KPIs and a setup checklist; no wallet, virtual-account, effective-plan, entitlement or subscription data is loaded.
 - Existing SELLER_ENTITLEMENTS_AND_VERIFICATION_CONTRACT.md already defines Free/Starter optional commercial verification and Growth/Pro included verification. Migration 019's current activation/live functions do not implement that tier-aware distinction; backend work is required.
 - No seller wallet or virtual-account tables were found in staging schema inspection. Finance journal migrations 030–033 are foundations, not a seller wallet or Paystack virtual-account implementation.
 - Claude: implement low-friction seller setup and the tier-aware dashboard shell; preserve required policy acceptance and all mandatory compliance checks. Do not show fake wallet balances, virtual-account numbers or transfer outcomes. ChatGPT coordinator must supply the staging-only backend change for submit_store and activation policy before the relevant UI is released.
 - Owner decision (16 Nov): Free active-product and daily new-listing limits must be configurable by authorised platform admins, not hardcoded. Both values remain unset until configured; UI must show Not configured, never infer zero or unlimited. Seller spec and Claude handoff now document this. Existing paid-tier pricing and product limits remain unchanged.
-- Migration 034 adds the payout deferral RPC contract and a structural regression test; `migrations-check.yml` and `build.yml` now include migration 034 and its test. CI has not yet reported on the new commits. Do not apply 034 to staging until the full migration replay/database tests pass.
+- Migration `20261116201132` and structural regression test `supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql` are committed. The structural assertions were also executed directly against staging and passed. Full CI replay, role-abuse tests, quota concurrency tests and browser E2E remain outstanding.
 
 ## Next up — website MVP first (fast-track)
 1. **Owner test gate:** open `https://web-portal.everneed.pages.dev` on a phone and test direct URLs, sign-up/sign-in, store setup save/resume, product create/edit/submit and storefront display. Report only concrete failures/screenshots; CI syntax success is not browser E2E.
@@ -246,7 +246,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 
 ## Backend delivery — seller onboarding and entitlements (16 Nov 2026)
 
-- <badge>STAGING APPLIED</badge> Migration `20261116201132_seller_onboarding_entitlements_and_quotas` is applied to `vjiadqygpyebpisxslbx`; remote ledger verified. Matching migration source is `supabase/migrations/20261116201132_seller_onboarding_entitlements_and_quotas.sql`.
+- STAGING APPLIED Migration `20261116201132_seller_onboarding_entitlements_and_quotas` is applied to `vjiadqygpyebpisxslbx`; remote ledger verified. Matching migration source is `supabase/migrations/20261116201132_seller_onboarding_entitlements_and_quotas.sql`.
 - `public.submit_store()` no longer requires bank name/account number/account name; business name and latest seller policy acceptance remain required. Payout bank details remain in the schema for later payout setup.
 - Added `seller_plan_entitlements`, `seller_product_listing_events`, admin RPCs `admin_set_plan_entitlements()` and `admin_set_verification_scope()`, and seller RPC `my_store_entitlements()`.
 - Product insert and archive restore now enforce configured active-product limits; new-product inserts enforce durable daily quota events, serialized by locking the store row. Deleting a product does not reset the quota.
