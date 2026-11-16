@@ -49,6 +49,15 @@ for (const fn of readdirSync('supabase/functions')) {
   }
 }
 
+// 4b. A durable Paystack event that fails inline processing must not be acknowledged as delivered.
+const paystackSource = readFileSync('supabase/functions/paystack/index.ts', 'utf8');
+if (!paystackSource.includes('return json({ ok: false, retry: true }, 503);')) {
+  fail('Paystack webhook processing failures must return HTTP 503 so the provider retries the durable event');
+}
+if (paystackSource.includes('return json({ ok: true, queued: true });')) {
+  fail('Paystack webhook processing failure must not return a successful 2xx acknowledgement without a retry worker');
+}
+
 // 5. No retired dropshipping integrations outside history files. Do not ban the word
 // "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
 const BAN = /\b(cj|cjdropshipping|eprolo|sup_[a-z]+)\b/i;
