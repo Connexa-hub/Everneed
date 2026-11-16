@@ -108,6 +108,6 @@ Until these policies are approved, the existing manual payout RPC should not be 
 
 ## 6. Source implementation started — migration 033
 
-Migration `033_double_entry_finance_journal.sql` now creates the private chart of accounts, immutable journal headers/lines, seeded currency-specific accounts, service-only balanced posting RPC, source-event idempotency and direct-write restrictions. Its SQL test verifies balanced posting, idempotent replay, mismatched-content rejection, client isolation and immutability. This migration is **source-only** and has not been applied to staging or production. It does not yet add reversal posting, map existing seller-ledger events, automate payout transfers or change seller balance calculations.
+Migration `033_double_entry_finance_journal.sql` now creates the private chart of accounts, immutable journal headers/lines, seeded currency-specific accounts, service-only balanced posting RPC, source-event idempotency, direct-write restrictions and a linked idempotent full-reversal RPC. Its SQL test verifies balanced posting, idempotent replay, mismatched-content rejection, exact full reversal, reversal idempotency, client isolation and immutability. This migration is **source-only** and has not been applied to staging or production. It does not yet map existing seller-ledger events, automate payout transfers or change seller balance calculations.
 
 The first full replay/SQL CI run for migration 033 is pending. No staging or production data has been changed.
