@@ -1,15 +1,10 @@
 name: Staging database
 
-# Applies supabase/migrations/ to the STAGING database (Everneed-staging, ref vjiadqygpyebpisxslbx).
-# Runs whenever migrations change on web-portal, or by hand from the Actions tab.
-# It can never touch the live database: it refuses to run unless the connection string is the staging project.
-# One-time setup by the owner: add the repository secret STAGING_DB_URL (see docs/WORKFLOW/ENVIRONMENTS.md).
+# Applies pending migrations to Everneed-staging only when manually dispatched.
+# Automatic push-triggered database changes are intentionally disabled.
+# Exact staging/live project-ref guards remain mandatory.
 
 on:
-  push:
-    branches: [web-portal]
-    paths:
-      - 'supabase/migrations/**'
   workflow_dispatch:
 
 permissions:
