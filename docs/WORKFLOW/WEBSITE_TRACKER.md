@@ -259,3 +259,12 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Follow-up migration `20261116201843_seller_product_quota_trigger_privilege_fix` is also applied to staging. It makes the product guard a safe SECURITY DEFINER trigger so seller requests can read private entitlement rows and write durable quota events without granting direct table access.
 - A staging transaction test impersonating the existing Shopflow seller confirmed one product insert succeeds under a temporary one-per-day quota and the second is rejected. The transaction rolled back; no test product or entitlement changes persisted.
 - CI test now checks the trigger's SECURITY DEFINER property. Full local migration replay/database tests remain in progress.
+
+
+## P0 staging incident — Shopflow portal and Official Store admin (16 Nov 2026)
+
+- Incident and Claude handoff: [Shopflow portal + Official Store admin](../BUGS/SHOPFLOW_PORTAL_AND_OFFICIAL_STORE_ADMIN.md).
+- Staging read-only inspection confirms Shopflow owner profile `connexabot@gmail.com`, role `merchant`, store status `approved`, activation status `verification_required`; four enabled Nigerian checks have no completion records. The correct experience is an approved-but-not-live verification screen, not a live dashboard or a new seller application.
+- The supplied diagnostic contained browser metadata only, not the actual exception/stack/request failure. Claude must reproduce against the deployed staging preview and capture the real runtime error before claiming a root cause.
+- Existing admin Stores list labels the official store but suppresses actions for it; no dedicated Official Store route/navigation exists. Add an admin-only panel for canonical `everneed-official` using the official-store contract.
+- All fixes and tests are staging-only. Do not bypass verification, touch production, or merge PR #31.
