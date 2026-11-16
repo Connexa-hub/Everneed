@@ -42,7 +42,7 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
 
 ## Moving a change from idea to live
 1. Write the migration as `supabase/migrations/NNN_name.sql` (next number: 030; 029 is already applied to staging). Digits, underscore, name. The `Migration files` check fails the push if it is not named that way.
-2. Push to `web-portal` for CI only. Staging is not updated by a push; after review, the owner must manually dispatch `Staging database` with explicit approval.
+2. Push to `web-portal` for CI only. Staging is not updated by a push; after review, the owner must manually dispatch `Staging database` and select `APPLY` (the default is `NO`).
 3. Test on the `web-portal` preview site and, once wired, a test app build.
 4. Open a pull request to `main`. Tests must be green.
 5. Merge. Cloudflare deploys the website to production.
