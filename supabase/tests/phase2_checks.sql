@@ -112,7 +112,7 @@ begin
   perform public.zz_back();
   perform public.zz_as(ua);
   perform public.review_product(p1, 'publish'); perform public.review_product(p2, 'publish'); perform public.review_product(p4, 'publish');
-  insert into public.products(name, col, price, stock, status) values ('EverNeed Mug', 'Home', 2000, 20, 'published') returning id into p3;
+  insert into public.products(name, col, price, stock, store_id, status) values ('EverNeed Mug', 'Home', 2000, 20, 'everneed-official', 'published') returning id into p3;
   perform public.zz_back();
   r := r || public.zz_ok('admin-created product lands in the official store', (select store_id from public.products where id = p3) = 'everneed-official');
   perform public.zz_as(um1);
