@@ -1,0 +1,50 @@
+/* Auth showcase (sign-in / create-account): own transparent product art + big animated text.
+   Loaded after setup.css. Classes are prefixed ae- so nothing here touches older auth rules. */
+.auth-intro-area{min-height:clamp(300px,46svh,470px);padding:0;display:flex;align-items:center;justify-content:center}
+.ae-show{width:min(100%,920px);margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center}
+
+/* product colours (design tokens, so they follow the palette and dark mode) */
+.ae-serum{--pc:var(--success)}.ae-audio{--pc:var(--info)}.ae-watch{--pc:var(--accent)}.ae-sneaker{--pc:var(--danger)}
+
+/* big title: letters rise in once */
+.ae-title{margin:0;font:700 clamp(2.4rem,9.4vw,4.6rem)/1 var(--font-display);letter-spacing:-.055em;color:var(--text-1)}
+.ae-wd{display:inline-block;overflow:hidden;padding:.06em .02em .14em;vertical-align:bottom;white-space:nowrap}
+.ae-l{display:inline-block;will-change:transform}
+.ae-title .ae-l{animation:ae-rise .75s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 38ms)}
+@keyframes ae-rise{from{transform:translateY(112%) rotate(7deg)}to{transform:none}}
+
+/* stage: four products on a dotted wave */
+.ae-stage{position:relative;isolation:isolate;width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(4px,2.6vw,34px);align-items:center;margin-top:clamp(6px,2vw,18px)}
+.ae-wave{position:absolute;z-index:-1;left:0;top:50%;width:100%;height:76px;transform:translateY(-50%);overflow:visible;opacity:.4}
+.ae-wave path{fill:none;stroke:var(--brand);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:3 10}
+.ae-item{display:flex;justify-content:center;animation:ae-float 6.4s ease-in-out infinite;will-change:transform}
+.ae-item:nth-of-type(2){animation-delay:-1.6s}.ae-item:nth-of-type(3){animation-delay:-3.2s}.ae-item:nth-of-type(4){animation-delay:-4.8s}
+.ae-art{width:clamp(66px,17.5vw,168px);opacity:.5;transform:scale(.86);filter:saturate(.65);transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .55s,filter .55s}
+.ae-item.is-on .ae-art{opacity:1;transform:scale(1.08);filter:none}
+.ae-art svg{display:block;width:100%;height:auto;overflow:visible}
+@keyframes ae-float{0%,100%{transform:translateY(5px) rotate(-1.5deg)}50%{transform:translateY(-10px) rotate(1.5deg)}}
+
+/* SVG art colours come from --pc, so there is no photo, no white box, and it works in light, dark and AMOLED */
+.ae-art .k1{fill:var(--pc)}
+.ae-art .k2{fill:color-mix(in srgb,var(--pc) 42%,#fff)}
+.ae-art .k3{fill:color-mix(in srgb,var(--pc) 68%,#000)}
+.ae-art .k3s{stroke:color-mix(in srgb,var(--pc) 68%,#000)}
+.ae-art .k1s{stroke:var(--pc)}
+.ae-art .ae-sh{fill:var(--text-1);opacity:.13}
+
+/* the big animated word that follows the highlighted product */
+.ae-word{position:relative;width:100%;height:1.12em;margin-top:clamp(8px,2.4vw,22px);font:800 clamp(2.5rem,12.5vw,5.6rem)/1 var(--font-display);letter-spacing:-.06em;overflow:hidden}
+.ae-w{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;white-space:nowrap;color:var(--pc)}
+.ae-w .ae-l{transform:translateY(108%) rotate(6deg);transition:none}
+.ae-w.is-on .ae-l,.ae-w.is-out .ae-l{transition:transform .62s cubic-bezier(.2,.8,.2,1);transition-delay:calc(var(--i) * 34ms)}
+.ae-w.is-on .ae-l{transform:none}
+.ae-w.is-out .ae-l{transform:translateY(-108%) rotate(-6deg)}
+
+@media(max-width:420px){.ae-word{font-size:clamp(2.3rem,13.2vw,3.2rem)}.ae-wave{height:52px}}
+@media(max-height:700px) and (max-width:680px){.auth-intro-area{min-height:clamp(270px,44svh,340px)}}
+
+@media(prefers-reduced-motion:reduce){
+  .ae-title .ae-l,.ae-item{animation:none!important}
+  .ae-art,.ae-w .ae-l{transition:none!important}
+  .ae-art{opacity:1;transform:none;filter:none}
+}
