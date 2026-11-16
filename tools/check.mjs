@@ -65,6 +65,8 @@ if (existsSync(recoveryWorkerPath)) {
   for (const required of [
     'claim_provider_event_recovery',
     'finish_provider_event_recovery',
+    'get_payment_attempt_recovery_context',
+    'payment_attempt_id',
     '/transaction/verify/',
     'settle_verified_payment_attempt',
     'Bearer " + SERVICE_KEY',
