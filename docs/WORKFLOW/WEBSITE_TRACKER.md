@@ -320,3 +320,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Staging verification: Free is active with 5 active products / 2 new listings per day; Starter remains ₦3,000 / 25 products; Growth ₦8,000 / 200 products; Pro ₦20,000 / unlimited. No paid-tier values changed.
 - Shopflow's valid trial subscription was assigned `plan-free`; its plan/quota configuration blocker is resolved. Its activation status remains `verification_required` because Nigeria's phone, identity, face/liveness and business-address rules are still `unclassified`. No rule was silently waived and the store was not marked live.
 - Remaining work: determine the correct capability/scope for each Nigerian check, then correct activation/UI reason handling. Authenticated seller E2E, CI and deployment verification remain outstanding. Production untouched; PR #31 remains open/unmerged.
+
+
+## 2026-11-17 — Free/Starter verification activation policy correction
+
+- Owner clarified that Free/Entry and its free trial must not depend on platform-admin configuration. The existing staging migration `20261116233544_free_entry_defaults_and_trial_assignment.sql` is confirmed applied: Free is active with 5 active products and 2 new listings per seller-local day; valid null-plan trials are assigned to `plan-free`.
+- Owner also clarified that Free/Starter should not be blocked by the four existing Nigerian commercial seller checks. Applied staging migration `20261117090000_ng_seller_checks_commercial_tier_activation.sql`, classifying phone, identity, face/liveness and business address as `commercial` for storefront activation. Free and Starter do not require these checks; Growth and Pro still do. No check result was forged or marked verified.
+- This is not a waiver of activity-specific financial/provider requirements. Wallet funding/holding, virtual-account provisioning, AML/KYC and withdrawals remain separately gated according to confirmed requirements.
+- Verified staging: Shopflow is approved, on a valid `plan-free` trial, with 5 active products / 2 daily new listings. `private.store_verification_complete(Shopflow)` now returns true. The stored activation status is still `verification_required` pending the authenticated seller activation action; no direct status mutation was made.
+- Migration committed to `web-portal` in commit `73e3a9d7ad74525a81750bcdb015459eebe9f3c9`. Product spec, backend contract and tracker updated in subsequent documentation commits.
+- Remaining: verify that the portal exposes the correct activation action and reason state; run authenticated Shopflow browser E2E and CI. Production untouched; PR #31 remains open/unmerged.
