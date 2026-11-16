@@ -340,3 +340,11 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - CI on current PR head: Web checks passed; migration file/order check passed. Android build remains pending. Earlier migration-order failure was caused by the new migration not yet being included in the replay manifest; the manifest is now aligned and the latest migration check passes.
 - Staging backend confirms Shopflow's Free entitlement (5 active products, 2 daily new listings) and `private.store_verification_complete()` returns true. Its activation status remains unchanged pending the authenticated seller activation action. Browser E2E and deployed-preview verification are still outstanding; do not claim Shopflow is live until that action succeeds.
 - Production remains untouched; PR #31 remains open and unmerged.
+
+
+## 2026-11-17 — Seller activation preview deployed
+
+- Cloudflare Pages preview deployment `060d38da-cafb-4d25-ada0-6d73af206d30` completed successfully for branch `web-portal`, commit `95c1cc012781025bd614732685962aec5826998d`: https://060d38da.everneed.pages.dev
+- Web checks passed on the code commit `8ff8128ad4eb62373bd1091cc72f31324df941af`; migration filename/order check passed on current PR head `91a59694411a625384921d5392a6ce2275e2cf81` and on the later entitlement UI code head. The final docs-only tracker commit does not alter runtime code.
+- Preview deployment is verified, but authenticated Shopflow browser E2E is not. Shopflow remains `activation_status='verification_required'` in staging until the owner signs in and presses the new **Activate my store** action. Backend helper already confirms no commercial verification blocker for its Free trial.
+- Next test: sign into the preview as Shopflow owner, open `/portal`, press **Activate my store**, then confirm the portal reports Live and the database status changes through `public.request_store_activation()`. No direct database status edit is authorised or needed.
