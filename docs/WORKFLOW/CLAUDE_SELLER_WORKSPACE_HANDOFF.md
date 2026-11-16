@@ -60,13 +60,27 @@ Inspected current web-portal source on 16 November 2026:
 - Provide loading, empty, error, retry and success states.
 - Mobile-first for 360–412px, low/mid-range Android and constrained data; minimum 44px touch targets.
 
-## Backend coordination required — do not invent
+## Backend coordination — migration 034 applied to staging (16 Nov 2026)
 
-The current backend has a real blocker: migration 019 submit_store() requires ordinary payout bank details before application submission. ChatGPT coordinator must provide a backwards-compatible staging migration and updated contract before Claude removes any required field that would make submission fail.
+Migration file: `supabase/migrations/20261116201132_seller_onboarding_entitlements_and_quotas.sql`
+Staging project: `vjiadqygpyebpisxslbx`. Remote migration ledger confirms version `20261116201132` applied. Production remains untouched.
 
-Likewise, the activation policy must be corrected at the database boundary to honor the existing entitlement contract (Free/Starter optional commercial verification; Growth/Pro included verification; mandatory regional compliance still enforced). Do not patch activation status from JavaScript.
+Claude can now integrate these real backend contracts:
+- `public.submit_store(p_store text)`: seller submission requires business_name and latest seller policy acceptance; bank_name/account_number/account_name are no longer prerequisites. Keep payout destination setup separate and later.
+- `public.my_store_entitlements()`: returns the authenticated seller's effective plan, active product usage/cap, daily listing usage/cap, verification entitlement and business timezone. Treat `configured=false` as a real not-configured state.
+- Admin reads `public.seller_plan_entitlements` under admin-only RLS.
+- Admin writes limits through `public.admin_set_plan_entitlements(plan_id, active_limit, active_unlimited, daily_limit, daily_unlimited, verification_included, reason)`. Both limits require either a positive integer or an explicit unlimited flag. The RPC audits before/after values and actor.
+- Admin classifies regional verification rules through `public.admin_set_verification_scope(country, check_type, scope, reason)`, where scope is `mandatory_compliance`, `commercial`, or `unclassified`.
 
-For wallet and virtual-account UI, wait for a tested server-side read contract. Do not build a mock API or use client-side balance arithmetic.
+Important safety state:
+- Free plan shell `plan-free` exists but is inactive and both limits are unset. It becomes selectable only after an admin configures both limits.
+- Starter remains 25 active products; Growth 200; Pro unlimited. Existing prices are unchanged. Existing paid-tier daily quotas are explicitly unlimited.
+- All four existing Nigeria checks remain `unclassified`. Unclassified required checks continue to block activation. Do not tell sellers these are optional or bypass them until an authorised admin classifies them. This deliberately fails closed rather than guessing which checks are legally mandatory.
+- Growth/Pro entitlements require commercial verification; Free/Starter do not, once rule classifications and mandatory compliance are configured.
+- Product insert and archive restore are guarded in the database. New-product daily quota events are durable and cannot be reset by deleting a product.
+- This migration does not implement a wallet, virtual account or payout provider workflow.
+
+Do not remove the bank step until your frontend is wired to the updated staging RPC. Keep the seller setup page responsive and show payout setup as a later, clearly separate task. Do not fake any wallet data.
 
 ## Required deliverables
 
@@ -104,3 +118,8 @@ Backend coordination:
 - The coordinator must supply a server-authorised read/write contract, validation rules, audit logging and server-side enforcement before connecting the UI.
 - Product creation/publication and daily listing quota checks must use the same effective configuration returned to the seller dashboard.
 - Until the setting is configured, the UI must not claim a numeric cap or unlimited capacity. Do not block seller account creation or basic dashboard access because the setting is unset.
+
+
+## Staging backend update — 16 November 2026
+
+The backend migration is now applied to Everneed-staging. Use the contracts above; do not wait for a future migration to remove the initial payout-bank prerequisite. Keep the Free plan UI as “Not configured” until the platform admin configures both limits. Build the authorised admin settings surface against the existing RPCs and admin-only table read policy. Add verification-scope classification to the admin operations UI, but do not preselect classifications for Nigeria's four existing checks.
