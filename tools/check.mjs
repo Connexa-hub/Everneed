@@ -80,7 +80,8 @@ if (existsSync(recoveryWorkerPath)) {
   }
   if (!recoverySource.includes('event.signature_verified !== true')) {
     fail(recoveryWorkerPath + ' must refuse inbox events without a verified provider signature');
-  }}
+  }
+}
 
 // 5. No retired dropshipping integrations outside history files. Do not ban the word
 // "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
