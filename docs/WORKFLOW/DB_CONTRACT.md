@@ -145,7 +145,7 @@ Policy counts in brackets.
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 030.**
+Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next new repository migration number: 032.** Staging is still pending 030 and 031.
 
 | File | Recorded version | In repo | Applied to staging / live |
 |---|---|---|---|
@@ -176,6 +176,8 @@ Repo folder: `supabase/migrations/`. **Files replay in plain filename order, whi
 | `027_payment_checkout_snapshot` | 027 (repo sequence) | yes | **staging only; live not applied** |
 | `028_payment_attempt_rpc` | 028 (repo sequence) | yes | **staging only; live not applied** |
 | `029_payment_recovery_worker` | 029 (repo sequence) | yes | **staging applied 16 Nov 2026 by former automatic workflow; live not applied** |
+| `030_payment_recovery_context` | 030 (repo sequence) | yes | **repository/CI only; not applied to staging or live** |
+| `031_stale_payment_attempt_recovery` | 031 (repo sequence) | yes | **repository/CI only; not applied to staging or live** |
 
 
 **How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters.
@@ -213,7 +215,7 @@ The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_RE
 
 ## How to add a database change
 1. Read the table or function you are changing in the live database first.
-2. Number it **030** or higher (staging and repository migration history verified through 029 on 16 Nov 2026). Digits, underscore, name, `.sql`.
+2. Number it **032** or higher (029 is applied to staging; 030 and 031 are in the repository but not yet applied to staging). Digits, underscore, name, `.sql`.
 3. Push it to `web-portal` for CI only. The `Database tests` job replays it locally. Staging application requires manual workflow dispatch with the explicit `APPLY` input (default `NO`) and owner approval; run the security advisors and compare the result with the intended schema/security contract.
 4. Commit the reviewed migration and update this contract and the project tracker in the same PR.
 5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline, and never run `supabase db push` against live.
