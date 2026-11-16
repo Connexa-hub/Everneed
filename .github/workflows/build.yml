@@ -146,5 +146,5 @@ jobs:
           echo "Branch: \`${{ github.ref_name }}\`, build ${{ github.run_number }}." >> "$GITHUB_STEP_SUMMARY"
           echo "- Or this run's Artifacts section: **everneed-apk**." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Seller payout deferral contract tests (034)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_defer_seller_payout_details_checks.sql
+      - name: Seller onboarding, plan entitlement and quota tests (034)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
