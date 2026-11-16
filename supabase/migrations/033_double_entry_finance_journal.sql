@@ -81,10 +81,9 @@ on conflict (account_code, currency) do nothing;
 revoke all on private.finance_accounts from public, anon, authenticated;
 revoke all on private.finance_journals from public, anon, authenticated;
 revoke all on private.finance_journal_lines from public, anon, authenticated;
-grant all on private.finance_accounts to service_role;
-grant all on private.finance_journals to service_role;
-grant all on private.finance_journal_lines to service_role;
-grant usage, select on all sequences in schema private to service_role;
+grant select on private.finance_accounts to service_role;
+grant select on private.finance_journals to service_role;
+grant select on private.finance_journal_lines to service_role;
 
 create or replace function private.finance_immutable_guard()
 returns trigger
@@ -143,10 +142,12 @@ begin
      or coalesce(trim(p_idempotency_key), '') = ''
      or v_currency not in ('NGN','GHS','KES','ZAR','GBP','USD')
      or coalesce(trim(p_description), '') = ''
-     or jsonb_typeof(p_lines) <> 'array'
-     or jsonb_array_length(p_lines) < 2
      or jsonb_typeof(coalesce(p_metadata, '{}'::jsonb)) <> 'object' then
     raise exception 'Invalid finance journal request.';
+  end if;
+  if p_lines is null or jsonb_typeof(p_lines) <> 'array'
+     or jsonb_array_length(p_lines) < 2 or jsonb_array_length(p_lines) > 1000 then
+    raise exception 'Finance journal requires between 2 and 1000 lines.';
   end if;
 
   v_hash := encode(extensions.digest(convert_to(jsonb_build_object(
@@ -198,7 +199,7 @@ begin
     v_amount := (v_line->>'amount_minor')::bigint;
     select a.id into v_account_id
       from private.finance_accounts a
-     where a.account_code = v_line->>'account_code'
+     where a.account_code = (v_line->>'account_code')
        and a.currency = v_currency;
     if v_account_id is null then
       raise exception 'Finance account % is not configured for currency %.',
