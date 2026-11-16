@@ -8,7 +8,7 @@ A second database, **staging** (`Everneed-staging`, ref `vjiadqygpyebpisxslbx`),
 ## Branch and database workflow
 - App and website changes are developed together on `web-portal` and released together to `main` through a reviewed pull request.
 - Both clients must use the same documented function signatures, status rules, money rules and RLS expectations. Put reusable client helpers in `shared/`.
-- Database changes must be committed as numbered files in `supabase/migrations/` before they are applied anywhere. They reach staging automatically (`staging-db.yml`) and live by hand with the owner's approval. Update this contract and the project tracker in the same change.
+- Database changes must be committed as numbered files in `supabase/migrations/` before they are applied anywhere. They reach staging only through a manually dispatched, owner-approved `staging-db.yml` workflow, and live by hand with separate owner approval. Update this contract and the project tracker in the same change.
 - Verify the Supabase project reference before applying any migration. Never apply a migration to a different project based only on a copied project ID.
 
 ## How the app and website talk to the database
@@ -145,9 +145,9 @@ Policy counts in brackets.
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 025.**
+Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next migration number: 030.**
 
-| File | Live version | In repo | Applied live |
+| File | Recorded version | In repo | Applied to staging / live |
 |---|---|---|---|
 | `000_baseline` | 20261029014653 | yes (see note) | yes |
 | `001_remove_cj` | 20261029014658 | yes (see note) | yes |
@@ -165,6 +165,18 @@ Repo folder: `supabase/migrations/`. **Files replay in plain filename order, whi
 | `016_public_rpc_security_hardening` | 016 (repo sequence) | **yes, added 12 Nov 2026** | **staging only; live not applied** |
 | `017_authenticated_rpc_boundary_hardening` | 017 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied and regression-tested; live not applied** |
 | `018_turnstile_public_rpc_boundary` | 018 (repo sequence) | **yes, added 12 Nov 2026** | **staging applied; ACL regression passed; live not applied** |
+| `019_regional_policy_and_store_verification_gate` | 019 (repo sequence) | yes | **staging only; live not applied** |
+| `020_regional_policy_rls_and_approval_hardening` | 020 (repo sequence) | yes | **staging only; live not applied** |
+| `021_policy_document_public_read_hardening` | 021 (repo sequence) | yes | **staging only; live not applied** |
+| `022_require_latest_seller_policy_acceptance` | 022 (repo sequence) | yes | **staging only; live not applied** |
+| `023_seed_managed_seller_categories` | 023 (repo sequence) | yes | **staging only; live not applied** |
+| `024_storefront_public_details` | 024 (repo sequence) | yes | **staging only; live not applied** |
+| `025_storefront_details_seller_grant` | 025 (repo sequence) | yes | **staging only; live not applied** |
+| `026_payment_lifecycle` | 026 (repo sequence) | yes | **staging only; live not applied** |
+| `027_payment_checkout_snapshot` | 027 (repo sequence) | yes | **staging only; live not applied** |
+| `028_payment_attempt_rpc` | 028 (repo sequence) | yes | **staging only; live not applied** |
+| `029_payment_recovery_worker` | 029 (repo sequence) | yes | **staging applied 16 Nov 2026 by former automatic workflow; live not applied** |
+
 
 **How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters.
 
@@ -201,8 +213,8 @@ The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_RE
 
 ## How to add a database change
 1. Read the table or function you are changing in the live database first.
-2. Number it **029** or higher (staging and repository migration history verified through 028 on 16 Nov 2026). Digits, underscore, name, `.sql`.
-3. Push it to `web-portal`. It is applied to **staging** automatically and the `Database tests` job replays it locally; run the security advisors and compare the result with the intended schema/security contract.
+2. Number it **030** or higher (staging and repository migration history verified through 029 on 16 Nov 2026). Digits, underscore, name, `.sql`.
+3. Push it to `web-portal` for CI only. The `Database tests` job replays it locally. Staging application requires manual workflow dispatch and explicit owner approval; run the security advisors and compare the result with the intended schema/security contract.
 4. Commit the reviewed migration and update this contract and the project tracker in the same PR.
 5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline, and never run `supabase db push` against live.
 
