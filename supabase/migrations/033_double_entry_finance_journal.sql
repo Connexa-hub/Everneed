@@ -78,9 +78,9 @@ from (values
 cross join (values ('NGN'),('GHS'),('KES'),('ZAR'),('GBP'),('USD')) as c(currency)
 on conflict (account_code, currency) do nothing;
 
-revoke all on private.finance_accounts from public, anon, authenticated;
-revoke all on private.finance_journals from public, anon, authenticated;
-revoke all on private.finance_journal_lines from public, anon, authenticated;
+revoke all on private.finance_accounts from public, anon, authenticated, service_role;
+revoke all on private.finance_journals from public, anon, authenticated, service_role;
+revoke all on private.finance_journal_lines from public, anon, authenticated, service_role;
 grant select on private.finance_accounts to service_role;
 grant select on private.finance_journals to service_role;
 grant select on private.finance_journal_lines to service_role;
