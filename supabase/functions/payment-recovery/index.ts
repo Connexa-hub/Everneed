@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
             !context ||
             String(tx.metadata?.order_id || "") !== String(context.order_id) ||
             String(tx.metadata?.user_id || "") !== String(context.user_id) ||
+            String(tx.metadata?.payment_attempt_id || "") !== String(context.attempt_id) ||
             Number(tx.amount) !== Number(context.amount_minor) ||
             String(tx.currency || "").toUpperCase() !== String(context.currency || "").toUpperCase()
           ) {
