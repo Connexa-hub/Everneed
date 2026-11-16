@@ -67,6 +67,11 @@
       if(sub===""){return s.activation_status==="live"?page(home(),"portal","Dashboard"):base(p)}
       if(sub==="products")return page(list(),"portal/products","Products",bindList);
       return page(editor(p[1]),"portal/products","Product",bindEditor);
+    }).catch(function(e){
+      /* The workspace replaces portal.js for approved sellers. If its data load fails,
+         hand control back to portal.js so its recoverable error screen is rendered.
+         Do not silently treat a failed request as an empty store or bypass verification. */
+      return base(p);
     });
   };
 
