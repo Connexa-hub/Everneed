@@ -201,7 +201,7 @@ The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_RE
 
 ## How to add a database change
 1. Read the table or function you are changing in the live database first.
-2. Number it **016** or higher. Digits, underscore, name, `.sql`.
+2. Number it **029** or higher (staging and repository migration history verified through 028 on 16 Nov 2026). Digits, underscore, name, `.sql`.
 3. Push it to `web-portal`. It is applied to **staging** automatically and the `Database tests` job replays it locally; run the security advisors and compare the result with the intended schema/security contract.
 4. Commit the reviewed migration and update this contract and the project tracker in the same PR.
 5. Apply to the live `Everneed01` project only after explicit approval, then verify the result and record the applied migration. Never use the production database to test a reconstructed baseline, and never run `supabase db push` against live.
@@ -212,3 +212,10 @@ The preliminary routine security review is in `docs/WORKFLOW/ROUTINE_SECURITY_RE
 The seller application now captures a structured `stores.storefront_details` JSON object for information intended to appear on the public store page: support email, website/catalogue URL, WhatsApp business contact, Instagram/Facebook/TikTok links, opening hours, returns/exchange summary and shopper-facing delivery information. The migration adds an 8 KiB size guard. The seller identity form saves these details alongside the store name, tagline, description, logo and cover.
 
 Do not put identity numbers, verification evidence, private phone numbers, payout details or registration-address evidence in `storefront_details`. Those belong in private tables and provider-controlled verification workflows. Migration 024 applied successfully to Everneed-staging in workflow run `43298465772`. Production remains unchanged.
+
+
+## Migration and payment baseline correction — 16 Nov 2026
+
+This contract's live database snapshot remains dated 12 Nov 2026 and must not be mistaken for a fresh production catalog inspection. A read-only check of the separate `Everneed-staging` project (`vjiadqygpyebpisxslbx`) confirms migration history versions `000`, `001`, `002`, `0020`, `0021`, `003`, `0030`, and `004` through `028` (29 rows). The repository migration directory matches through `028`; next version is 029. The live project (`zpgasfweaixwsktlueje`) was not queried or changed in this reconciliation.
+
+Staging Edge Function inventory on 16 Nov reports `public-forms` ACTIVE v3 and `paystack` ACTIVE v1. The GitHub Paystack source on `web-portal` includes newer retry acknowledgement logic, but that source has not been deployed to staging. The branch and latest CI status are recorded in `ENVIRONMENTS.md`. Never infer deployed function source version from GitHub source alone.
