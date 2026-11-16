@@ -66,8 +66,10 @@
     if(!Supa.uid()||(sub!==""&&sub!=="products"&&sub!=="product"))return base(p);
     return load(sub!=="product").then(function(){
       var s=W.store;
-      if(!s||s.status!=="approved")return base(p);
-      if(sub===""){return s.activation_status==="live"?page(home(),"portal","Dashboard"):base(p)}
+      /* Verification-required stores must stay in the original portal on every
+         seller route, not only /portal. Never expose inventory routes before activation. */
+      if(!s||s.status!=="approved"||s.activation_status!=="live")return base(p);
+      if(sub===""){return page(home(),"portal","Dashboard")}
       if(sub==="products")return page(list(),"portal/products","Products",bindList);
       return page(editor(p[1]),"portal/products","Product",bindEditor);
     }).catch(function(e){
