@@ -73,7 +73,7 @@ The `payment-recovery` Edge Function is also source-only. Its intended safety pa
 
 Migration 030 and the worker must pass local database replay, SQL regression tests and function type/syntax checks before any staging deployment is considered.
 
-## 5. Migration 031 — stale attempt recovery (source-only)\n\nMigration 031 adds a separate lease lifecycle for stale `initializing`, `pending` and `processing` attempts. It never initializes or charges a new transaction. The worker re-verifies the existing reference; `failed` and `abandoned` can close an attempt, `pending` / `ongoing` / `processing` / `queued` are retried, and `reversed` or unknown states require reconciliation. A database trigger prevents a new attempt from being inserted for an order while a prior attempt is `succeeded` or `reconciliation_required`.\n\nMigration 031 is in the repository but has not been applied to staging. The first full local replay and 031 SQL test passed on commit `939d526`; the subsequent guard/message hardening is being re-run in CI. Staging remains at 029; 030 and 031 require manual dispatch with the explicit `APPLY` input. The next new repository migration number is 032.\n\n## 6. Remaining payment recovery work
+## 5. Migration 031 — stale attempt recovery (source-only)\n\nMigration 031 adds a separate lease lifecycle for stale `initializing`, `pending` and `processing` attempts. It never initializes or charges a new transaction. The worker re-verifies the existing reference; `failed` and `abandoned` can close an attempt, `pending` / `ongoing` / `processing` / `queued` are retried, and `reversed` or unknown states require reconciliation. A database trigger prevents a new attempt from being inserted for an order while a prior attempt is `succeeded` or `reconciliation_required`.\n\nMigration 031 is in the repository but has not been applied to staging. The first full local replay and 031 SQL test passed on commit `939d526`; the subsequent guard/message hardening is being re-run in CI. Staging remains at 029; 030 and 031 require manual dispatch with the explicit `APPLY` input. The next new repository migration number is 033.\n\n## 6. Legacy payment RPC hardening (migration 032)\n\nA read-only staging audit found four service-role-only payment wrappers using `search_path=public` even though their bodies use fully qualified references: `confirm_payment`, `confirm_received_for`, `cancel_order_for`, and `apply_rental_payment_for`. Migration 032 changes only their function-level search path to empty; it does not change behaviour or grants. The admin payment-confirmation RPC remains authenticated-callable only through its server-side `need_admin()` gate, and `report_payment` remains owner-checked with `auth.uid()`. Migration 032 is source-only and not applied to staging.\n\nThe legacy `create_order` function still uses `search_path=public` and contains many unqualified references plus a temporary table; it requires a separate careful refactor and remains service-role-only.\n\n## 7. Remaining payment recovery work
 
 Not yet implemented:
 
@@ -83,7 +83,7 @@ Not yet implemented:
 
 The recovery worker must not create a new charge reference when recovering an ambiguous initialization. It must verify the same persisted reference first. A transaction that is pending, missing, or inconclusive must not be treated as a failure or a successful payment without authoritative provider evidence.
 
-## 7. CI and release gates
+## 8. CI and release gates
 
 - Migration naming/order validation now includes 030.
 - The local database workflow runs the 029 lease/settlement checks, 030 context/privilege checks, and 031 stale-attempt lease/guard checks after applying the migrations.
@@ -93,7 +93,7 @@ The recovery worker must not create a new charge reference when recovering an am
 - Staging migration application now requires manual workflow dispatch and explicit owner approval.
 - No production migration, production Edge Function deployment, production scheduler or production database modification is authorized.
 
-## 8. Next implementation order
+## 9. Next implementation order
 
 1. Finish local replay and regression tests for 029 and 030; fix all failures before proceeding.
 2. Add Deno/type checks for the recovery worker and review its runtime/auth contract.
