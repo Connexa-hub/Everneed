@@ -163,7 +163,7 @@ Do not expose finance, identity, bank, or customer-private data beyond the calle
 
 ## 11. Open configuration decision
 
-The Free plan's exact active-product cap and daily new-product cap remain intentionally unset pending product-owner approval. Keep both values configurable. This is the only plan-limit decision blocking a fully specified Free-plan seed; the architecture, existing paid-tier limits, and activation policy can be implemented without guessing those numbers.
+Owner decision on 17 November 2026: Free/Entry and its free trial use seeded defaults of 5 active products and 2 new product listings per seller-local calendar day. These values are not dependent on prior admin configuration. Admins may change them through the existing audited entitlement RPC. Starter/Growth/Pro remain unchanged.
 
 
 ## 12. Verified staging findings (2026-11-15)
@@ -188,3 +188,12 @@ Read-only inspection of staging project `vjiadqygpyebpisxslbx` confirmed:
 4. Refactor the activation function only after the rule classification is represented explicitly in schema. Until then, do not bypass the current gate by manually setting stores live.
 5. Preserve the existing product-limit trigger while moving its source of truth to effective entitlements; add a separate concurrency-safe daily listing quota.
 6. The Free plan remains unseeded until its active-product and daily-listing caps are approved.
+
+
+## 13. Free Entry defaults correction — 17 November 2026
+
+- Free plan defaults: 5 active products and 2 new product listings per seller-local calendar day.
+- The Free trial uses exactly the same entitlements; trial status does not grant paid-tier capacity.
+- Admin configuration is optional policy management, not a prerequisite for Entry plan availability.
+- Migration `20261117090000_free_entry_defaults_and_trial_assignment.sql` activates `plan-free`, seeds both bounded limits, and maps valid `trialing` subscriptions with a null plan to `plan-free`. Paid subscriptions and expired trials are not rewritten.
+- This fixes the missing-plan / unconfigured-quota condition. It does not classify or bypass the four existing Nigerian verification rules; those remain a distinct activation blocker until each is assigned its correct scope.
