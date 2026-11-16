@@ -242,6 +242,38 @@ begin
 end
 $$;
 
+-- Resolve trusted attempt context from the persisted reference. The worker compares
+-- Paystack's server-verified metadata to this context before settlement.
+create or replace function public.get_payment_attempt_recovery_context(
+  p_provider_reference text
+)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select jsonb_build_object(
+    'attempt_id', a.id,
+    'order_id', a.order_id,
+    'user_id', a.user_id,
+    'amount_minor', a.amount_minor,
+    'currency', a.currency,
+    'currency_exponent', a.currency_exponent,
+    'attempt_status', a.status,
+    'order_status', o.status,
+    'payment_status', o.payment_status
+  )
+  from private.payment_attempts a
+  join public.orders o on o.id = a.order_id
+  where a.provider = 'paystack'
+    and a.provider_reference = p_provider_reference
+  limit 1
+$;
+
+revoke all on function public.get_payment_attempt_recovery_context(text) from public, anon, authenticated;
+grant execute on function public.get_payment_attempt_recovery_context(text) to service_role;
+
 -- Atomic multi-worker claim. Expired leases are reclaimable after a worker crash.
 -- Attempt count is incremented at claim time, so crashes are bounded too.
 create or replace function public.claim_provider_event_recovery(
