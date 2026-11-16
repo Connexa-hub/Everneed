@@ -303,3 +303,10 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Updated `web/assets/js/portal.js` so approved, not-yet-live stores skip `store_private`, `store_applications`, `products`, and `product_private` reads. Store verification checks, regional rules, policies, and notifications continue to load. The existing activation requirements remain unchanged; no verification bypass or live-state mutation was introduced.
 - Commits: portal `359887cd11e0a3c6b49733716d8cae4beeb67e3f`; workspace `4c395bcfb248dff17c34f499ede0ab2c8f48228b`.
 - Status: code correction committed to `web-portal`; authenticated Shopflow browser verification and CI/deployment confirmation still pending. Production branch/database untouched; PR #31 remains unmerged.
+
+
+## Shopflow verification route guard — 17 Nov 2026 (ChatGPT fallback)
+
+- Follow-up source audit confirmed the workspace loader now short-circuits product/private inventory requests when an approved store is not live. However, its route dispatcher still sent `/portal/products` and `/portal/product/*` to the workspace solely because the store was approved; only the root route checked activation status. This left a route-level gap for direct/deep links before activation.
+- Updated `web/assets/js/workspace.js` in commit `5da76685ece3d412310ebf5f1a2c5b062456db6b`: every workspace route now hands approved-but-not-live stores back to the original portal verification flow. Inventory pages are reachable only after `activation_status === "live"`. No database rows or verification state were changed.
+- This closes the identified deep-link/route-gating gap. It does **not** yet prove the original blank `/portal` report is resolved; authenticated staging browser E2E and actual runtime diagnostics remain required. Production untouched; PR #31 remains open/unmerged.
