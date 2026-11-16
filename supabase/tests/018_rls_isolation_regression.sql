@@ -83,6 +83,17 @@ begin
   insert into public.stores(owner_id,name,about,status,country,state,city)
   values(v_seller_b,'Q01 Store B','Isolation fixture','draft','NG','Lagos','Ikeja')
   returning id into v_store_b;
+  insert into public.store_applications(
+    store_id,business_name,id_type,id_ref,bank_name,account_number,account_name
+  ) values(v_store_b,'Q01 Store B Ltd','NIN','Q01-B','Test Bank','0000000002','Q01 Store B');
+  perform public.submit_store(v_store_b);
+  perform public.zz_q01_back();
+
+  perform public.zz_q01_as(v_seller_a);
+  insert into public.store_applications(
+    store_id,business_name,id_type,id_ref,bank_name,account_number,account_name
+  ) values(v_store_a,'Q01 Store A Ltd','NIN','Q01-A','Test Bank','0000000001','Q01 Store A');
+  perform public.submit_store(v_store_a);
   perform public.zz_q01_back();
 
   perform public.zz_q01_as(v_admin);
