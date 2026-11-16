@@ -90,6 +90,25 @@ begin
   perform public.approve_store(v_store_b,'Q01 fixture');
   perform public.zz_q01_back();
 
+  -- Migration 019 requires trusted verification before approved stores can sell.
+  -- Seed CI-only verified outcomes and activate through each store owner's RPC.
+  perform public.zz_q01_svc();
+  insert into public.store_verification_checks(
+    store_id,check_type,status,provider,provider_reference,reviewed_at
+  )
+  select st.id, checks.check_type, 'verified', 'ci_fixture',
+         'ci-' || st.id || '-' || checks.check_type, now()
+  from public.stores st
+  cross join (values ('phone'),('identity'),('face_liveness'),('business_address')) as checks(check_type)
+  where st.id in (v_store_a,v_store_b);
+  perform public.zz_q01_back();
+  perform public.zz_q01_as(v_seller_a);
+  perform public.request_store_activation(v_store_a);
+  perform public.zz_q01_back();
+  perform public.zz_q01_as(v_seller_b);
+  perform public.request_store_activation(v_store_b);
+  perform public.zz_q01_back();
+
   perform public.zz_q01_as(v_seller_a);
   update public.store_private set pickup_address='Q01 private address A',phone='08000000011' where store_id=v_store_a;
   insert into public.products(name,col,price,stock,store_id,status)
