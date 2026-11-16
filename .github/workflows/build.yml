@@ -33,7 +33,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check payment recovery worker
-        run: deno check --config supabase/functions/deno.json supabase/functions/payment-recovery/index.ts
+        run: deno check --config supabase/deno.json supabase/functions/payment-recovery/index.ts
       - uses: supabase/setup-cli@v3
         with:
           version: 3.1.0
