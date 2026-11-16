@@ -6,6 +6,15 @@ name: Staging database
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm_staging:
+        description: 'Select APPLY only after reviewing the exact pending staging migrations.'
+        required: true
+        type: choice
+        options:
+          - NO
+          - APPLY
+        default: NO
 
 permissions:
   contents: read
@@ -30,8 +39,14 @@ jobs:
         shell: bash
         env:
           STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          CONFIRM_STAGING: ${{ inputs.confirm_staging }}
         run: |
           set -uo pipefail
+          if [[ "${CONFIRM_STAGING:-NO}" != "APPLY" ]]; then
+            echo "::notice::Staging migration apply was not explicitly confirmed; no database change was made."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ -z "${STAGING_DB_URL:-}" ]; then
             echo "::notice::STAGING_DB_URL is not set yet, so staging was not updated. See docs/WORKFLOW/ENVIRONMENTS.md."
             echo "run=false" >> "$GITHUB_OUTPUT"
