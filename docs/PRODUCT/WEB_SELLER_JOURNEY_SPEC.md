@@ -292,3 +292,10 @@ Build a policy-driven notification and workflow engine to help sellers complete 
 - Policy catalogue and immutable consent/acceptance audit records.
 - Server-enforced verification-to-live activation gate and audited admin review/exception policy.
 - Event-driven verification notification rules, channel providers, consent and cadence configuration.
+
+
+## Owner-approved simplification — 17 November 2026
+
+The current five-step implementation and older verification-first guidance are superseded by the owner-approved plan-first flow in `docs/PRODUCT/SELLER_ONBOARDING_SIMPLIFICATION_AND_PLAN_SELECTOR.md`.
+
+Create the store first with only essential store details and seller-policy consent. Do not collect bank/payout details or show generic identity, face, address or KYC screens during store creation. Immediately after store setup, show the backend-driven plan carousel. The selected plan determines whether any commercial verification screens are shown: Free/Entry and Starter skip optional commercial verification; Growth and Pro complete included verification. Genuine mandatory checks remain capability/region/product-specific. The seller workspace should not carry a permanent generic Verification section. The platform admin overview must count truly live stores and keep case-level verification management inside Seller operations.
