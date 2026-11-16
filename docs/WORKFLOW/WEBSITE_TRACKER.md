@@ -348,3 +348,14 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Web checks passed on the code commit `8ff8128ad4eb62373bd1091cc72f31324df941af`; migration filename/order check passed on current PR head `91a59694411a625384921d5392a6ce2275e2cf81` and on the later entitlement UI code head. The final docs-only tracker commit does not alter runtime code.
 - Preview deployment is verified, but authenticated Shopflow browser E2E is not. Shopflow remains `activation_status='verification_required'` in staging until the owner signs in and presses the new **Activate my store** action. Backend helper already confirms no commercial verification blocker for its Free trial.
 - Next test: sign into the preview as Shopflow owner, open `/portal`, press **Activate my store**, then confirm the portal reports Live and the database status changes through `public.request_store_activation()`. No direct database status edit is authorised or needed.
+
+
+## 2026-11-17 — Remove payout details from mandatory seller onboarding
+
+- Owner confirmed that Free/Entry and its free trial must use built-in limits rather than remain blocked pending platform-admin configuration.
+- Staging already has the owner-approved defaults: 5 active products and 2 new listings per seller-local day; the Free plan is active and current valid null-plan trials are assigned to `plan-free`.
+- The four Nigerian seller checks are classified as commercial for storefront activation. Free/Starter do not require them to activate; Growth/Pro retain their plan verification requirement. Activity-specific provider/legal checks for financial services remain separate.
+- Additional frontend correction: seller setup no longer requires a bank payout destination before submitting an application. Payout bank fields are optional during onboarding and can be supplied later before withdrawals. The onboarding copy no longer promises that every seller must complete identity/address checks before storefront activation.
+- Commit: `87fdf0f64da2f9d4f8fda7b040a9579298c12dce` (`web/assets/js/portal.js`).
+- Staging read-only verification: Free is active with 5 active products / 2 daily listings; Starter remains ₦3,000 / 25 products; Growth ₦8,000 / 200 products; Pro ₦20,000 / unlimited. Shopflow is approved on a valid Free trial; entitlement snapshot is configured and `private.store_verification_complete()` returns true. Its stored `activation_status` remains `verification_required` until the seller uses the portal's authenticated activation action.
+- Remaining verification: run CI for the onboarding correction, deploy/verify the staging preview, and complete authenticated Shopflow browser E2E. No direct status mutation was made. Production untouched; PR #31 remains open/unmerged.
