@@ -48,7 +48,7 @@ begin
   end if;
   if position('lease_expires_at' in lower(v_def)) = 0
  then
-    raise exception 'Recovery claim must issue expiring leases and return signature verification state';
+    raise exception 'Recovery claim must issue expiring leases';
   end if;
 
   select pg_get_functiondef(v_finish::oid) into v_def;
@@ -86,7 +86,6 @@ declare
   v_lease_token uuid;
   v_second_id uuid;
   v_second_token uuid;
-  v_claimed_signature boolean;
   v_finished boolean;
   v_key text := 'ci-029-' || gen_random_uuid()::text;
 begin
