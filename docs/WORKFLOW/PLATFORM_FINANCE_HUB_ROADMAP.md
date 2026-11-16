@@ -194,3 +194,10 @@ Paystack documents separate APIs for transfer recipients and transfers, and supp
 - https://paystack.com/docs/api/refund/
 
 Do not activate a wallet/escrow representation, delayed settlement promise, auto-debit or automated seller payout until the provider and legal/accounting review confirm the structure. A dashboard balance is an accounting view, not a bank account or stored-value wallet.
+
+
+## 9. Implementation status reconciliation — 16 Nov 2026
+
+This roadmap remains an approved target architecture, not a statement that money movement is production-ready. The staging migration ledger has been independently read and contains repository versions through `028_payment_attempt_rpc`; the next migration slot is 029. Payment-attempt records/RPCs, checkout snapshots and webhook inbox persistence now exist in the branch/staging schema. The current GitHub source also contains the Paystack webhook retry-acknowledgement fix, but the deployed staging Paystack function is still ACTIVE v1 and does not yet include that source update.
+
+Still incomplete before reliable operational money movement: durable webhook inbox worker and stale-attempt recovery; legacy payment/manual confirmation and pay-on-delivery reconciliation; provider-confirmed refund lifecycle; balanced double-entry journal and provider settlement reconciliation; payout transfer initiation/confirmation worker; and hub consignment/custody implementation. Do not treat `ledger_entries` as a double-entry journal, `record_payout()` as a provider transfer, a webhook as proof of provider settlement, or a delivery code as payment consent. Production remains untouched.
