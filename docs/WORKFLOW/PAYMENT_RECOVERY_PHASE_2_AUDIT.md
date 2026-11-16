@@ -1,51 +1,107 @@
-# Payment Recovery Phase 2 — Staging Audit
+# Payment Recovery Phase 2 — Staging Audit and Implementation Record
 
 **Audit date:** 2026-11-16  
-**Branch reviewed:** `web-portal`  
+**Branch:** `web-portal`  
 **Staging project:** `Everneed-staging` (`vjiadqygpyebpisxslbx`)  
 **Production:** Not queried or changed.
 
-## 1. Verified staging state
+## 1. Verified staging migration state
 
-- The migration ledger records migrations `000` through `028`, including `026_payment_lifecycle`, `027_payment_checkout_snapshot`, and `028_payment_attempt_rpc`.
-- The private payment-attempt, provider-event-inbox, and provider-refund tables exist with the expected core columns and indexes.
-- The payment-attempt and provider-event-inbox tables currently contain no rows in staging. This is a structural baseline, not an end-to-end payment test.
-- The deployed `paystack` Edge Function is ACTIVE at version 1 with `verify_jwt=false`. The GitHub source changes are not proof that this deployed function has been updated.
-- `pg_cron`, `pg_net`, and `pgmq` are available extensions but are not installed in staging. The `vault` schema and its secret-management functions exist.
+The read-only Supabase migration ledger records 30 versions: `000`, `001`, `002`, `0020`, `0021`, `003`, `0030`, and `004` through `029`.
 
-## 2. Migration/source drift found
+### Important deployment incident
 
-The live staging definitions do not fully match the current `web-portal` migration source:
+The repository's former `.github/workflows/staging-db.yml` had a `push` trigger for migration files on `web-portal`. The first 029 migration commit therefore started a staging deployment automatically, without a separate in-chat approval.
 
-1. Live `public.settle_verified_payment_attempt(text,text,bigint,text)` does not contain the explicit attempt-owner, order-owner, checkout-snapshot-hash, or snapshot-version comparisons present in the current branch's 028 source. The live function does contain a post-cancellation guard.
-2. Live `public.record_verified_provider_event(text,text,text,text,jsonb)` determines the duplicate flag using event age (`received_at < now() - interval '1 second'`). The current branch's 028 source uses the insert row count, which is the reliable way to distinguish a newly inserted event from a conflict.
+- Workflow run: [43795299918](https://github.com/Connexa-hub/Everneed/actions/runs/43795299918)
+- The job log explicitly shows `Applying migration 029_payment_recovery_worker.sql...` at 2026-11-16 02:58:25 UTC.
+- The later run [43795546437](https://github.com/Connexa-hub/Everneed/actions/runs/43795546437) reported the remote database was already up to date.
+- The migration ledger now records 029. This is an unintended staging-only change, not approval for further staging or production deployment.
 
-The migration ledger alone therefore is not sufficient evidence that the live function bodies equal the current source. Do not treat this as proof of a customer-facing exploit; it is a verified integrity and release-drift gap that must be corrected and regression-tested.
+The push trigger has been removed. `staging-db.yml` now runs only through manual workflow dispatch, retaining the exact staging/live project-ref guard. The migration file `029_payment_recovery_worker.sql` was restored to the exact source content from the commit that was applied. Never edit or reapply 029; follow-up changes belong in 030.
 
-## 3. Recovery design
+Production project `Everneed01` (`zpgasfweaixwsktlueje`) was not queried or changed.
 
-The worker must be safe under duplicate invocation, overlapping runs, webhook redelivery, and process crashes.
+## 2. Read-only verification after 029
 
-- Claim inbox events and stale attempts atomically using row locks with `SKIP LOCKED`, short lease tokens, and lease expiry.
-- Process only signature-verified inbox events. Re-fetch the transaction from Paystack by the stored provider reference; never settle from the webhook payload alone.
-- Require exact reference, attempt ID, order ID, user ID, amount, and currency matches before calling the settlement RPC.
-- Keep settlement idempotent. A second transaction for an already-paid order, an unknown reference, a cancelled order, or any mismatch goes to reconciliation rather than seller release.
-- Retry transient provider/network/database failures with bounded exponential backoff. After the configured retry ceiling, quarantine the event for manual review.
-- Recover stale `initializing` attempts by verifying the same persisted reference. Do not create a new reference or blindly initialize another charge. Mark an attempt failed only when Paystack provides a conclusive terminal/not-found result; otherwise retry verification or send it to reconciliation.
-- Verify stale `pending` attempts periodically. A verified success settles once; an authoritative failure becomes terminal; a still-pending transaction is rescheduled.
-- Keep event leases and attempt-recovery leases separate so an event worker and an attempt worker can safely overlap.
+A read-only catalog query against staging confirmed:
 
-## 4. Scheduling and environment boundary
+- `claim_provider_event_recovery(integer,integer,integer)` exists.
+- `finish_provider_event_recovery(uuid,uuid,text,text,text,integer)` exists.
+- The settlement RPC now checks the immutable snapshot digest.
+- Provider-event duplicate detection uses the actual insert row count.
+- `anon` cannot execute the claim RPC; `authenticated` cannot execute the finish RPC.
+- There are currently zero payment-attempt rows and zero provider-event rows.
+- `pg_cron`, `pg_net`, and `pgmq` are not installed.
+- `get_payment_attempt_recovery_context(text)` is not yet present in staging; it is part of pending migration 030.
 
-No scheduler is currently installed in staging. A recovery Edge Function alone would not run periodically. The implementation must include a secure scheduled invocation path and environment-specific secrets. Do not put service-role keys or recovery tokens in source code, migration files, or logs.
+The deployed `paystack` Edge Function remains ACTIVE v1 with `verify_jwt=false`. Source updates on GitHub are not evidence of a deployed function. The new `payment-recovery` Edge Function is source-only and is not deployed or scheduled.
 
-The staging scheduler must call only the staging function URL and use staging-only credentials. Production must have a separate deployment, secrets, and schedule. No production scheduler or endpoint is to be configured as part of this phase.
+## 3. What migration 029 contains
 
-## 5. Phase 2 implementation gates
+The exact applied 029 migration:
 
-1. Add migration `029` to correct the verified live/source drift, add lease/retry metadata, and expose only service-role recovery RPCs.
-2. Add a recovery Edge Function that verifies provider transactions before settlement and safely resolves stale attempts.
-3. Add structural and behavioral SQL checks for lease ownership, expired-lease reclaim, bounded retries, terminal-state protection, exact metadata/amount/currency checks, and client-role denial.
-4. Run CI and local database tests. Review function grants, search paths, RLS, and concurrency behavior.
-5. Only after source/tests are reviewed, request explicit authorization before applying migration 029 or deploying the recovery function to staging. Production remains untouched.
+- Adds lease token, lease expiry and dead-letter timestamp fields to the provider-event inbox.
+- Adds due-event and lease-expiry indexes.
+- Adds bounded retry/dead-letter states.
+- Claims due events atomically with `FOR UPDATE SKIP LOCKED`, increments attempts at claim time and assigns expiring lease tokens.
+- Finishes an event only when the worker presents the active lease token.
+- Uses exponential retry backoff and dead-letters exhausted events.
+- Corrects provider-event duplicate detection using `GET DIAGNOSTICS ... ROW_COUNT`.
+- Strengthens settlement with attempt/order ownership, snapshot hash/version, snapshot amount, currency/exponent and cancellation checks.
 
+Migration 029 is already in staging. The current repository copy is restored to the applied source version.
+
+## 4. Migration 030 and worker source — not deployed
+
+Migration `030_payment_recovery_context.sql` is source-only. It:
+
+- Recreates the claim RPC with a `signature_verified` return column (PostgreSQL requires drop/recreate to change a TABLE return type).
+- Adds a service-role-only `get_payment_attempt_recovery_context(text)` RPC that returns persisted attempt/order identity and exact amount/currency.
+- Keeps both RPCs unavailable to `anon` and `authenticated`.
+
+The `payment-recovery` Edge Function is also source-only. Its intended safety path is:
+
+1. Require a service-role JWT at the Edge Function gateway and verify the configured service credential in the handler.
+2. Claim only inbox events with a lease.
+3. Refuse events whose stored signature-verification flag is false.
+4. Re-fetch the transaction directly from Paystack using the stored reference.
+5. Require the provider-verified reference and transaction ID to match the signed event.
+6. Compare Paystack's server-verified order/user metadata, amount and currency against the trusted database attempt context.
+7. Call the settlement RPC only after those checks.
+8. Complete only the lease token it owns; transient errors retry with bounded backoff, while mismatches are quarantined for reconciliation.
+
+Migration 030 and the worker must pass local database replay, SQL regression tests and function type/syntax checks before any staging deployment is considered.
+
+## 5. Remaining payment recovery work
+
+Not yet implemented:
+
+- Recovery of stale `initializing` attempts where Paystack accepted initialization but the database update failed.
+- Periodic verification of stale `pending` attempts.
+- Separate attempt-recovery leases and bounded attempt retry state.
+- A production-grade schedule. Supabase scheduling with `pg_cron` + `pg_net` is unavailable until the extensions are deliberately enabled and secrets are stored safely; an external scheduler is an alternative but needs its own environment controls.
+- Audit of legacy `confirm_payment`, `admin_confirm_payment`, `report_payment`, saved-card and pay-on-delivery flows.
+- Provider-confirmed refunds and refund accounting.
+
+The recovery worker must not create a new charge reference when recovering an ambiguous initialization. It must verify the same persisted reference first. A transaction that is pending, missing, or inconclusive must not be treated as a failure or a successful payment without authoritative provider evidence.
+
+## 6. CI and release gates
+
+- Migration naming/order validation now includes 030.
+- The local database workflow runs the 029 lease/settlement checks and the 030 context/privilege checks after applying the migrations.
+- The worker is checked for service-role authorization, Paystack verification before settlement, trusted attempt-context matching, and lease completion.
+- CI results for the latest commit must be read from the live Actions runs; commits pushed in quick succession can cancel older in-progress Android builds.
+- PR #31 remains open and unmerged.
+- Staging migration application now requires manual workflow dispatch and explicit owner approval.
+- No production migration, production Edge Function deployment, production scheduler or production database modification is authorized.
+
+## 7. Next implementation order
+
+1. Finish local replay and regression tests for 029 and 030; fix all failures before proceeding.
+2. Add Deno/type checks for the recovery worker and review its runtime/auth contract.
+3. Implement separate stale-attempt recovery without generating duplicate charges.
+4. Review and test legacy/manual/POD payment paths.
+5. Choose and document a secure staging scheduler; keep staging and production credentials and endpoints separate.
+6. Present the complete source/test evidence and request explicit approval before manually applying migration 030 or deploying any Edge Function to staging.
+7. Keep production untouched until a separate release review and explicit approval.
