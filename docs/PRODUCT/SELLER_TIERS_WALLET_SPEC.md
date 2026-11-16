@@ -216,7 +216,7 @@ Sensitive identity and bank data must remain private and masked. Admin actions r
 
 1. Inspect current seller frontend, plan selection, onboarding, verification gates, Paystack Edge Function and finance schema.
 2. Produce a concise gap report and exact dependency map before editing schema.
-3. Fix the Free tier and dashboard entry experience without weakening legally required financial controls.
+3. Keep the Free tier's seeded 5-active-product / 2-daily-listing defaults available to new sellers and trials without an admin setup dependency; preserve separate financial-service eligibility gates.
 4. Separate account/store setup eligibility from public marketplace activation and financial-service eligibility.
 5. Design the wallet/virtual-account model against confirmed provider capabilities.
 6. Implement staging migrations, trusted RPCs and Edge Function paths only after the provider feasibility check.
@@ -229,7 +229,7 @@ Sensitive identity and bank data must remain private and masked. Admin actions r
 - A new Free seller can register and access a polished dashboard without unnecessary commercial verification.
 - Store setup and draft product preparation work.
 - Public selling and financial activities enforce only their applicable, documented eligibility requirements.
-- Free plan limits are configurable and explicitly approved; no invented cap is silently shipped.
+- Free/Entry uses the owner-approved seeded defaults of 5 active products and 2 new listings per seller-local day, including the free trial. Admins may adjust them through the audited workflow; seller onboarding and activation must not wait for admin configuration.
 - Starter/Growth/Pro match the current configured values unless the owner explicitly changes them.
 - The seller sees a wallet and accurate virtual-account provisioning state.
 - No manually entered ordinary bank account is presented as the Everneed virtual account.
