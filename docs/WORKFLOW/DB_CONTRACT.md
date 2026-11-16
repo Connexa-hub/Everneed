@@ -255,3 +255,16 @@ Next engineering work must follow `docs/PRODUCT/FAST_SELLER_SETTLEMENT_SPEC.md` 
 ## Staging rollout correction — 16 Nov 2026
 
 Earlier statements in this contract that migrations 030–033 were pending are superseded. A fresh Supabase read-only migration-ledger query confirms Everneed-staging now records 030, 031, 032 and 033. Catalog checks confirm `private.finance_accounts`, `private.finance_journals`, `private.finance_journal_lines`, `private.payment_attempts`, `public.claim_provider_event_recovery(...)` and `public.claim_stale_payment_attempt_recovery(...)` exist. The seeded finance chart contains 96 rows (16 for each of NGN, GHS, KES, ZAR, GBP and USD). No finance journal transactions or payment-attempt rows exist yet. CI fixture-based Phase 2 checks were not rerun directly on the persistent staging database. Production was not queried or changed.
+
+
+## Seller entitlement and verification migrations — 17 Nov 2026
+
+Everneed-staging (`vjiadqygpyebpisxslbx`) now records the seller entitlement sequence:
+- `20261116201132_seller_onboarding_entitlements_and_quotas`
+- `20261116201843_seller_product_quota_trigger_privilege_fix`
+- `20261116233544_free_entry_defaults_and_trial_assignment`
+- `20261116233953_ng_seller_checks_commercial_tier_activation`
+
+The Free/Entry tier and its free trial are active with 5 active products and 2 new product listings per seller-local calendar day. The four enabled Nigerian seller checks are classified as commercial storefront-verification requirements: Free and Starter do not require them to activate; Growth and Pro retain their plan verification requirement. This does not waive separate payment-provider, AML/KYC, wallet, virtual-account or payout eligibility checks. Staging only; production is untouched.
+
+For new migrations, use the exact timestamp version assigned by the staging migration tool and keep the repository filename, staging ledger and `.github/workflows/migrations-check.yml` replay list identical. After applying a staging migration, commit its SQL file and update the replay list and relevant contracts/tracker. Do not invent a different timestamp for the same applied migration.
