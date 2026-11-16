@@ -31,7 +31,7 @@ begin
 
   if not has_function_privilege('authenticated', 'public.submit_store(text)', 'EXECUTE')
      or has_function_privilege('anon', 'public.submit_store(text)', 'EXECUTE')
-     or has_function_privilege('public', 'public.submit_store(text)', 'EXECUTE') then
+ then
     raise exception 'FAIL: submit_store execute grants are not restricted to authenticated users.';
   end if;
 
