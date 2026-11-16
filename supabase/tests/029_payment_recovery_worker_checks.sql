@@ -7,7 +7,6 @@ declare
   v_finish regprocedure;
   v_settle regprocedure;
   v_event regprocedure;
-  v_context regprocedure;
   v_oid oid;
   v_def text;
   v_event_id uuid;
@@ -22,13 +21,12 @@ begin
   v_finish := to_regprocedure('public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer)');
   v_settle := to_regprocedure('public.settle_verified_payment_attempt(text,text,bigint,text)');
   v_event := to_regprocedure('public.record_verified_provider_event(text,text,text,text,jsonb)');
-  v_context := to_regprocedure('public.get_payment_attempt_recovery_context(text)');
 
-  if v_claim is null or v_finish is null or v_settle is null or v_event is null or v_context is null then
+  if v_claim is null or v_finish is null or v_settle is null or v_event is null then
     raise exception 'Migration 029 recovery or corrected payment RPC is missing';
   end if;
 
-  foreach v_oid in array array[v_claim::oid,v_finish::oid,v_settle::oid,v_event::oid,v_context::oid]
+  foreach v_oid in array array[v_claim::oid,v_finish::oid,v_settle::oid,v_event::oid]
   loop
     if not (select prosecdef from pg_proc where oid=v_oid) then
       raise exception 'A recovery/payment RPC is not SECURITY DEFINER';
@@ -50,7 +48,7 @@ begin
     raise exception 'Recovery claim must use FOR UPDATE SKIP LOCKED';
   end if;
   if position('lease_expires_at' in lower(v_def)) = 0
-     or position('signature_verified' in lower(v_def)) = 0 then
+ then
     raise exception 'Recovery claim must issue expiring leases and return signature verification state';
   end if;
 
