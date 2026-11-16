@@ -12,7 +12,7 @@ Everneed has two separate Supabase databases. Staging is the development environ
 | Data | real, never wiped | test data only; can be wiped any time |
 | Website served from | `main` (Cloudflare production, `everneed.pages.dev`) | `web-portal` and other previews (`*.everneed.pages.dev`), and `localhost` |
 | App builds | release builds from `main` | test builds from `web-portal` (not wired yet, see "The app") |
-| How migrations get there | by hand, with the owner's approval | automatically by `staging-db.yml` |
+| How migrations get there | manually, with explicit owner approval | manual `staging-db.yml` dispatch only; no push-triggered deployment |
 | Cost | existing | $0 (free tier) |
 
 ## How the website picks a database
@@ -41,14 +41,14 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
     - The `public-forms` function requires successful Siteverify, the expected action (`waitlist` or `guest_open`) and a hostname under `everneed.pages.dev`. Preview uses the Edge Function only when `CFG.env` is `staging`.
 
 ## Moving a change from idea to live
-1. Write the migration as `supabase/migrations/NNN_name.sql` (next number: 029). Digits, underscore, name. The `Migration files` check fails the push if it is not named that way.
-2. Push to `web-portal`. `staging-db.yml` applies it to staging.
+1. Write the migration as `supabase/migrations/NNN_name.sql` (next number: 030; 029 is already applied to staging). Digits, underscore, name. The `Migration files` check fails the push if it is not named that way.
+2. Push to `web-portal` for CI only. Staging is not updated by a push; after review, the owner must manually dispatch `Staging database` with explicit approval.
 3. Test on the `web-portal` preview site and, once wired, a test app build.
 4. Open a pull request to `main`. Tests must be green.
 5. Merge. Cloudflare deploys the website to production.
 6. **Apply the migration to live by hand, with the owner's approval.** Verify the project reference is `zpgasfweaixwsktlueje` before running anything, then record the result in the migration log in `DB_CONTRACT.md`.
 
-**Never run `supabase db push` against live.** Live records its history by timestamp (for example `20261029014653`), the repo files are numbered, so a push would try to replay the whole history on top of real data. The staging workflow is safe because staging records the repo's own numbers from its first run. As verified on 16 Nov 2026, the staging migration ledger contains every repository migration from `000` through `028` (29 rows). Live remains on its original 19 timestamped migration records; numbered development migrations 016–028 have not been applied to live. Each live change requires separate review and explicit owner approval.
+**Never run `supabase db push` against live.** Live records its history by timestamp (for example `20261029014653`), the repo files are numbered, so a push would try to replay the whole history on top of real data. The staging workflow is safe because staging records the repo's own numbers from its first run. As verified on 16 Nov 2026, staging records repository migrations `000` through `029` (30 rows). Migration 029 was applied by the repository's former push-triggered workflow; that trigger has now been removed, and migration 030 is the next pending version. Live remains on its original 19 timestamped migration records; numbered development migrations 016–029 have not been applied to live. Each live change requires separate review and explicit owner approval.
 
 ## Rules
 - Real customer data never goes into staging. If staging needs realistic data, make it up or anonymise it first.
@@ -70,6 +70,6 @@ The Android app still has its database hard-coded in `js/config.js` (live only).
 
 ## Verified baseline — 16 Nov 2026
 
-A read-only Supabase migration-history check of `Everneed-staging` (`vjiadqygpyebpisxslbx`) confirms these repository versions are applied: `000`, `001`, `002`, `0020`, `0021`, `003`, `0030`, and `004` through `028` — 29 recorded versions total. This is the staging database history, not proof that the matching Edge Function source is deployed. The staging Edge Function inventory reports `public-forms` ACTIVE v3 and `paystack` ACTIVE v1 (`verify_jwt=false`). The GitHub `web-portal` source has newer Paystack webhook retry handling; that source has **not** been deployed to staging. Do not deploy as part of documentation reconciliation.
+A read-only Supabase migration-history check of `Everneed-staging` (`vjiadqygpyebpisxslbx`) confirms these repository versions are applied: `000`, `001`, `002`, `0020`, `0021`, `003`, `0030`, and `004` through `029` — 30 recorded versions total. Migration 029 was applied by the former automatic push workflow; the push trigger has since been disabled. Do not change or reapply 029; the next migration is 030. This is the staging database history, not proof that the matching Edge Function source is deployed. The staging Edge Function inventory reports `public-forms` ACTIVE v3 and `paystack` ACTIVE v1 (`verify_jwt=false`). The GitHub `web-portal` source has newer Paystack webhook retry handling; that source has **not** been deployed to staging. Do not deploy as part of documentation reconciliation.
 
-The latest Android workflow for commit `9f39570b8911cf7b3ac24b496563f03f2648af56` passed all three jobs: Install and test, Database tests and APK. The migration-files and web-checks workflows also passed on that commit. See [PR #31](https://github.com/Connexa-hub/Everneed/pull/31). `APP-08` remains open: the Android app is not yet wired to the shared staging/production environment configuration.
+The latest completed CI results must be read from the linked PR and Actions runs; Phase 2 migration 030 and recovery-worker changes are currently undergoing verification. See [PR #31](https://github.com/Connexa-hub/Everneed/pull/31). `APP-08` remains open: the Android app is not yet wired to the shared staging/production environment configuration.
