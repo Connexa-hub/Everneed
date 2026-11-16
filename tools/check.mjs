@@ -71,13 +71,16 @@ if (existsSync(recoveryWorkerPath)) {
   ]) {
     if (!recoverySource.includes(required)) fail(recoveryWorkerPath + ' is missing required recovery safety check: ' + required);
   }
-  if (recoverySource.includes('settle_verified_payment_attempt', recoverySource.indexOf('Deno.serve'))) {
-    // Settlement must remain downstream of the Paystack verification branch.
-    if (recoverySource.indexOf('verifyPaystack(') > recoverySource.indexOf('settle_verified_payment_attempt', recoverySource.indexOf('Deno.serve'))) {
-      fail(recoveryWorkerPath + ' must verify Paystack before invoking settlement');
-    }
+  const handlerStart = recoverySource.indexOf('Deno.serve');
+  const verifyCall = recoverySource.indexOf('await verifyPaystack(', handlerStart);
+  const contextCall = recoverySource.indexOf('db.rpc("get_payment_attempt_recovery_context"', handlerStart);
+  const settlementCall = recoverySource.indexOf('db.rpc("settle_verified_payment_attempt"', handlerStart);
+  if (verifyCall < 0 || contextCall < verifyCall || settlementCall < contextCall) {
+    fail(recoveryWorkerPath + ' must verify Paystack and match trusted attempt context before settlement');
   }
-}
+  if (!recoverySource.includes('event.signature_verified !== true')) {
+    fail(recoveryWorkerPath + ' must refuse inbox events without a verified provider signature');
+  }}
 
 // 5. No retired dropshipping integrations outside history files. Do not ban the word
 // "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
