@@ -1,8 +1,8 @@
 # Payment lifecycle contract — Migration 026
 
-**Status:** design contract; not applied to any database  
+**Status:** Historical design contract; migrations 026, 027 and 028 are recorded as applied to `Everneed-staging` (read-only ledger verified 16 Nov 2026). This document describes the original design; use the implementation blueprint and current tracker for implementation status.  
 **Target branch:** `web-portal`  
-**Target database:** `Everneed-staging` only after review  
+**Target database:** `Everneed-staging` (development only; migrations 026–028 already recorded there)  
 **Production:** explicitly out of scope  
 **Owner:** ChatGPT — database, payment and security backend  
 **UI owner:** Claude — checkout, order screens and all UI/UX
@@ -218,3 +218,8 @@ The following existing implementation details were confirmed in `web-portal` mig
 4. Separate refund eligibility, admin approval where required, provider submission, provider confirmation and accounting posting. Customer notifications must describe the actual stage accurately.
 5. Before enabling the new Paystack flow, update the Edge Function and SQL settlement path together; do not deploy only one side.
 6. Test and explicitly decide how historical/manual bank-transfer orders and pay-on-delivery are handled. They must not be misrepresented as Paystack payment attempts.
+
+
+## Status reconciliation — 16 Nov 2026
+
+The original contract above predates implementation. Staging migration history now records `026_payment_lifecycle`, `027_payment_checkout_snapshot` and `028_payment_attempt_rpc`. The current branch also contains the corresponding payment-attempt RPC implementation, immutable checkout snapshot logic, Paystack Edge Function changes, regression tests and a static guard for webhook retry acknowledgement. This does **not** mean the complete payment lifecycle is finished or enabled in production. Remaining work includes durable inbox processing/recovery, stale `initializing` attempt recovery, legacy order and confirmation-path reconciliation, pay-on-delivery/manual-transfer separation, provider-confirmed refunds and settlement accounting. The current branch-only webhook fix returns HTTP 503 after a persisted processing failure so Paystack can retry; a durable worker is still required. See [the implementation blueprint](./PAYMENT_LIFECYCLE_026_IMPLEMENTATION_BLUEPRINT.md) and [finance/hub roadmap](./PLATFORM_FINANCE_HUB_ROADMAP.md).
