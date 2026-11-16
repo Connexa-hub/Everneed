@@ -180,10 +180,10 @@ begin
 
   insert into private.finance_journals(
     source_type, source_id, idempotency_key, currency, description,
-    request_hash, metadata, created_by
+    request_hash, metadata
   ) values (
     p_source_type, p_source_id, p_idempotency_key, v_currency, left(p_description, 240),
-    v_hash, coalesce(p_metadata, '{}'::jsonb), auth.uid()
+    v_hash, coalesce(p_metadata, '{}'::jsonb)
   ) returning id into v_journal_id;
 
   for v_line in select value from jsonb_array_elements(p_lines)
