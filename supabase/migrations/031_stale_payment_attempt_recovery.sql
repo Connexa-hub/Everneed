@@ -27,6 +27,35 @@ begin
 end
 $guard$;
 
+-- Do not permit a fresh charge while an earlier attempt for the same order
+-- remains unresolved. A reconciliation_required attempt blocks new attempts
+-- until an explicit reconciliation process moves it to a resolved state.
+create or replace function private.block_new_attempt_after_reconciliation()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  if new.status in ('initializing', 'pending', 'processing')
+     and exists (
+       select 1
+         from private.payment_attempts as prior
+        where prior.order_id = new.order_id
+          and prior.status = 'reconciliation_required'
+     ) then
+    raise exception 'A previous payment attempt requires reconciliation before another charge can be created.';
+  end if;
+  return new;
+end
+$function$;
+
+revoke all on function private.block_new_attempt_after_reconciliation() from public, anon, authenticated;
+drop trigger if exists payment_attempts_block_new_after_reconciliation on private.payment_attempts;
+create trigger payment_attempts_block_new_after_reconciliation
+before insert on private.payment_attempts
+for each row execute function private.block_new_attempt_after_reconciliation();
+
 create index if not exists payment_attempts_stale_recovery_due_idx
   on private.payment_attempts (coalesce(recovery_next_at, updated_at), created_at)
   where status in ('initializing', 'pending', 'processing');
