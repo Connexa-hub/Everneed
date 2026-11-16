@@ -4,6 +4,7 @@ begin;
 do $$
 declare
   v_fn regprocedure;
+  v_reverse_fn regprocedure;
   v_journal_id uuid;
   v_repeat_id uuid;
   v_reversal_id uuid;
@@ -25,6 +26,15 @@ begin
      or has_function_privilege('authenticated',v_fn,'EXECUTE')
      or not has_function_privilege('service_role',v_fn,'EXECUTE') then
     raise exception 'Finance journal RPC grants are not service-role-only';
+  end if;
+  v_reverse_fn := to_regprocedure('public.reverse_finance_journal(uuid,text,text,jsonb)');
+  if v_reverse_fn is null
+     or not (select prosecdef from pg_proc where oid=v_reverse_fn::oid)
+     or not (select coalesce(array_to_string(proconfig,','),'') like '%search_path=""%' from pg_proc where oid=v_reverse_fn::oid)
+     or has_function_privilege('anon',v_reverse_fn,'EXECUTE')
+     or has_function_privilege('authenticated',v_reverse_fn,'EXECUTE')
+     or not has_function_privilege('service_role',v_reverse_fn,'EXECUTE') then
+    raise exception 'Finance reversal RPC security boundary is incorrect';
   end if;
 
   if has_table_privilege('service_role','private.finance_journals','INSERT')
@@ -123,6 +133,16 @@ begin
   );
   if v_reversal_repeat_id <> v_reversal_id then
     raise exception 'An identical reversal retry created a second journal.';
+  end if;
+
+  v_failed := false;
+  begin
+    update private.finance_journals set description='tampered' where id=v_journal_id;
+  exception when others then
+    v_failed := true;
+  end;
+  if not v_failed then
+    raise exception 'A posted finance journal header was mutable.';
   end if;
 
   v_failed := false;
