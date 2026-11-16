@@ -113,8 +113,18 @@ Still unresolved and not to be guessed by engineering:
 
 The existing manual payout RPC must not be represented as automated settlement. The confirmed timing decision does not authorise live transfers or bypass the provider, legal and accounting gates.
 
-## 6. Source implementation started — migration 033
+## 6. Source implementation and staging rollout — migrations 030–033
 
-Migration `033_double_entry_finance_journal.sql` now creates the private chart of accounts, immutable journal headers/lines, seeded currency-specific accounts, service-only balanced posting RPC, source-event idempotency, direct-write restrictions and a linked idempotent full-reversal RPC. Its SQL test verifies balanced posting, idempotent replay, mismatched-content rejection, exact full reversal, reversal idempotency, client isolation and immutability. This migration is **source-only** and has not been applied to staging or production. It does not yet map existing seller-ledger events, automate payout transfers or change seller balance calculations.
+Migration `033_double_entry_finance_journal.sql` now creates the private chart of accounts, immutable journal headers/lines, seeded currency-specific accounts, service-only balanced posting RPC, source-event idempotency, direct-write restrictions and a linked idempotent full-reversal RPC. Its SQL test verifies balanced posting, idempotent replay, mismatched-content rejection, exact full reversal, reversal idempotency, client isolation and immutability. This migration has now been applied to Everneed-staging; it has not been applied to production. It does not yet map existing seller-ledger events, automate payout transfers or change seller balance calculations.
 
-GitHub Actions run `43799090404` on commit `fcc3230d4d97c9489bb22fb3266b3767c6983c60` completed successfully: full local migration replay, Phase 2 checks, payment recovery tests, migration 033 double-entry journal tests, web checks and Android APK build all passed. This is source/CI verification only. The read-only Supabase migration ledger still shows staging through version 029; migrations 030–033 have not been applied to staging. No production data has been queried or changed.
+GitHub Actions run `43799090404` on commit `fcc3230d4d97c9489bb22fb3266b3767c6983c60` completed successfully: full local migration replay, Phase 2 checks, payment recovery tests, migration 033 double-entry journal tests, web checks and Android APK build all passed. This is source/CI verification only. A fresh read-only Supabase migration-ledger query confirms Everneed-staging records migrations 030–033 after 029. No production data has been queried or changed.
+
+
+## 7. Staging verification update — 16 Nov 2026
+
+- Supabase migration history for Everneed-staging (`vjiadqygpyebpisxslbx`) now records migrations through 033, including 030, 031, 032 and 033.
+- Read-only catalog checks confirm `private.finance_accounts`, `private.finance_journals`, `private.finance_journal_lines`, `private.payment_attempts`, `public.claim_stale_payment_attempt_recovery(...)` and `public.claim_provider_event_recovery(...)` exist.
+- The seeded chart of accounts contains 96 rows: 16 accounts for each of NGN, GHS, KES, ZAR, GBP and USD.
+- Staging currently has zero finance journals, zero journal lines and zero payment attempts. There is no transaction history yet to reconcile.
+- CI run `43799090404` passed local Phase 2 and migration 033 SQL tests. The fixture-based Phase 2 SQL script was not run directly against the persistent staging database.
+- Production was not queried or changed. No live payout or transfer was initiated.
