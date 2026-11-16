@@ -69,7 +69,11 @@ Deno.serve(async (req) => {
     let errorCode: string | null = null;
     let errorMessage: string | null = null;
     try {
-      if (event.event_type !== "charge.success") {
+      if (event.signature_verified !== true) {
+        status = "quarantined";
+        errorCode = "unverified_inbox_event";
+        errorMessage = "Recovery worker refused an event without a verified provider signature.";
+      } else if (event.event_type !== "charge.success") {
         status = "processed";
       } else if (!event.provider_reference) {
         status = "quarantined";
@@ -78,9 +82,9 @@ Deno.serve(async (req) => {
       } else {
         const tx = await verifyPaystack(String(event.provider_reference));
         if (!tx) {
-          status = "quarantined";
-          errorCode = "provider_transaction_not_successful";
-          errorMessage = "Paystack verification did not confirm a successful transaction.";
+          status = "retry";
+          errorCode = "provider_transaction_not_yet_successful";
+          errorMessage = "Paystack verification has not yet confirmed a successful transaction.";
         } else if (
           event.provider_transaction_id &&
           String(tx.id) !== String(event.provider_transaction_id)
