@@ -38,8 +38,14 @@ begin
 
   select pg_get_functiondef(v_claim::oid) into v_def;
   if position('skip locked' in lower(v_def)) = 0
-     or position('lease_expires_at' in lower(v_def)) = 0 then
+     or position('lease_expires_at' in lower(v_def)) = 0
+     or position('p_batch_size is null' in lower(v_def)) = 0 then
     raise exception 'Recovery claim must retain SKIP LOCKED and expiring leases';
+  end if;
+
+  select pg_get_functiondef(to_regprocedure('public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer)')) into v_def;
+  if position('p_processing_status is null' in lower(v_def)) = 0 then
+    raise exception 'Recovery completion must reject null status values';
   end if;
 
   select pg_get_functiondef(v_context::oid) into v_def;
