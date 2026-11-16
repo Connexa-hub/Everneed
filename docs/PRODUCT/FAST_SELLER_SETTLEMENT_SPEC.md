@@ -146,9 +146,9 @@ Do not deploy or enable live transfers until the provider approval and legal/acc
 Repository and staging checks on 16 November 2026 establish:
 - `seller_orders` is the seller-package subledger unit; `orders` and `deliveries` currently represent the parent checkout and its single consolidated shipment.
 - `refunds` and `disputes` can reference a seller order; a null seller-order reference is order-wide and must affect all relevant seller packages.
-- Existing `public.refund()` marks a refund `processed` through local bookkeeping without a Paystack Refund API confirmation. Do not interpret that status as proof that the customer received funds; provider refund lifecycle remains a blocker for safe automated settlement.
+- Migration 026 already created `private.provider_refunds` as a private provider-execution foundation, but the current `public.refund()` does not create or advance those records. It marks `public.refunds.status = 'processed'` through local bookkeeping without a Paystack Refund API confirmation. The provider table's current states also do not yet model Paystack's full `pending`, `processing`, `needs-attention`, `failed` and `processed` lifecycle. Do not interpret the legacy `processed` value as proof that the customer received funds; complete and test provider-confirmed refunds before automated seller settlement.
 - Existing `public.record_payout()` is an admin-entered record only. It does not initiate or verify a bank transfer.
-- Migration 033 creates the immutable double-entry journal foundation. Its replay and SQL tests passed in GitHub Actions run `43799090404`, but migrations 030–033 remain source-only and staging currently records migrations only through 029.
+- Migration 033 creates the immutable double-entry journal foundation. Its replay and SQL tests passed in GitHub Actions run `43799090404`; migrations 030–033 have since been applied to Everneed-staging and the remote migration ledger confirms versions through 033. The fixture-based Phase 2 SQL suite passed in CI but was not run against persistent staging.
 - The current Paystack Edge Function verifies collections but has no seller transfer/recipient orchestration. Provider marketplace approval remains unconfirmed.
 
 Implementation should proceed in this order:
