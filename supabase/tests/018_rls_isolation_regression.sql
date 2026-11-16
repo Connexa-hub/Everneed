@@ -65,6 +65,31 @@ begin
 
   update public.profiles set role='admin' where id=v_admin;
 
+  -- CI-only policy fixtures: sellers must accept the current Nigerian policies
+  -- before submit_store; keep the production acceptance gate intact.
+  perform public.zz_q01_svc();
+  insert into public.policy_documents(policy_type,country,locale,version,title,content_url,effective_at,published,requires_acceptance)
+  values
+    ('seller_terms','NG','en','ci-v1','CI seller terms','/ci/seller-terms',now()-interval '1 day',true,true),
+    ('seller_privacy','NG','en','ci-v1','CI seller privacy','/ci/seller-privacy',now()-interval '1 day',true,true),
+    ('marketplace_rules','NG','en','ci-v1','CI marketplace rules','/ci/marketplace-rules',now()-interval '1 day',true,true),
+    ('returns_refunds','NG','en','ci-v1','CI returns and refunds','/ci/returns-refunds',now()-interval '1 day',true,true);
+  perform public.zz_q01_back();
+
+  perform public.zz_q01_as(v_seller_a);
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_terms' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_privacy' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='marketplace_rules' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='returns_refunds' and country='NG' and version='ci-v1'),'NG');
+  perform public.zz_q01_back();
+
+  perform public.zz_q01_as(v_seller_b);
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_terms' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_privacy' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='marketplace_rules' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='returns_refunds' and country='NG' and version='ci-v1'),'NG');
+  perform public.zz_q01_back();
+
   -- Create the two stores first; products cannot enter review until their store is approved.
   perform public.zz_q01_as(v_seller_a);
   insert into public.stores(owner_id,name,about,status,country,state,city)
