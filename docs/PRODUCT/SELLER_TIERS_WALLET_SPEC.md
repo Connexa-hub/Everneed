@@ -50,7 +50,7 @@ Keep plan data configurable in the database. Avoid scattering tier names, produc
 - Everneed wallet overview and transaction history.
 - No extensive commercial verification merely to create the seller account or access the basic workspace.
 - No mandatory manually entered bank account number as an account identifier.
-- Exact product limit and any daily listing limit remain owner-configurable decisions; do not invent values or hardcode the previous erroneous 15-product / 5-listings-per-day suggestion.
+- Default Entry entitlement: 5 active products and 2 new product listings per seller-local calendar day. The same limits apply throughout the Free trial. These bounded defaults are seeded in the database and do not depend on an admin first configuring quotas. Platform admins may adjust them through the audited entitlement workflow; unset values must never be interpreted as unlimited.
 
 ### Starter — ₦3,000/month
 
@@ -240,9 +240,9 @@ Sensitive identity and bank data must remain private and masked. Admin actions r
 - All work and tests remain on staging; production is untouched until explicit release approval.
 
 
-## 12. Admin-configurable Free-tier limits — owner decision (16 November 2026)
+## 12. Free-tier defaults and admin governance — owner decision (17 November 2026)
 
-The platform admin must configure Free-tier catalogue limits from the admin workspace. Do not hardcode the Free active-product cap or daily new-listing cap in frontend code, database defaults, seed data or validation logic.
+The Free/Entry tier and its free trial ship with database-seeded defaults of 5 active products and 2 new product listings per seller-local calendar day. Sellers must not be blocked because an admin has not configured these two values. Admin controls remain available to change policy, but they are not a prerequisite for activating the Entry plan.
 
 Admin controls must:
 - Expose the Free-tier active-product limit and daily new-listing limit as separate settings.
@@ -251,7 +251,7 @@ Admin controls must:
 - Record who changed a setting, when, the previous value, the new value and the reason in an audit trail.
 - Enforce the effective setting server-side for product creation/publication and daily listing quotas; frontend meters are informational only.
 - Return the effective limits through the trusted entitlement/configuration contract so seller UI and backend enforcement agree.
-- Show an explicit “Not configured” state while a setting is unset. Until configured, do not silently invent a cap or advertise unlimited listings. The platform must not claim the Free tier is ready for unrestricted listing until the admin has set the required values.
+- Display the effective seeded limits to sellers and enforce them server-side. If an administrator deliberately clears a value, fail closed and show “Not configured”; never interpret null as unlimited.
 - Keep Starter/Growth/Pro limits sourced from the existing plan configuration unless an authorised admin workflow explicitly supports changing them.
 
 Only platform-admin roles with server-side permission may change these settings. Never trust a client-supplied role or setting value without authorization and validation.
@@ -262,7 +262,7 @@ Only platform-admin roles with server-side permission may change these settings.
 Migration `20261116201132_seller_onboarding_entitlements_and_quotas` is applied to Everneed-staging only.
 
 - Initial seller application no longer requires ordinary bank payout details; business name and current seller policy acceptance remain mandatory.
-- Added explicit plan entitlement configuration, an inactive Free plan shell, daily listing event ledger and admin audit RPCs.
+- Added explicit plan entitlement configuration, an initially inactive Free plan shell, daily listing event ledger and admin audit RPCs.
 - Admin configures Free active-product and daily new-product limits separately. Each must be a positive integer or an explicit unlimited setting. Until both are configured, Free remains inactive and displays “Not configured”.
 - Seller entitlement snapshot is available through `public.my_store_entitlements()`.
 - Admin plan settings are written through `public.admin_set_plan_entitlements(...)`; verification rule classification is written through `public.admin_set_verification_scope(...)`.
@@ -273,3 +273,10 @@ Migration `20261116201132_seller_onboarding_entitlements_and_quotas` is applied 
 ## 14. Quota enforcement security correction — 16 November 2026
 
 Follow-up staging migration `20261116201843_seller_product_quota_trigger_privilege_fix` changes `private.products_guard()` to a SECURITY DEFINER trigger with explicit trusted-role bypass checks. This is necessary for seller product requests to read private entitlement rows and insert immutable quota events without granting sellers direct write access to the event table. A staging-only rollback test verified the first product succeeds and the second product is rejected at a one-per-day test quota. No test data persisted.
+
+
+## 15. Free Entry defaults correction — 17 November 2026
+
+Owner decision: remove the requirement for platform admins to configure Free limits before sellers can use the Entry plan. The Free plan and its free trial use the same bounded defaults: 5 active products and 2 new product listings per seller-local calendar day. Starter remains 25 active products; Growth remains 200; Pro remains unlimited. Existing prices, commission discounts and paid-tier verification rules are unchanged.
+
+Migration `20261117090000_free_entry_defaults_and_trial_assignment.sql` seeds the Free plan limits, activates the Free plan, and assigns currently valid `trialing` subscriptions with a null plan to `plan-free`. It does not alter paid subscriptions or expired trials. This removes the plan-not-selected/configuration blocker for eligible free trials. It does not waive the separate, still-unclassified Nigerian verification rules; storefront activation remains blocked until those rules are correctly classified and any genuinely mandatory requirements are satisfied.
