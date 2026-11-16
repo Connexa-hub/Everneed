@@ -85,6 +85,16 @@ if (existsSync(recoveryWorkerPath)) {
   }
 }
 
+// 4d. Staging migrations must never deploy on a branch push.
+const stagingWorkflowPath = '.github/workflows/staging-db.yml';
+if (existsSync(stagingWorkflowPath)) {
+  const stagingWorkflow = readFileSync(stagingWorkflowPath, 'utf8');
+  if (/^  push:/m.test(stagingWorkflow)) fail(stagingWorkflowPath + ' must not apply migrations automatically on push');
+  if (!stagingWorkflow.includes('confirm_staging') || !stagingWorkflow.includes('APPLY')) {
+    fail(stagingWorkflowPath + ' must require the explicit APPLY workflow-dispatch input');
+  }
+}
+
 // 5. No retired dropshipping integrations outside history files. Do not ban the word
 // "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
 const BAN = /\b(cj|cjdropshipping|eprolo|sup_[a-z]+)\b/i;
