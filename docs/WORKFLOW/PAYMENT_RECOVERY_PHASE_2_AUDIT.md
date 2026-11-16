@@ -88,7 +88,7 @@ The recovery worker must not create a new charge reference when recovering an am
 - Migration naming/order validation now includes 030.
 - The local database workflow runs the 029 lease/settlement checks, 030 context/privilege checks, and 031 stale-attempt lease/guard checks after applying the migrations.
 - The worker is checked for service-role authorization, Paystack verification before settlement, trusted attempt-context matching, and lease completion.
-- Commit `aad97ea` passed Install and test, Deno type-check, and the complete Database tests job including 027–032. The corrected 032 tests now use the verified staging signatures for `admin_confirm_payment(text)` and `report_payment(text,text,text)`. APK packaging was in progress at the last check. The latest documentation-only commit `2f314c0` also passed migration-order and web checks.
+- Commit `aad97ea` passed Install and test, Deno type-check, and the complete Database tests job including 027–032. The corrected 032 tests now use the verified staging signatures for `admin_confirm_payment(text)` and `report_payment(text,text,text)`. APK packaging subsequently passed on the same commit. The latest documentation-only commit `2f314c0` also passed migration-order and web checks.
 - PR #31 remains open and unmerged.
 - Staging migration application now requires manual workflow dispatch and explicit owner approval.
 - No production migration, production Edge Function deployment, production scheduler or production database modification is authorized.
