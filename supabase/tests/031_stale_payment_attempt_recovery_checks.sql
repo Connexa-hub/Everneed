@@ -51,7 +51,8 @@ begin
   select pg_get_functiondef(v_finish::oid) into v_def;
   if position('recovery_lease_token = p_lease_token' in lower(v_def)) = 0
      or position('p_outcome is null' in lower(v_def)) = 0
-     or position('reconciliation_required' in lower(v_def)) = 0 then
+     or position('reconciliation_required' in lower(v_def)) = 0
+     or position('already-settled attempt' in lower(v_def)) = 0 then
     raise exception 'Stale-attempt completion must be lease-token fenced and support reconciliation';
   end if;
 
