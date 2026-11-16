@@ -2,8 +2,8 @@
 
 **Status:** 026 schema foundation is recorded as applied in `Everneed-staging`; end-to-end payment integration remains incomplete. This document does not authorize further migration application or Edge Function deployment.  
 **Target branch:** `web-portal`  
-**Next migration:** `026_payment_lifecycle.sql` (confirmed free on this branch)  
-**Staging target:** `Everneed-staging` only, after review and explicit staging-apply authorization. Production is out of scope.
+**Next migration:** `029_<descriptive_name>.sql` (the repository and staging migration ledger currently end at 028)  
+**Staging target:** `Everneed-staging` (`vjiadqygpyebpisxslbx`); migrations 026–028 are recorded as applied there. Production is out of scope.
 
 Related contract: [PAYMENT_LIFECYCLE_026_CONTRACT.md](./PAYMENT_LIFECYCLE_026_CONTRACT.md)
 
@@ -389,3 +389,12 @@ The handler now returns HTTP 503 after recording the retry state. Paystack there
 This is a bounded recovery measure, not a replacement for a durable inbox worker. Paystack documents automatic retries for failed live-mode deliveries for up to 72 hours (initially every 3 minutes, then hourly); test-mode retry behavior has a shorter window. Events that exhaust provider retries still require monitoring and manual or scheduled recovery. See the official [Paystack webhooks documentation](https://paystack.com/docs/payments/webhooks/).
 
 A static repository check now guards against accidentally restoring the 2xx-on-processing-failure behavior. This change is branch-only; it does not deploy the Edge Function or alter staging/production.
+
+
+## Current baseline correction — 16 Nov 2026
+
+The introductory statements in the original blueprint are historical and are superseded by this reconciliation. The repository migration directory and the read-only staging migration ledger both contain the complete sequence through `028_payment_attempt_rpc.sql`; the next available migration version is **029**. Do not recreate or reapply 026–028.
+
+The latest `web-portal` commit is `9f39570b8911cf7b3ac24b496563f03f2648af56`. Its GitHub Actions Android workflow passed Install and test, Database tests and APK; the migration-files and web-checks workflows also passed on the same commit. The Paystack webhook retry acknowledgement fix is present in source but is not yet deployed to staging: the staging function inventory still reports Paystack ACTIVE v1. No Edge Function deployment or production change is authorized by this status note.
+
+The 503 response on persisted processing failure is a temporary provider-redelivery fallback. It is not a durable queue worker. Continue with a database-backed worker and bounded recovery for retryable inbox events and stale payment attempts, then test provider initialization timeouts and legacy/manual/POD paths before enabling broader payment operations.
