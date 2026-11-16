@@ -293,3 +293,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - CI for the portal commit: migration-file checks **passed** (run `43957732834`); web checks **passed** (run `43957732852`); Android build run `43957732824` was pending at the time of this note.
 - Official Store admin UI/backend implementation remains in progress. Staging inspection reconfirmed the single canonical row `everneed-official` (`is_official=true`, `owner_id=NULL`) and the existing `private.need_admin()` / `private.audit()` patterns. No schema change or admin mutation has been applied yet. Do not expose a write UI until a dedicated server-authorized RPC and audit tests are in place.
 - Staging project remains `vjiadqygpyebpisxslbx`; no production changes; PR #31 remains open and unmerged.
+
+
+## 2026-11-17 — Shopflow pre-activation inventory-query correction
+
+- Re-inspected the full seller route chain in `web/assets/js/workspace.js` and `web/assets/js/portal.js`.
+- Confirmed both workspace and original portal loaders queried `products` before enforcing the approved-but-not-live verification gate. This is a concrete failure path: a pre-activation seller can be blocked by inventory-table access before the verification dashboard is rendered.
+- Updated `web/assets/js/workspace.js` to stop after loading the seller's store record when status is `approved` and activation is not `live`; it hands off to the original portal verification flow without querying inventory.
+- Updated `web/assets/js/portal.js` so approved, not-yet-live stores skip `store_private`, `store_applications`, `products`, and `product_private` reads. Store verification checks, regional rules, policies, and notifications continue to load. The existing activation requirements remain unchanged; no verification bypass or live-state mutation was introduced.
+- Commits: portal `359887cd11e0a3c6b49733716d8cae4beeb67e3f`; workspace `4c395bcfb248dff17c34f499ede0ab2c8f48228b`.
+- Status: code correction committed to `web-portal`; authenticated Shopflow browser verification and CI/deployment confirmation still pending. Production branch/database untouched; PR #31 remains unmerged.
