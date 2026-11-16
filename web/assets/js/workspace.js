@@ -41,6 +41,9 @@
     return Supa.get("stores?select=*&owner_id=eq."+enc(uid)).then(function(r){
       W.uid=uid;W.store=r&&r[0]||null;W.prods=[];W.pn={};W.priv=null;W.app=null;W.notes=[];
       if(!W.store)return;
+      /* Approved stores awaiting verification must not load inventory. Their only
+         permitted workspace is the portal verification flow, which owns this gate. */
+      if(W.store.status==="approved"&&W.store.activation_status!=="live")return;
       var id=enc(W.store.id),soft=function(){return[]};
       return Promise.all([
         Supa.get("products?select=*&store_id=eq."+id+"&order=at.desc"),
