@@ -145,7 +145,7 @@ Policy counts in brackets.
 `public_stores`, `public_products`, `public_reviews`, `product_ratings`, `auto_offers`. All five currently have `security_invoker=true`, so view queries use the caller's privileges/RLS rather than bypassing base-table RLS. Their selected columns and joins are recorded in `docs/WORKFLOW/schema_snapshot/views-storage-sequences.json`; continue to review exposed fields whenever a view changes.
 
 ## Migration log
-Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next new repository migration number: 034.** Staging is still pending 030–033.
+Repo folder: `supabase/migrations/`. **Files replay in plain filename order, which is the only order the Supabase CLI uses.** **Next new repository migration number: 034.** Staging migration ledger verified through 033 on 16 Nov 2026.
 
 | File | Recorded version | In repo | Applied to staging / live |
 |---|---|---|---|
@@ -176,9 +176,9 @@ Repo folder: `supabase/migrations/`. **Files replay in plain filename order, whi
 | `027_payment_checkout_snapshot` | 027 (repo sequence) | yes | **staging only; live not applied** |
 | `028_payment_attempt_rpc` | 028 (repo sequence) | yes | **staging only; live not applied** |
 | `029_payment_recovery_worker` | 029 (repo sequence) | yes | **staging applied 16 Nov 2026 by former automatic workflow; live not applied** |
-| `030_payment_recovery_context` | 030 (repo sequence) | yes | **repository/CI only; not applied to staging or live** |
-| `031_stale_payment_attempt_recovery` | 031 (repo sequence) | yes | **repository/CI only; not applied to staging or live** |
-| `032_legacy_payment_rpc_search_path` | 032 (repo sequence) | yes | **repository/CI only; not applied to staging or live** |
+| `030_payment_recovery_context` | 030 (repo sequence) | yes | **staging applied 16 Nov 2026; live not applied** |
+| `031_stale_payment_attempt_recovery` | 031 (repo sequence) | yes | **staging applied 16 Nov 2026; live not applied** |
+| `032_legacy_payment_rpc_search_path` | 032 (repo sequence) | yes | **staging applied 16 Nov 2026; live not applied** |
 
 
 **How the eight missing files were recovered.** Supabase keeps the exact SQL of every applied migration in `supabase_migrations.schema_migrations.statements`. The eight files above were read from there (read-only `select`) and written out unchanged. They are the real historical SQL, not a reconstruction. Integrity check: each file's size equals the stored length (plus one trailing newline where the original had none), for example `012` is 31,643 characters stored and 31,651 bytes in the file because of two multi-byte `••••` characters.
@@ -231,7 +231,7 @@ Do not put identity numbers, verification evidence, private phone numbers, payou
 
 ## Migration and payment baseline correction — 16 Nov 2026
 
-This contract's live database snapshot remains dated 12 Nov 2026 and must not be mistaken for a fresh production catalog inspection. A read-only check of the separate `Everneed-staging` project (`vjiadqygpyebpisxslbx`) confirms migration history through version `029` (30 recorded versions). Repository migrations `030`–`033` are source-only and have passed the full local migration replay and SQL test suite in GitHub Actions run `43799090404`; they have not yet been applied to staging. The next new repository migration number is `034`. The live project (`zpgasfweaixwsktlueje`, Supabase project name `Everneed01`) was not queried or changed in this reconciliation.
+This contract's live database snapshot remains dated 12 Nov 2026 and must not be mistaken for a fresh production catalog inspection. A read-only check of the separate `Everneed-staging` project (`vjiadqygpyebpisxslbx`) confirms migration history through version `033`, including newly applied migrations `030`–`033`. CI run `43799090404` passed the full local migration replay and SQL test suite. A separate post-apply read-only catalog check confirms the finance journal tables and payment recovery claim RPCs exist, with 96 seeded chart-of-account rows (16 per supported currency). The next new repository migration number is `034`. The live project (`zpgasfweaixwsktlueje`, Supabase project name `Everneed01`) was not queried or changed in this reconciliation.
 
 Staging Edge Function inventory on 16 Nov reports `public-forms` ACTIVE v3 and `paystack` ACTIVE v1. The GitHub Paystack source on `web-portal` includes newer retry acknowledgement logic, but that source has not been deployed to staging. The branch and latest CI status are recorded in `ENVIRONMENTS.md`. Never infer deployed Edge Function source version from GitHub source alone.
 
@@ -246,7 +246,12 @@ Current implementation constraints:
 - Existing `public.refund()` performs local ledger bookkeeping and marks a refund processed without confirming a Paystack Refund API result. Do not treat that status as provider-confirmed customer refund completion.
 - Existing `public.record_payout()` records an admin-entered payout and a seller-ledger entry. It does not initiate or verify a bank transfer.
 - Existing `public.release_earnings()` still uses the three-day `payout_hold_days` setting and does not check active refunds/disputes. Do not schedule or rely on this legacy function as the approved fast-settlement implementation.
-- Migration 033 adds an immutable balanced journal foundation but does not map seller subledger events or implement settlement/payout orchestration. It is source-only until migrations 030–033 are approved and applied to staging.
+- Migration 033 adds an immutable balanced journal foundation but does not map seller subledger events or implement settlement/payout orchestration. It is now applied to staging; it still does not map seller subledger events or implement settlement/payout orchestration.
 - Paystack collection verification is implemented; seller recipient creation, transfers, transfer webhooks and payout reconciliation are not yet implemented or provider-approved.
 
 Next engineering work must follow `docs/PRODUCT/FAST_SELLER_SETTLEMENT_SPEC.md` and `docs/WORKFLOW/FINANCE_LEDGER_PHASE_3_AUDIT.md`. No production schema or live transfer was changed or authorised by this decision.
+
+
+## Staging rollout correction — 16 Nov 2026
+
+Earlier statements in this contract that migrations 030–033 were pending are superseded. A fresh Supabase read-only migration-ledger query confirms Everneed-staging now records 030, 031, 032 and 033. Catalog checks confirm `private.finance_accounts`, `private.finance_journals`, `private.finance_journal_lines`, `private.payment_attempts`, `public.claim_provider_event_recovery(...)` and `public.claim_stale_payment_attempt_recovery(...)` exist. The seeded finance chart contains 96 rows (16 for each of NGN, GHS, KES, ZAR, GBP and USD). No finance journal transactions or payment-attempt rows exist yet. CI fixture-based Phase 2 checks were not rerun directly on the persistent staging database. Production was not queried or changed.
