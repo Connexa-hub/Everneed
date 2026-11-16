@@ -72,7 +72,7 @@ jobs:
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
   apk:
-    needs: test
+    needs: [test, database]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
