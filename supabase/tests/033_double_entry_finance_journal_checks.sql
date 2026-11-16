@@ -1,6 +1,7 @@
 -- Structural and behavioural checks for finance journal migration 033.
 
-do $$
+begin;
+do $
 declare
   v_fn regprocedure;
   v_journal_id uuid;
@@ -22,6 +23,13 @@ begin
      or has_function_privilege('authenticated',v_fn,'EXECUTE')
      or not has_function_privilege('service_role',v_fn,'EXECUTE') then
     raise exception 'Finance journal RPC grants are not service-role-only';
+  end if;
+
+  if has_table_privilege('service_role','private.finance_journals','INSERT')
+     or has_table_privilege('service_role','private.finance_journals','UPDATE')
+     or has_table_privilege('service_role','private.finance_journal_lines','INSERT')
+     or has_table_privilege('service_role','private.finance_journal_lines','UPDATE') then
+    raise exception 'service_role must post only through the balanced journal RPC, not direct table writes';
   end if;
 
   if has_table_privilege('anon','private.finance_journals','SELECT')
