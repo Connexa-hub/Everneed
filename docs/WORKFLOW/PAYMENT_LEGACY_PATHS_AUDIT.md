@@ -78,6 +78,6 @@ The business decision to retain or remove pay-on-delivery must be confirmed befo
 
 - Staging was queried read-only for this audit.
 - Migration 029 is recorded in staging due the former automatic workflow; that trigger is disabled and now requires manual dispatch with explicit `APPLY`.
-- Migrations 030–032 and the recovery Edge Function remain source-only.
+- Migrations 030–033 and the recovery Edge Function remain source-only.
 - No payment recovery function is deployed or scheduled.
 - Production was not queried or changed.
