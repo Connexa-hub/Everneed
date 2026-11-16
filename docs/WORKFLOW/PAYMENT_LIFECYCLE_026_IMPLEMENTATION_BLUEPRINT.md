@@ -378,3 +378,14 @@ Latest branch blob identifiers after the final review edits:
 The branch implementation has had a source-level review against the current staging catalog and existing settlement function. This is not a substitute for TypeScript compilation, SQL parsing/execution, provider sandbox tests or concurrency tests. Known rollout blockers remain: legacy in-flight card orders, legacy admin/manual confirmation callers, stale initializing-attempt recovery, durable inbox retry worker, and pay-on-delivery/manual-payment separation.
 
 No pull request was opened, no deployment was triggered, no migration was applied and no production resource was changed.
+
+
+### 2026-11-16 follow-up — webhook retry acknowledgement
+
+A reliability review found that the webhook handler persisted a verified event and marked it `retry` after inline settlement failed, but still returned HTTP 200. That acknowledged delivery to Paystack even though no scheduled inbox worker exists yet.
+
+The handler now returns HTTP 503 after recording the retry state. Paystack therefore treats the delivery as unacknowledged and can redeliver it; the deterministic provider/event key and idempotent settlement path make redelivery safe. The ordinary successful path still returns HTTP 200 only after processing has completed or the event has been deliberately quarantined.
+
+This is a bounded recovery measure, not a replacement for a durable inbox worker. Paystack documents automatic retries for failed live-mode deliveries for up to 72 hours (initially every 3 minutes, then hourly); test-mode retry behavior has a shorter window. Events that exhaust provider retries still require monitoring and manual or scheduled recovery. See the official [Paystack webhooks documentation](https://paystack.com/docs/payments/webhooks/).
+
+A static repository check now guards against accidentally restoring the 2xx-on-processing-failure behavior. This change is branch-only; it does not deploy the Edge Function or alter staging/production.
