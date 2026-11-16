@@ -93,20 +93,36 @@ Deno.serve(async (req) => {
           errorCode = "provider_transaction_id_mismatch";
           errorMessage = "Verified transaction ID differs from the signed webhook event.";
         } else {
-          const { data: settlement, error: settleError } = await db.rpc("settle_verified_payment_attempt", {
+          const { data: context, error: contextError } = await db.rpc("get_payment_attempt_recovery_context", {
             p_provider_reference: String(tx.reference),
-            p_provider_transaction_id: String(tx.id),
-            p_amount_minor: Number(tx.amount),
-            p_currency: String(tx.currency).toUpperCase(),
           });
-          if (settleError) throw new Error(settleError.message);
-          const result = String(settlement?.result || "");
-          if (["paid", "already", "already_settled"].includes(result)) {
-            status = "processed";
-          } else {
+          if (contextError) throw new Error(contextError.message);
+          if (
+            !context ||
+            String(tx.metadata?.order_id || "") !== String(context.order_id) ||
+            String(tx.metadata?.user_id || "") !== String(context.user_id) ||
+            Number(tx.amount) !== Number(context.amount_minor) ||
+            String(tx.currency || "").toUpperCase() !== String(context.currency || "").toUpperCase()
+          ) {
             status = "quarantined";
-            errorCode = "settlement_" + (result || "unconfirmed");
-            errorMessage = "Verified provider payment requires manual reconciliation.";
+            errorCode = "provider_attempt_context_mismatch";
+            errorMessage = "Verified Paystack metadata or amount does not match the persisted payment attempt.";
+          } else {
+            const { data: settlement, error: settleError } = await db.rpc("settle_verified_payment_attempt", {
+              p_provider_reference: String(tx.reference),
+              p_provider_transaction_id: String(tx.id),
+              p_amount_minor: Number(tx.amount),
+              p_currency: String(tx.currency).toUpperCase(),
+            });
+            if (settleError) throw new Error(settleError.message);
+            const result = String(settlement?.result || "");
+            if (["paid", "already", "already_settled"].includes(result)) {
+              status = "processed";
+            } else {
+              status = "quarantined";
+              errorCode = "settlement_" + (result || "unconfirmed");
+              errorMessage = "Verified provider payment requires manual reconciliation.";
+            }
           }
         }
       }
