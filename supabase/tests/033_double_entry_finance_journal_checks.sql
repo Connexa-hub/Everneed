@@ -157,6 +157,6 @@ begin
     raise exception 'A second conflicting reversal was accepted.';
   end if;
 end
-$;
+$$;
 
 rollback;
