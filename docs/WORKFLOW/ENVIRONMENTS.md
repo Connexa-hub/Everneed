@@ -41,14 +41,14 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
     - The `public-forms` function requires successful Siteverify, the expected action (`waitlist` or `guest_open`) and a hostname under `everneed.pages.dev`. Preview uses the Edge Function only when `CFG.env` is `staging`.
 
 ## Moving a change from idea to live
-1. Write the migration as `supabase/migrations/NNN_name.sql` (next number: 026). Digits, underscore, name. The `Migration files` check fails the push if it is not named that way.
+1. Write the migration as `supabase/migrations/NNN_name.sql` (next number: 029). Digits, underscore, name. The `Migration files` check fails the push if it is not named that way.
 2. Push to `web-portal`. `staging-db.yml` applies it to staging.
 3. Test on the `web-portal` preview site and, once wired, a test app build.
 4. Open a pull request to `main`. Tests must be green.
 5. Merge. Cloudflare deploys the website to production.
 6. **Apply the migration to live by hand, with the owner's approval.** Verify the project reference is `zpgasfweaixwsktlueje` before running anything, then record the result in the migration log in `DB_CONTRACT.md`.
 
-**Never run `supabase db push` against live.** Live records its history by timestamp (for example `20261029014653`), the repo files are numbered, so a push would try to replay the whole history on top of real data. The staging workflow is safe because staging records the repo's own numbers from its first run. The repository now includes staging-only migrations through 025; live still retains its original 19 timestamped migrations until each change is separately reviewed and approved.
+**Never run `supabase db push` against live.** Live records its history by timestamp (for example `20261029014653`), the repo files are numbered, so a push would try to replay the whole history on top of real data. The staging workflow is safe because staging records the repo's own numbers from its first run. As verified on 16 Nov 2026, the staging migration ledger contains every repository migration from `000` through `028` (29 rows). Live remains on its original 19 timestamped migration records; numbered development migrations 016–028 have not been applied to live. Each live change requires separate review and explicit owner approval.
 
 ## Rules
 - Real customer data never goes into staging. If staging needs realistic data, make it up or anonymise it first.
@@ -66,3 +66,10 @@ The Android app still has its database hard-coded in `js/config.js` (live only).
 
 ## Where this is tracked
 `WEB-F07b` (replay proof), `WEB-ENV01` (steps 1 to 6 above), `APP-08` (app on shared config), `WEB-F08` (signing key) in `WEBSITE_TRACKER.md`.
+
+
+## Verified baseline — 16 Nov 2026
+
+A read-only Supabase migration-history check of `Everneed-staging` (`vjiadqygpyebpisxslbx`) confirms these repository versions are applied: `000`, `001`, `002`, `0020`, `0021`, `003`, `0030`, and `004` through `028` — 29 recorded versions total. This is the staging database history, not proof that the matching Edge Function source is deployed. The staging Edge Function inventory reports `public-forms` ACTIVE v3 and `paystack` ACTIVE v1 (`verify_jwt=false`). The GitHub `web-portal` source has newer Paystack webhook retry handling; that source has **not** been deployed to staging. Do not deploy as part of documentation reconciliation.
+
+The latest Android workflow for commit `9f39570b8911cf7b3ac24b496563f03f2648af56` passed all three jobs: Install and test, Database tests and APK. The migration-files and web-checks workflows also passed on that commit. See [PR #31](https://github.com/Connexa-hub/Everneed/pull/31). `APP-08` remains open: the Android app is not yet wired to the shared staging/production environment configuration.
