@@ -66,6 +66,8 @@ if (existsSync(recoveryWorkerPath)) {
     'claim_provider_event_recovery',
     'finish_provider_event_recovery',
     'get_payment_attempt_recovery_context',
+    'claim_stale_payment_attempt_recovery',
+    'finish_stale_payment_attempt_recovery',
     'payment_attempt_id',
     '/transaction/verify/',
     'settle_verified_payment_attempt',
@@ -82,6 +84,9 @@ if (existsSync(recoveryWorkerPath)) {
   }
   if (!recoverySource.includes('event.signature_verified !== true')) {
     fail(recoveryWorkerPath + ' must refuse inbox events without a verified provider signature');
+  }
+  if (recoverySource.includes('/transaction/initialize') || recoverySource.includes('/transaction/charge_authorization')) {
+    fail(recoveryWorkerPath + ' must never create or charge a new Paystack transaction during recovery');
   }
 }
 
