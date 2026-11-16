@@ -35,7 +35,7 @@ begin
     raise exception 'Invalid provider-event recovery limits.';
   end if;
 
-  update private.provider_event_inbox
+  update private.provider_event_inbox as e
      set processing_status = 'dead_lettered',
          dead_lettered_at = now(),
          lease_token = null,
@@ -43,10 +43,10 @@ begin
          next_attempt_at = null,
          last_error_code = 'retry_limit_exhausted',
          last_error_message = 'Provider event exhausted its bounded recovery attempts.'
-   where attempts >= p_max_attempts
-     and processing_status in ('received', 'retry', 'processing')
-     and (processing_status <> 'processing' or lease_expires_at is null or lease_expires_at <= now())
-     and (next_attempt_at is null or next_attempt_at <= now());
+   where e.attempts >= p_max_attempts
+     and e.processing_status in ('received', 'retry', 'processing')
+     and (e.processing_status <> 'processing' or e.lease_expires_at is null or e.lease_expires_at <= now())
+     and (e.next_attempt_at is null or e.next_attempt_at <= now());
 
   return query
   with due as (
