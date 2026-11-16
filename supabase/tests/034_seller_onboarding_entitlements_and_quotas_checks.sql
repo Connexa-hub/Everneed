@@ -7,7 +7,7 @@ declare
   v_pro_unlimited boolean;
   v_scope_count integer;
   v_submit_def text;
-  v_guard_def text;
+  v_guard_def text;\n  v_guard_security_definer boolean;
 begin
   if to_regclass('public.seller_plan_entitlements') is null
     or to_regclass('public.seller_product_listing_events') is null then
@@ -40,8 +40,8 @@ begin
     raise exception 'FAIL: seller application still depends on payout bank fields';
   end if;
 
-  select pg_get_functiondef('private.products_guard()'::regprocedure) into v_guard_def;
-  if position('seller_product_listing_events' in v_guard_def)=0
+  select pg_get_functiondef('private.products_guard()'::regprocedure) into v_guard_def;\n  select prosecdef into v_guard_security_definer from pg_proc where oid='private.products_guard()'::regprocedure;
+  if not coalesce(v_guard_security_definer,false) then raise exception 'FAIL: product guard must execute with trusted access to private entitlement/event rows'; end if;\n  if position('seller_product_listing_events' in v_guard_def)=0
     or position('daily_new_product_limit' in v_guard_def)=0 then
     raise exception 'FAIL: product trigger does not enforce daily listing quota';
   end if;
