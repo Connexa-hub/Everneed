@@ -42,7 +42,7 @@ The Paystack Edge Function uses the service role to read the authorization code 
 The current Edge Function explicitly uses the legacy path for `card_later`:
 
 1. Checkout validates that the customer selected one of their saved card IDs.
-2. The Edge Function calls `create_order`, not `create_order_with_snapshot`, for `card_later`. The order therefore has no immutable checkout snapshot.
+2. The Edge Function calls `create_order`, not `create_order_with_snapshot`, for `card_later`. The order therefore has no immutable checkout snapshot. The current `create_payment_attempt` RPC also accepts only `pm='card'`, so the 029–031 recovery worker cannot claim or settle this legacy delayed-charge path.
 3. When the customer confirms receipt, the Edge Function calls service-only `confirm_received_for`; that function marks the order delivered.
 4. Only after delivery is marked does the Edge Function call `chargeSaved`.
 5. `chargeSaved` recalculates the price using the current pricing/FX path, updates `orders.total`, `orders.currency` and `orders.discount`, then calls Paystack `/transaction/charge_authorization`.
