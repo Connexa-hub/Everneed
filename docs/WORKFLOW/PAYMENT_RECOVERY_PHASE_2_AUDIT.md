@@ -102,3 +102,12 @@ The recovery worker must not create a new charge reference when recovering an am
 5. Choose and document a secure staging scheduler; keep staging and production credentials and endpoints separate.
 6. Present the complete source/test evidence and request explicit approval before manually applying migration 030 or deploying any Edge Function to staging.
 7. Keep production untouched until a separate release review and explicit approval.
+
+
+## 10. Worker invocation and scheduling boundary
+
+A manual GitHub Actions workflow now exists at `.github/workflows/payment-recovery-manual.yml`. It invokes the deployed `payment-recovery` Edge Function with a bounded batch size (1–50), serializes runs, and requires the repository secrets `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. It does not print either secret.
+
+This workflow is **manual-dispatch only**. It is not a scheduler and it will not run until the Edge Function is deployed and both secrets are configured. This avoids creating a failing five-minute schedule before the runtime is ready. Once the function has been deployed and tested against staging, add a scheduled trigger (or a managed scheduler) and verify the run history/alerts before treating recovery as operational.
+
+The Edge Function itself must be deployed with gateway JWT verification enabled. The worker additionally checks that the Authorization bearer token equals the configured service-role key. Never put the service-role key in client code, a public environment variable, or a committed file.
