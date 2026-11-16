@@ -31,7 +31,7 @@ begin
     end if;
   end loop;
 
-  v_fn := to_regprocedure('public.admin_confirm_payment(text,text)');
+  v_fn := to_regprocedure('public.admin_confirm_payment(text)');
   if v_fn is null or not has_function_privilege('authenticated', v_fn, 'EXECUTE') then
     raise exception 'Admin payment confirmation must remain callable through its admin-gated RPC';
   end if;
@@ -40,7 +40,7 @@ begin
     raise exception 'Admin payment confirmation is missing its server-side admin gate';
   end if;
 
-  v_fn := to_regprocedure('public.report_payment(text,text)');
+  v_fn := to_regprocedure('public.report_payment(text,text,text)');
   if v_fn is null or not has_function_privilege('authenticated', v_fn, 'EXECUTE') then
     raise exception 'Customer bank-transfer reporting must remain available to authenticated users';
   end if;
