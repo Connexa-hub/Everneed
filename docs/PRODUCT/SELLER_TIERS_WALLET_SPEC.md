@@ -1,6 +1,6 @@
 # Everneed Seller Tiers, Progressive Verification & Wallet Specification
 
-**Status:** Product direction approved by owner; implementation not started  
+**Status:** Product direction approved; seller entitlement backend migration applied to staging; frontend/admin integration in progress  
 **Date:** 16 November 2026  
 **Branch:** web-portal  
 **Environment:** Staging only  
@@ -255,3 +255,16 @@ Admin controls must:
 - Keep Starter/Growth/Pro limits sourced from the existing plan configuration unless an authorised admin workflow explicitly supports changing them.
 
 Only platform-admin roles with server-side permission may change these settings. Never trust a client-supplied role or setting value without authorization and validation.
+
+
+## 13. Staging implementation update — 16 November 2026
+
+Migration `20261116201132_seller_onboarding_entitlements_and_quotas` is applied to Everneed-staging only.
+
+- Initial seller application no longer requires ordinary bank payout details; business name and current seller policy acceptance remain mandatory.
+- Added explicit plan entitlement configuration, an inactive Free plan shell, daily listing event ledger and admin audit RPCs.
+- Admin configures Free active-product and daily new-product limits separately. Each must be a positive integer or an explicit unlimited setting. Until both are configured, Free remains inactive and displays “Not configured”.
+- Seller entitlement snapshot is available through `public.my_store_entitlements()`.
+- Admin plan settings are written through `public.admin_set_plan_entitlements(...)`; verification rule classification is written through `public.admin_set_verification_scope(...)`.
+- Existing Nigerian verification rules are deliberately still unclassified and fail closed. No rule was assumed to be legally mandatory or commercially optional.
+- Structural staging assertions pass. Full CI, auth abuse tests, concurrency tests and browser E2E remain release blockers.
