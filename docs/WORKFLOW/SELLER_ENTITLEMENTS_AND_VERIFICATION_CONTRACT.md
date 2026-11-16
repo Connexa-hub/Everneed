@@ -195,5 +195,5 @@ Read-only inspection of staging project `vjiadqygpyebpisxslbx` confirmed:
 - Free plan defaults: 5 active products and 2 new product listings per seller-local calendar day.
 - The Free trial uses exactly the same entitlements; trial status does not grant paid-tier capacity.
 - Admin configuration is optional policy management, not a prerequisite for Entry plan availability.
-- Migration `20261117090000_free_entry_defaults_and_trial_assignment.sql` activates `plan-free`, seeds both bounded limits, and maps valid `trialing` subscriptions with a null plan to `plan-free`. Paid subscriptions and expired trials are not rewritten.
+- Migration `20261116233544_free_entry_defaults_and_trial_assignment.sql` activates `plan-free`, seeds both bounded limits, and maps valid `trialing` subscriptions with a null plan to `plan-free`. Paid subscriptions and expired trials are not rewritten.
 - This fixes the missing-plan / unconfigured-quota condition. It does not classify or bypass the four existing Nigerian verification rules; those remain a distinct activation blocker until each is assigned its correct scope.
