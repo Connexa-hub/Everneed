@@ -79,7 +79,7 @@ Not yet implemented:
 
 - A production-grade schedule. Supabase scheduling with `pg_cron` + `pg_net` is unavailable until the extensions are deliberately enabled and secrets are stored safely; an external scheduler is an alternative but needs its own environment controls.
 - Audit of legacy `confirm_payment`, `admin_confirm_payment`, `report_payment`, saved-card and pay-on-delivery flows.
-- Provider-confirmed refunds and refund accounting.
+- Provider-confirmed refunds and refund accounting; see the separate [refund lifecycle audit](PAYMENT_REFUND_AUDIT.md).
 
 The recovery worker must not create a new charge reference when recovering an ambiguous initialization. It must verify the same persisted reference first. A transaction that is pending, missing, or inconclusive must not be treated as a failure or a successful payment without authoritative provider evidence.
 
