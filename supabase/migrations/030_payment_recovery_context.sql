@@ -132,7 +132,7 @@ returns boolean
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_rows integer;
 begin
@@ -170,7 +170,7 @@ begin
   get diagnostics v_rows = row_count;
   return v_rows = 1;
 end
-$;
+$$;
 
 revoke all on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) from public, anon, authenticated;
 grant execute on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) to service_role;
