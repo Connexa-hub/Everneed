@@ -238,3 +238,20 @@ Sensitive identity and bank data must remain private and masked. Admin actions r
 - Seller data is isolated under RLS and trusted RPC boundaries.
 - No fake provider account, payment, balance or transfer state is shown.
 - All work and tests remain on staging; production is untouched until explicit release approval.
+
+
+## 12. Admin-configurable Free-tier limits — owner decision (16 November 2026)
+
+The platform admin must configure Free-tier catalogue limits from the admin workspace. Do not hardcode the Free active-product cap or daily new-listing cap in frontend code, database defaults, seed data or validation logic.
+
+Admin controls must:
+- Expose the Free-tier active-product limit and daily new-listing limit as separate settings.
+- Allow an authorised platform admin to set, change and save each value without a code deployment.
+- Validate values server-side and clearly distinguish a numeric limit from an intentionally unlimited setting. Do not interpret a missing or unset value as unlimited.
+- Record who changed a setting, when, the previous value, the new value and the reason in an audit trail.
+- Enforce the effective setting server-side for product creation/publication and daily listing quotas; frontend meters are informational only.
+- Return the effective limits through the trusted entitlement/configuration contract so seller UI and backend enforcement agree.
+- Show an explicit “Not configured” state while a setting is unset. Until configured, do not silently invent a cap or advertise unlimited listings. The platform must not claim the Free tier is ready for unrestricted listing until the admin has set the required values.
+- Keep Starter/Growth/Pro limits sourced from the existing plan configuration unless an authorised admin workflow explicitly supports changing them.
+
+Only platform-admin roles with server-side permission may change these settings. Never trust a client-supplied role or setting value without authorization and validation.
