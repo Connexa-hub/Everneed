@@ -42,9 +42,9 @@ begin
        select 1
          from private.payment_attempts as prior
         where prior.order_id = new.order_id
-          and prior.status = 'reconciliation_required'
+          and prior.status in ('succeeded', 'reconciliation_required')
      ) then
-    raise exception 'A previous payment attempt requires reconciliation before another charge can be created.';
+    raise exception 'A previous payment attempt is settled or requires reconciliation before another charge can be created.';
   end if;
   return new;
 end
