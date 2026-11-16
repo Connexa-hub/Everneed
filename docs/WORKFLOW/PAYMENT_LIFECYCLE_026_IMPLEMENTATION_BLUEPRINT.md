@@ -2,7 +2,7 @@
 
 **Status:** 026 schema foundation is recorded as applied in `Everneed-staging`; end-to-end payment integration remains incomplete. This document does not authorize further migration application or Edge Function deployment.  
 **Target branch:** `web-portal`  
-**Next migration:** `029_<descriptive_name>.sql` (the repository and staging migration ledger currently end at 028)  
+**Current repository head:** migration 033 (source-only); staging ledger ends at 029. **Next new migration:** 034.  
 **Staging target:** `Everneed-staging` (`vjiadqygpyebpisxslbx`); migrations 026–028 are recorded as applied there. Production is out of scope.
 
 Related contract: [PAYMENT_LIFECYCLE_026_CONTRACT.md](./PAYMENT_LIFECYCLE_026_CONTRACT.md)
@@ -393,7 +393,7 @@ A static repository check now guards against accidentally restoring the 2xx-on-p
 
 ## Current baseline correction — 16 Nov 2026
 
-The introductory statements in the original blueprint are historical and are superseded by this reconciliation. The repository migration directory and read-only staging ledger both contain migrations through `029_payment_recovery_worker.sql`; migration 029 was applied to staging by the repository's former push-triggered workflow on 16 Nov 2026. That automatic trigger has since been disabled. Do not edit or reapply migration 029. The next new repository migration is **033**. Staging is pending migrations 030, 031 and 032.
+The introductory statements in the original blueprint are historical and are superseded by this reconciliation. The repository migration directory and read-only staging ledger both contain migrations through `029_payment_recovery_worker.sql`; migration 029 was applied to staging by the repository's former push-triggered workflow on 16 Nov 2026. That automatic trigger has since been disabled. Do not edit or reapply migration 029. The next new repository migration is **034**. Staging is pending migrations 030–033. Migration 033 establishes a private immutable double-entry journal and service-only balanced posting RPC; it is source-only and not applied.
 
 Migration 029 adds event lease metadata, bounded retry/dead-letter states, atomic `SKIP LOCKED` claims, lease-token guarded completion, exponential retry backoff, corrected duplicate-event detection, and stronger immutable checkout snapshot validation in settlement. The staging ledger confirms 029 is recorded. No payment-attempt or provider-event rows were present at the pre-029 audit baseline; this remains a structural rather than live-payment test.
 
