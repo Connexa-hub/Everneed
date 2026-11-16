@@ -123,3 +123,9 @@ Backend coordination:
 ## Staging backend update — 16 November 2026
 
 The backend migration is now applied to Everneed-staging. Use the contracts above; do not wait for a future migration to remove the initial payout-bank prerequisite. Keep the Free plan UI as “Not configured” until the platform admin configures both limits. Build the authorised admin settings surface against the existing RPCs and admin-only table read policy. Add verification-scope classification to the admin operations UI, but do not preselect classifications for Nigeria's four existing checks.
+
+## Quota-trigger security correction — 16 November 2026
+
+A follow-up staging migration `20261116201843_seller_product_quota_trigger_privilege_fix` makes the product guard SECURITY DEFINER with explicit caller-role checks. This is required because ordinary seller RLS could not read the private entitlement rows or insert durable quota events under an invoker trigger. The trigger still bypasses trusted service-role/admin operations and enforces seller quotas. A staging transaction test impersonating the Shopflow seller inserted one draft product under a one-per-day test entitlement, verified the second insert was rejected with the daily-limit error, and rolled the transaction back. No persistent test product or plan change remains.
+
+The CI regression test now asserts the trigger is SECURITY DEFINER. The full local migration replay/database CI is the next validation gate.
