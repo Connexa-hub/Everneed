@@ -88,3 +88,19 @@ For wallet and virtual-account UI, wait for a tested server-side read contract. 
 - Dashboard is excellent on mobile and desktop and all controls work.
 - No false wallet balance, virtual-account number, payout success or tier entitlement.
 - Staging only; production remains untouched.
+
+
+## Admin configuration requirement — owner decision (16 November 2026)
+
+The Free-tier active-product cap and daily new-listing cap must be configurable by an authorised platform admin in the admin workspace. Do not hardcode either value or invent defaults.
+
+Frontend/admin work:
+- Add an admin settings surface for the two Free-tier limits, only if the existing admin architecture has a real authorised route and backend contract.
+- Display unset values as “Not configured”, not zero and not unlimited.
+- Provide clear validation, save/error/success states, and explain that changes affect server-enforced seller entitlements.
+- Do not expose these controls to sellers or ordinary admins without the required permission.
+
+Backend coordination:
+- The coordinator must supply a server-authorised read/write contract, validation rules, audit logging and server-side enforcement before connecting the UI.
+- Product creation/publication and daily listing quota checks must use the same effective configuration returned to the seller dashboard.
+- Until the setting is configured, the UI must not claim a numeric cap or unlimited capacity. Do not block seller account creation or basic dashboard access because the setting is unset.
