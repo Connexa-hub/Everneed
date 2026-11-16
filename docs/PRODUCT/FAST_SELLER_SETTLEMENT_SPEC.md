@@ -1,6 +1,6 @@
 # Everneed Fast Seller Settlement — Implementation Specification
 
-**Status:** Business policy approved; implementation pending staging migration replay, refund controls and provider/legal gates  
+**Status:** Business policy approved; migrations 030–033 applied to staging; package settlement implementation pending refund controls and provider/legal gates  
 **Branch:** `web-portal`  
 **Date:** 16 November 2026  
 **Scope:** Seller-package settlement eligibility, holds, payout orchestration and reconciliation
@@ -152,7 +152,7 @@ Repository and staging checks on 16 November 2026 establish:
 - The current Paystack Edge Function verifies collections but has no seller transfer/recipient orchestration. Provider marketplace approval remains unconfirmed.
 
 Implementation should proceed in this order:
-1. Complete the approved staging replay of migrations 030–033 and verify staging schema parity; never push these to production as part of this task.
+1. Completed: apply migrations 030–033 to Everneed-staging and verify the remote migration ledger and key schema objects. Keep production untouched.
 2. Resolve the refund-provider lifecycle and define how refund requests/returns, chargebacks and disputes create, resize and release package-level holds.
 3. Add package-level settlement eligibility and partial hold/release logic with database tests. For order-wide cases, hold all affected seller packages; for seller-specific cases, hold only that package; for amount-specific refunds, hold only the affected amount when the evidence and ledger allocation support it.
 4. Add an idempotent server-side payout queue and reconciliation worker in staging. Do not initiate live transfers until Paystack approval and legal/accounting gates are documented.
@@ -164,3 +164,8 @@ This specification does not authorise merging to `main`, production deployment, 
 ## 10. Acceptance criteria
 
 The feature is ready for controlled staging verification when package-level eligibility, partial holds, ledger invariants, idempotent transfer orchestration, reconciliation, RLS and all tests above pass. It is ready for production only after documented provider, legal, accounting and operational approval.
+
+
+## 11. Staging rollout update — 16 Nov 2026
+
+Migrations 030–033 are now recorded in the Everneed-staging migration ledger. Read-only checks confirmed the finance journal tables, payment recovery claim RPCs and 96 seeded chart-of-account rows (16 per supported currency). Staging currently has no journal transactions or payment attempts, so there is no transaction-level reconciliation evidence yet. CI run 43799090404 passed the local Phase 2 and migration 033 SQL tests; the persistent staging database was not subjected to the fixture-based Phase 2 script. Production remains untouched. The next migration number remains 034.
