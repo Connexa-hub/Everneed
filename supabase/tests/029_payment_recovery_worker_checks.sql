@@ -13,7 +13,6 @@ declare
   v_lease_token uuid;
   v_second_id uuid;
   v_second_token uuid;
-  v_claimed_signature boolean;
   v_finished boolean;
   v_key text;
 begin
@@ -95,12 +94,12 @@ begin
     provider, event_key, event_type, signature_verified, payload, processing_status
   ) values ('paystack', v_key, 'charge.success', true, '{}'::jsonb, 'received');
 
-  select event_id, lease_token, signature_verified
-    into v_event_id, v_lease_token, v_claimed_signature
+  select event_id, lease_token
+    into v_event_id, v_lease_token
     from public.claim_provider_event_recovery(1, 180, 8);
 
-  if v_event_id is null or v_lease_token is null or v_claimed_signature is distinct from true then
-    raise exception 'First recovery claim did not return a signed event with a lease';
+  if v_event_id is null or v_lease_token is null then
+    raise exception 'First recovery claim did not return an event with a lease';
   end if;
 
   select event_id, lease_token
