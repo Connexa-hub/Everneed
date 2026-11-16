@@ -95,19 +95,26 @@ Terminal/exception states should include `failed`, `reversed`, `cancelled` and `
 - Reconcile Paystack clearing to actual bank credits, with an exception queue for unmatched, partial, duplicate and delayed items.
 - Provide a period close report by currency: opening balance, movements, closing balance, provider clearing balance, bank balance and unresolved differences.
 
-## 5. Decisions intentionally not assumed
+## 5. Business decision confirmed — 16 Nov 2026
 
-Before implementation, confirm:
-- when seller funds become withdrawable (delivery, return-window expiry, or another milestone);
-- whether seller payouts are on-demand, scheduled, threshold-based, or hybrid;
-- the payout provider and supported destination countries/currencies;
-- how delivery fees, taxes, Paystack fees, chargebacks and hub handling costs are allocated;
-- whether hub-held goods/cash require separate inventory and custody subledgers.
+The owner approved this seller settlement rule:
+- Undisputed seller proceeds become eligible promptly after verified delivery; no arbitrary multi-day platform holding period.
+- A return/refund request or active dispute blocks only the affected seller package or amount where the case can be allocated reliably.
+- An order-wide case affects all seller packages in that order.
+- Undisputed seller packages in the same consolidated delivery may proceed independently at the accounting/eligibility layer.
+- Payout orchestration should queue eligible earnings promptly, while actual bank arrival remains subject to provider/bank processing and reconciliation.
 
-Until these policies are approved, the existing manual payout RPC should not be represented as automated settlement and no automated payout migration should be applied.
+Still unresolved and not to be guessed by engineering:
+- Paystack's written approval for Everneed's marketplace/merchant-of-record, recipient and seller-transfer structure;
+- supported destination countries/currencies and seller KYC/bank-account requirements;
+- allocation of delivery fees, taxes, Paystack fees, chargebacks and hub handling costs;
+- whether hub-held goods/cash require separate inventory and custody subledgers;
+- the legally approved customer return/refund windows and seller recovery/offset terms.
+
+The existing manual payout RPC must not be represented as automated settlement. The confirmed timing decision does not authorise live transfers or bypass the provider, legal and accounting gates.
 
 ## 6. Source implementation started — migration 033
 
 Migration `033_double_entry_finance_journal.sql` now creates the private chart of accounts, immutable journal headers/lines, seeded currency-specific accounts, service-only balanced posting RPC, source-event idempotency, direct-write restrictions and a linked idempotent full-reversal RPC. Its SQL test verifies balanced posting, idempotent replay, mismatched-content rejection, exact full reversal, reversal idempotency, client isolation and immutability. This migration is **source-only** and has not been applied to staging or production. It does not yet map existing seller-ledger events, automate payout transfers or change seller balance calculations.
 
-The first full replay/SQL CI run for migration 033 is pending. No staging or production data has been changed.
+GitHub Actions run `43799090404` on commit `fcc3230d4d97c9489bb22fb3266b3767c6983c60` completed successfully: full local migration replay, Phase 2 checks, payment recovery tests, migration 033 double-entry journal tests, web checks and Android APK build all passed. This is source/CI verification only. The read-only Supabase migration ledger still shows staging through version 029; migrations 030–033 have not been applied to staging. No production data has been queried or changed.
