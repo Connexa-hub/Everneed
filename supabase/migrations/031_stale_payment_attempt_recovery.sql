@@ -180,6 +180,8 @@ begin
            else a.failure_code
          end,
          failure_message = case
+           when p_outcome = 'failed' and a.status = 'succeeded'
+             then 'Paystack verification conflicts with an already-settled attempt; manual review is required.'
            when p_outcome in ('failed', 'reconciliation_required') then left(p_error_message, 240)
            when p_outcome = 'pending' and a.status in ('initializing', 'pending', 'processing')
                 and a.recovery_attempts >= p_max_attempts
