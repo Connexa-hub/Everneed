@@ -1,6 +1,6 @@
 # Everneed Fast Seller Settlement — Implementation Specification
 
-**Status:** Approved product direction; engineering specification pending implementation and provider/legal gates  
+**Status:** Business policy approved; implementation pending staging migration replay, refund controls and provider/legal gates  
 **Branch:** `web-portal`  
 **Date:** 16 November 2026  
 **Scope:** Seller-package settlement eligibility, holds, payout orchestration and reconciliation
@@ -12,7 +12,7 @@ Everneed should make undisputed seller proceeds eligible for settlement promptly
 A seller package becomes **eligible for payout evaluation** only when all of the following are true:
 
 1. The customer payment for the relevant package has been verified as successful by the payment provider and reconciled to the order amount and currency.
-2. Delivery of that specific seller package has been confirmed using the approved proof-of-delivery process. A generic parent-order status is not sufficient for a multi-seller order.
+2. Delivery of the shipment containing that seller package has been confirmed using the approved proof-of-delivery process. The current schema has one `deliveries` row per parent order and `private.deliver()` marks all active seller orders on that parent order delivered together. For the current hub-consolidated multi-seller parcel, that shared verified delivery event may make each included seller package eligible independently, subject to its own holds. Do not claim per-seller shipment independence until the data model supports separate delivery records.
 3. No open return, refund, complaint, chargeback, fraud review or other active dispute applies to the package or amount.
 4. The payable amount has been calculated from the immutable order/package snapshot and itemised, authorised adjustments.
 5. The seller and destination payout account pass required verification and provider checks.
@@ -25,8 +25,9 @@ When those checks pass, the system should queue the payout without an additional
 ## 2. Package-level, not parent-order-level
 
 - Track payable amounts by seller package (seller order), even when one buyer checkout creates a parent order containing several sellers.
-- A delivered package may proceed independently while another package is still in transit, returned or disputed.
-- Never release one seller's funds based only on another seller's delivery event.
+- Settlement accounting and holds are package-level (`seller_orders`), not parent-order balance-level.
+- In the current hub-consolidated flow, one parent-order delivery event covers all active seller packages in that consolidated shipment. A package-specific dispute/refund hold must not block an unrelated seller package in the same parcel.
+- If Everneed later supports separate deliveries from different sellers, add seller-package delivery records and proof before allowing one package to settle ahead of the others.
 - Allocate refunds, disputes, delivery costs, commission and adjustments to the affected package and line items.
 - If an issue affects only part of a package, hold only the evidenced affected amount where the approved provider and accounting structure permits; leave the undisputed remainder eligible.
 - If the issue cannot yet be allocated reliably, place a temporary, reviewable hold on the smallest amount reasonably necessary and record why.
@@ -140,15 +141,23 @@ Do not deploy or enable live transfers until the provider approval and legal/acc
 15. Admin adjustment/hold/release is reasoned, permission-checked and audited.
 16. Currency and minor-unit rounding invariants hold for all supported currencies.
 
-## 9. Rollout gates and current boundary
+## 9. Verified implementation baseline and rollout gates
+
+Repository and staging checks on 16 November 2026 establish:
+- `seller_orders` is the seller-package subledger unit; `orders` and `deliveries` currently represent the parent checkout and its single consolidated shipment.
+- `refunds` and `disputes` can reference a seller order; a null seller-order reference is order-wide and must affect all relevant seller packages.
+- Existing `public.refund()` marks a refund `processed` through local bookkeeping without a Paystack Refund API confirmation. Do not interpret that status as proof that the customer received funds; provider refund lifecycle remains a blocker for safe automated settlement.
+- Existing `public.record_payout()` is an admin-entered record only. It does not initiate or verify a bank transfer.
+- Migration 033 creates the immutable double-entry journal foundation. Its replay and SQL tests passed in GitHub Actions run `43799090404`, but migrations 030–033 remain source-only and staging currently records migrations only through 029.
+- The current Paystack Edge Function verifies collections but has no seller transfer/recipient orchestration. Provider marketplace approval remains unconfirmed.
 
 Implementation should proceed in this order:
-1. Map the existing seller-package schema, payment ledger, refund/dispute tables, RLS and database functions; reuse existing structures where sound.
-2. Add package-level settlement eligibility and hold/release logic with database tests.
-3. Add an idempotent server-side payout queue and reconciliation worker in non-production/staging.
-4. Add seller-facing statement/status UI only after the underlying ledger and RLS tests pass.
-5. Run provider-approved test transfers and reconciliation end to end.
-6. Obtain legal, accounting and provider sign-off before any production enablement.
+1. Complete the approved staging replay of migrations 030–033 and verify staging schema parity; never push these to production as part of this task.
+2. Resolve the refund-provider lifecycle and define how refund requests/returns, chargebacks and disputes create, resize and release package-level holds.
+3. Add package-level settlement eligibility and partial hold/release logic with database tests. For order-wide cases, hold all affected seller packages; for seller-specific cases, hold only that package; for amount-specific refunds, hold only the affected amount when the evidence and ledger allocation support it.
+4. Add an idempotent server-side payout queue and reconciliation worker in staging. Do not initiate live transfers until Paystack approval and legal/accounting gates are documented.
+5. Add seller-facing statement/status UI only after the underlying ledger, RLS and reconciliation tests pass.
+6. Run provider-approved test transfers and reconciliation end to end, then obtain legal, accounting and provider sign-off before any production enablement.
 
 This specification does not authorise merging to `main`, production deployment, production database changes, live transfers, or changes to the existing staging/production boundary. Those remain separate controlled steps.
 
