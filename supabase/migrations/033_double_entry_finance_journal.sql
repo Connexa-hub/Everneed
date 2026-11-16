@@ -145,8 +145,13 @@ begin
      or jsonb_typeof(coalesce(p_metadata, '{}'::jsonb)) <> 'object' then
     raise exception 'Invalid finance journal request.';
   end if;
-  if p_lines is null or jsonb_typeof(p_lines) <> 'array'
-     or jsonb_array_length(p_lines) < 2 or jsonb_array_length(p_lines) > 1000 then
+  if p_lines is null then
+    raise exception 'Finance journal lines are required.';
+  end if;
+  if jsonb_typeof(p_lines) <> 'array' then
+    raise exception 'Finance journal lines must be a JSON array.';
+  end if;
+  if jsonb_array_length(p_lines) < 2 or jsonb_array_length(p_lines) > 1000 then
     raise exception 'Finance journal requires between 2 and 1000 lines.';
   end if;
 
