@@ -73,13 +73,10 @@ The `payment-recovery` Edge Function is also source-only. Its intended safety pa
 
 Migration 030 and the worker must pass local database replay, SQL regression tests and function type/syntax checks before any staging deployment is considered.
 
-## 5. Migration 031 — stale attempt recovery (source-only)\n\nMigration 031 adds a separate lease lifecycle for stale `initializing`, `pending` and `processing` attempts. It never initializes or charges a new transaction. The worker re-verifies the existing reference; `failed` and `abandoned` can close an attempt, `pending` / `ongoing` / `processing` / `queued` are retried, and `reversed` or unknown states require reconciliation. A database trigger prevents a new attempt from being inserted for an order while a prior attempt remains `reconciliation_required`.\n\nMigration 031 is in the repository but has not been applied to staging. Its local SQL test and worker changes are awaiting CI verification. Staging remains at 029; 030 and 031 require manual dispatch with the explicit `APPLY` input. The next new repository migration number is 032.\n\n## 6. Remaining payment recovery work
+## 5. Migration 031 — stale attempt recovery (source-only)\n\nMigration 031 adds a separate lease lifecycle for stale `initializing`, `pending` and `processing` attempts. It never initializes or charges a new transaction. The worker re-verifies the existing reference; `failed` and `abandoned` can close an attempt, `pending` / `ongoing` / `processing` / `queued` are retried, and `reversed` or unknown states require reconciliation. A database trigger prevents a new attempt from being inserted for an order while a prior attempt is `succeeded` or `reconciliation_required`.\n\nMigration 031 is in the repository but has not been applied to staging. The first full local replay and 031 SQL test passed on commit `939d526`; the subsequent guard/message hardening is being re-run in CI. Staging remains at 029; 030 and 031 require manual dispatch with the explicit `APPLY` input. The next new repository migration number is 032.\n\n## 6. Remaining payment recovery work
 
 Not yet implemented:
 
-- Recovery of stale `initializing` attempts where Paystack accepted initialization but the database update failed.
-- Periodic verification of stale `pending` attempts.
-- Separate attempt-recovery leases and bounded attempt retry state.
 - A production-grade schedule. Supabase scheduling with `pg_cron` + `pg_net` is unavailable until the extensions are deliberately enabled and secrets are stored safely; an external scheduler is an alternative but needs its own environment controls.
 - Audit of legacy `confirm_payment`, `admin_confirm_payment`, `report_payment`, saved-card and pay-on-delivery flows.
 - Provider-confirmed refunds and refund accounting.
@@ -89,9 +86,9 @@ The recovery worker must not create a new charge reference when recovering an am
 ## 7. CI and release gates
 
 - Migration naming/order validation now includes 030.
-- The local database workflow runs the 029 lease/settlement checks and the 030 context/privilege checks after applying the migrations.
+- The local database workflow runs the 029 lease/settlement checks, 030 context/privilege checks, and 031 stale-attempt lease/guard checks after applying the migrations.
 - The worker is checked for service-role authorization, Paystack verification before settlement, trusted attempt-context matching, and lease completion.
-- CI results for the latest commit must be read from the live Actions runs; commits pushed in quick succession can cancel older in-progress Android builds.
+- Commit `939d526` passed Install and test, Deno type-check, and the complete Database tests job including 029, 030 and 031. The Android APK packaging job was still running at the last check; later source hardening commits are undergoing another CI pass.
 - PR #31 remains open and unmerged.
 - Staging migration application now requires manual workflow dispatch and explicit owner approval.
 - No production migration, production Edge Function deployment, production scheduler or production database modification is authorized.
