@@ -169,6 +169,10 @@ async function handleUserAction(req: Request) {
     const { data: isAdmin, error: adminError } = await userClient.rpc("is_admin");
     if (adminError || isAdmin !== true) return json({ error: "Administrator access required." }, 403);
 
+    const configuredFlowId = env(action === "create_kyc_flow" ? "NINJA_KYC_FLOW_ID" : "NINJA_KYB_FLOW_ID");
+    if (configuredFlowId) {
+      return json({ created: false, already_configured: true, type: action === "create_kyc_flow" ? "kyc" : "kyb", flow_id: configuredFlowId });
+    }
     const webhookUrl = `${supabaseUrl}/functions/v1/ninja-verification`;
     const branding = { display_name: "Everneed", primary_color: "#087F5B" };
     const flow = action === "create_kyc_flow"
@@ -195,8 +199,8 @@ async function handleUserAction(req: Request) {
       : await ninjaPost("/api/kyb-flows", {
           name: "Everneed Seller KYB - Sandbox",
           require_documents: false,
-          require_proof_of_address: false,
           require_director_ids: false,
+          require_otp: false,
           branding,
           redirect_url: "https://web-portal.everneed.pages.dev/portal?verification=returned",
           webhook_url: webhookUrl,
