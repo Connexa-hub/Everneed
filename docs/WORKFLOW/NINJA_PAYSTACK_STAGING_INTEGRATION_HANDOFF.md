@@ -5,6 +5,17 @@
 **Staging project:** `vjiadqygpyebpisxslbx`.  
 **Production:** Do not change or deploy until the owner approves after end-to-end testing.
 
+## 0. Ninja implementation status (2026-11-17)
+
+- Applied to staging: migrations `20261117074652`, `20261117074714`, `20261117074747`, and `20261117074852`.
+- Added the `business_registration` check type and provider verification references.
+- Added service-only webhook event storage with RLS enabled and no client policies.
+- Added a distinct `review` status so a Ninja manual-review outcome is not collapsed into a mismatch.
+- Deployed `ninja-verification` to staging as ACTIVE v2 with `verify_jwt=false`; the function authenticates seller actions internally and validates signed provider webhooks.
+- Added regression test `supabase/tests/035_ninja_hosted_verification_checks.sql`; the equivalent read-only staging assertions passed.
+- The function is deployed but provider flow creation is not yet configured. It requires `NINJA_PUBLIC_KEY` in addition to the already-saved `NINJA_SECRET_KEY`. Flow IDs and flow-specific webhook secrets must be added after the sandbox flows are created.
+- Sandbox webhook events are recorded as ignored and cannot mark a real seller verified. No seller activation state is changed by the webhook.
+
 ## 1. Current verified state
 
 ### Seller frontend (Claude)
@@ -44,14 +55,15 @@ Create the two reusable flows in Ninja **Sandbox** mode first. Set the flow webh
 
 Required Supabase **staging** Edge Function secrets (never commit them, put them in frontend config, or send them in chat):
 
-- `NINJA_SECRET_KEY` — sandbox secret key (`sk_sandbox_...`)
+- `NINJA_PUBLIC_KEY` — sandbox public/client key (`pk_sandbox_...`), used with the secret to obtain a short-lived Ninja API session token.
+- `NINJA_SECRET_KEY` — sandbox secret key (`sk_sandbox_...`); already saved in staging. Do not paste it into chat or GitHub.
 - `NINJA_KYC_FLOW_ID` — KYC flow id (`vf_...`)
 - `NINJA_KYB_FLOW_ID` — KYB flow id (`kf_...`)
 - `NINJA_KYC_WEBHOOK_SECRET` — signing secret for the KYC flow
 - `NINJA_KYB_WEBHOOK_SECRET` — signing secret for the KYB flow
 - `NINJA_ENV=sandbox`
 
-The hosted-link integration does not need the Ninja public key or browser SDK. Never expose the Ninja secret key to a browser.
+The Edge Function uses the public/client key and secret server-side to obtain a short-lived Ninja API session token. Neither key belongs in browser code. The Edge Function can create the reusable KYC and KYB flows through admin-only actions; it returns the flow IDs, and the flow-specific webhook signing secrets must be revealed in Ninja Sandbox and stored in Supabase Edge Function Secrets.
 
 Ninja sandbox is free for sandbox flow tests; live registry checks are billed and live API keys require Ninja business/KYB approval. Keep production verification disabled until owner approval and live credentials are configured.
 
@@ -59,14 +71,14 @@ Ninja sandbox is free for sandbox flow tests; live registry checks are billed an
 
 Create a staging-only Supabase Edge Function named `ninja-verification` with `verify_jwt=false` only because it must accept provider webhooks. Inside the handler:
 
-### Authenticated seller action: `{ action: "start", store_id, check_type }`
+### Authenticated seller actions: `{ action: "create_kyc_link" | "create_kyb_link", store_id }`
 1. Validate the Supabase bearer token with `auth.getUser`; reject missing/invalid sessions.
 2. Confirm the authenticated user owns `store_id`. Never trust a client-supplied owner, plan, price, status or verification outcome.
 3. Read the current plan entitlements and regional rules from the database. Permit commercial checks only when the selected plan requires/includes verification; permit mandatory compliance checks only when the current regional rule requires them.
 4. Accept only explicit supported check types. Map individual identity/face checks to the configured KYC flow and CAC/business-registration checks to the KYB flow. Do not map phone OTP to Ninja.
-5. Build a stable `customer_ref` containing the store id and logical check group. Create the one-time hosted link server-side, using the correct Sandbox API base URL and the Ninja secret key. Return only the link URL and non-sensitive status to the seller.
-6. Persist provider = `ninja`, pending state and provider reference in the existing private-owned verification record. Repeated start requests must not create uncontrolled duplicate links; support a deliberate retry/resend path.
-7. Rate-limit link creation and return a clear error if the flow or secret is not configured.
+5. Use the store id as `customer_ref`; create the one-time hosted link server-side using the sandbox API session. Return only the hosted URL and expiry to the seller.
+6. Persist provider = `ninja` and pending state in `store_verification_checks`. Do not store raw identity or CAC data.
+7. Return a clear error if the flow or credentials are not configured. Repeated starts must be treated as deliberate retries, not evidence of verification.
 
 ### Provider webhook
 1. Read raw request bytes first. Verify `X-Ninja-Signature` as HMAC-SHA256 over the raw body with the correct flow-specific webhook secret. Compare in constant time. Reject invalid signatures with 401.
@@ -126,3 +138,15 @@ Create a staging-only Supabase Edge Function named `ninja-verification` with `ve
 - Claude's real-device visual check and owner-run new-account click-through pass.
 - Staging database and Edge Function tests pass.
 - PR #31 remains open until the owner explicitly approves the final production promotion.
+
+
+## 8. Current next action
+
+The Edge Function is deployed, but the Ninja account still needs its sandbox **public/client key** added to Supabase staging secrets. The owner should add:
+
+- `NINJA_PUBLIC_KEY` = the sandbox public key from Ninja Dashboard → API Keys.
+- `NINJA_ENV` = `sandbox`.
+
+Then an authenticated platform admin can call the function with `action: "create_kyc_flow"` and `action: "create_kyb_flow"`. Save the returned flow IDs as `NINJA_KYC_FLOW_ID` and `NINJA_KYB_FLOW_ID`. Reveal each flow's signing secret in Ninja Sandbox and save them as `NINJA_KYC_WEBHOOK_SECRET` and `NINJA_KYB_WEBHOOK_SECRET`. Never send either key or webhook secret in chat.
+
+After those secrets are present, test a signed sandbox webhook and the hosted link flows. Sandbox events are intentionally not applied to seller activation state; the end-to-end sandbox test validates delivery, signature, event deduplication and safe isolation.
