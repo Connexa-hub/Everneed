@@ -55,7 +55,6 @@ Create the two reusable flows in Ninja **Sandbox** mode first. Set the flow webh
 
 Required Supabase **staging** Edge Function secrets (never commit them, put them in frontend config, or send them in chat):
 
-- `NINJA_PUBLIC_KEY` — sandbox public/client key (`pk_sandbox_...`), used with the secret to obtain a short-lived Ninja API session token.
 - `NINJA_SECRET_KEY` — sandbox secret key (`sk_sandbox_...`); already saved in staging. Do not paste it into chat or GitHub.
 - `NINJA_KYC_FLOW_ID` — KYC flow id (`vf_...`)
 - `NINJA_KYB_FLOW_ID` — KYB flow id (`kf_...`)
@@ -63,7 +62,7 @@ Required Supabase **staging** Edge Function secrets (never commit them, put them
 - `NINJA_KYB_WEBHOOK_SECRET` — signing secret for the KYB flow
 - `NINJA_ENV=sandbox`
 
-The Edge Function uses the public/client key and secret server-side to obtain a short-lived Ninja API session token. Neither key belongs in browser code. The Edge Function can create the reusable KYC and KYB flows through admin-only actions; it returns the flow IDs, and the flow-specific webhook signing secrets must be revealed in Ninja Sandbox and stored in Supabase Edge Function Secrets.
+The Edge Function uses the Ninja secret key directly as a server-to-server Bearer token. The public key is not needed because Everneed is not using the browser widget. The Edge Function can create the reusable KYC and KYB flows through admin-only actions; it returns the flow IDs, and the flow-specific webhook signing secrets must be revealed in Ninja Sandbox and stored in Supabase Edge Function Secrets.
 
 Ninja sandbox is free for sandbox flow tests; live registry checks are billed and live API keys require Ninja business/KYB approval. Keep production verification disabled until owner approval and live credentials are configured.
 
@@ -142,10 +141,7 @@ Create a staging-only Supabase Edge Function named `ninja-verification` with `ve
 
 ## 8. Current next action
 
-The Edge Function is deployed, but the Ninja account still needs its sandbox **public/client key** added to Supabase staging secrets. The owner should add:
-
-- `NINJA_PUBLIC_KEY` = the sandbox public key from Ninja Dashboard → API Keys.
-- `NINJA_ENV` = `sandbox`.
+The Edge Function is deployed, but the Ninja account still needs its sandbox **public/client key** added to Supabase staging secrets. The owner should ensure `NINJA_ENV=sandbox` is saved. The public key is not required for server-to-server calls; the Edge Function uses the already-saved `NINJA_SECRET_KEY` directly as `Authorization: Bearer ...`.
 
 Then an authenticated platform admin can call the function with `action: "create_kyc_flow"` and `action: "create_kyb_flow"`. Save the returned flow IDs as `NINJA_KYC_FLOW_ID` and `NINJA_KYB_FLOW_ID`. Reveal each flow's signing secret in Ninja Sandbox and save them as `NINJA_KYC_WEBHOOK_SECRET` and `NINJA_KYB_WEBHOOK_SECRET`. Never send either key or webhook secret in chat.
 
