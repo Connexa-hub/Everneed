@@ -218,7 +218,7 @@ async function handleUserAction(req: Request) {
         });
 
     const flowId = flow?.id ?? flow?.data?.id;
-    if (typeof flowId !== "string") return json({ error: "Ninja created no flow ID.", provider_response: flow }, 502);
+    if (typeof flowId !== "string") return json({ error: "Ninja created no flow ID. Check the Ninja sandbox API response in the provider dashboard." }, 502);
     return json({
       created: true,
       type: action === "create_kyc_flow" ? "kyc" : "kyb",
@@ -274,6 +274,12 @@ async function handleUserAction(req: Request) {
   }
 
   const checkType = isKyb ? "business_registration" : "identity";
+  const { data: existingCheck } = await admin.from("store_verification_checks")
+    .select("status,updated_at").eq("store_id", storeId).eq("check_type", checkType).maybeSingle();
+  if (existingCheck?.status === "pending" && existingCheck.updated_at
+    && Date.now() - new Date(existingCheck.updated_at).getTime() < 60_000) {
+    return json({ error: "A verification link was just created. Wait briefly before requesting another." }, 429);
+  }
   const { error: checkError } = await admin.from("store_verification_checks").upsert({
     store_id: storeId,
     check_type: checkType,
