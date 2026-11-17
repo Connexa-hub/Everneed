@@ -1,0 +1,75 @@
+const {make,J,vm}=require('./harness');
+const assert=require('assert');let pass=0;const t=async(n,f)=>{try{await f();pass++;console.log('PASS',n)}catch(e){console.log('FAIL',n,'\n  ',e.message);process.exitCode=1}};
+(async()=>{
+ // ---- plans.js
+ let h=make({});vm.runInContext(J('plans.js'),h.ctx);const Plans=h.ctx.Plans;
+ await t('plans load from backend (4 plans, rpc catalogue absent is tolerated)',async()=>{const p=await Plans.load();assert.equal(p.length,4);assert.equal(p[0].ent,null)});
+ await t('plan cards show backend price/limit and nothing invented',async()=>{const p=await Plans.load();const html=Plans.html({plans:p,chosen:'',focus:''});
+   assert(html.includes('Free')&&html.includes('₦3,000')&&html.includes('₦8,000')&&html.includes('₦20,000'));
+   assert(html.includes('<b>5</b><span>products')&&html.includes('<b>25</b>')&&html.includes('<b>200</b>')&&html.includes('Unlimited'));
+   assert(!/verification/i.test(html),'verification wording must not appear without backend data');
+   assert(html.includes('2 points lower commission')&&html.includes('4 points lower commission'));
+   assert(!html.includes('Up to 25 products'),'limit line is not repeated in the feature list');
+   assert(html.includes('aria-roledescription="carousel"')&&html.includes('Previous plan')&&html.includes('aria-live="polite"'))});
+ await t('with a backend catalogue, daily quota and verification are shown',async()=>{const {ENTS}=require('./harness');let h2=make({});vm.runInContext(J('plans.js'),h2.ctx);
+   h2.ctx.Supa.rpc=(f)=>f==='seller_plan_catalog'?Promise.resolve(ENTS):Promise.reject(new Error('x'));const p=await h2.ctx.Plans.load();const html=h2.ctx.Plans.html({plans:p,chosen:'plan-starter'});
+   assert(html.includes('2 new listings a day')&&html.includes('Verification included')&&html.includes('Verification optional')&&html.includes('Your choice'))});
+ // ---- seller-flow.js
+ const store=(o)=>Object.assign({id:'s1',name:'Ada Store',slug:'ada',status:'approved',activation_status:'verification_required',country:'NG'},o||{});
+ const loadFlow=(over)=>{const x=make(over);vm.runInContext(J('plans.js'),x.ctx);vm.runInContext(J('seller-flow.js'),x.ctx);return x};
+ await t('falls back to the existing portal when entitlements RPC is unavailable',async()=>{const x=loadFlow({store:store(),entFn:()=>Promise.reject(new Error('Could not find the function'))});const r=await x.V.portal([]);assert.equal(r.html,'BASE')});
+ await t('draft/pending stores are left to the existing portal',async()=>{const x=loadFlow({store:store({status:'pending'}),ent:{}});assert.equal((await x.V.portal([])).html,'BASE')});
+ await t('verification route is retired (redirects to /portal)',async()=>{const x=loadFlow({store:store(),ent:{configured:true,plan_id:'plan-free'}});assert.equal((await x.V.portal(['verification'])).redirect,'/portal')});
+ await t('Free: approved, not live -> open-my-store, no verification wording',async()=>{const x=loadFlow({store:store(),ent:{configured:true,plan_id:'plan-free',plan_name:'Free',active_product_limit:5,active_products_unlimited:false,daily_new_product_limit:2,daily_new_products_unlimited:false,verification_required_to_activate:false}});
+   const r=await x.V.portal([]);assert(r.html.includes('is approved')&&r.html.includes('data-act="sfopen"')&&r.html.includes('Up to 5 products, 2 new a day'));assert(!/verif/i.test(r.html))});
+ await t('Starter: same, no verification screens',async()=>{const x=loadFlow({store:store(),ent:{configured:true,plan_id:'plan-starter',plan_name:'Starter',active_product_limit:25,active_products_unlimited:false,daily_new_products_unlimited:true,verification_required_to_activate:false}});
+   const r=await x.V.portal([]);assert(r.html.includes('sfopen')&&!/verif/i.test(r.html))});
+ for(const [id,name] of [['plan-growth','Growth'],['plan-pro','Pro']])await t(name+': routes to included verification, one check at a time, no fake success',async()=>{
+   const x=loadFlow({store:store(),checks:[{check_type:'phone',status:'verified'}],ent:{configured:true,plan_id:id,plan_name:name,verification_required_to_activate:true}});
+   const r=await x.V.portal([]);assert(r.html.includes('Verification · step 2 of 4')&&r.html.includes('Identity document'),'starts at first unverified check');
+   assert(r.html.includes('not a rule for every Everneed seller')&&r.html.includes('cannot be started from this page yet')&&!/Status<\/dt><dd><span class="pill ok/.test(r.html))});
+ await t('Growth with every required check verified -> open-my-store',async()=>{const x=loadFlow({store:store(),checks:['phone','identity','face_liveness','business_address'].map(c=>({check_type:c,status:'verified'})),ent:{configured:true,plan_id:'plan-growth',plan_name:'Growth',verification_required_to_activate:true,active_product_limit:200}});
+   const r=await x.V.portal([]);assert(r.html.includes('sfopen')&&r.html.includes('is approved'))});
+ await t('no plan + application choice -> choose_plan called with the seller\'s own choice',async()=>{let n=0;const x=loadFlow({store:store(),app:{plan_id:'plan-starter'},entFn:()=>Promise.resolve(n++===0?{configured:false,reason_code:'PLAN_NOT_SELECTED'}:{configured:true,plan_id:'plan-starter',plan_name:'Starter',active_product_limit:25,verification_required_to_activate:false})});
+   const r=await x.V.portal([]);assert(x.calls.some(c=>c==='RPC choose_plan {"p_plan":"plan-starter"}'));assert(r.html.includes('is approved'))});
+ await t('no plan at all -> plan carousel stage (no auto choice)',async()=>{const x=loadFlow({store:store(),app:{plan_id:null},ent:{configured:false,reason_code:'PLAN_NOT_SELECTED'}});const r=await x.V.portal([]);
+   assert(r.html.includes('pc-track')&&r.html.includes('Choose your plan')&&!x.calls.some(c=>c.startsWith('RPC choose_plan')))});
+ await t('open-my-store never claims success without the server saying activated',async()=>{const x=loadFlow({store:store(),ent:{configured:true,plan_id:'plan-free'},act:{activated:false,reason_code:'MANDATORY_COMPLIANCE_MISSING',missing_checks:['phone']}});await x.V.portal([]);
+   x.A.sfopen(null);await new Promise(r=>setTimeout(r,20));assert(x.calls.some(c=>c.startsWith('TOAST E A regional requirement')&&c.includes('Phone number')));assert(!x.calls.some(c=>c==='TOAST Your store is live.'))});
+ const live=(o)=>Object.assign({store:store({activation_status:'live'}),ent:{configured:true,plan_id:'plan-free',plan_name:'Free',active_products:4,active_product_limit:5,active_products_unlimited:false,daily_new_products_used:1,daily_new_product_limit:2,daily_new_products_unlimited:false,verification_required_to_activate:false}},o);
+ await t('live overview: commerce first, no verification wording, usage warning, earnings, honest wallet note',async()=>{
+   const x=loadFlow(live({products:[{id:'p1',name:'Bag',status:'published',stock:1},{id:'p2',name:'Hat',status:'rejected'},{id:'p3',name:'Cap',status:'draft'}],orders:[{id:'o1',status:'pending',subtotal:5000,earning:4500,accept_by:'2026-11-18',customer_name:'Ife',created_at:'2026-11-17'},{id:'o2',status:'delivered',subtotal:8000,earning:7000,created_at:'2026-11-16'},{id:'o3',status:'preparing',subtotal:2000,earning:1800,created_at:'2026-11-16'}]}));
+   const r=await x.V.portal([]);assert.equal(r.layout,'portal');assert(!/verif/i.test(r.html));
+   assert(r.html.includes('New orders')&&r.html.includes('₦7,000')&&r.html.includes('₦1,800')&&r.html.includes('1 new order waiting')&&r.html.includes('Running low')&&r.html.includes('Needs changes')&&r.html.includes('You are using 4 of 5 products')&&r.html.includes('Withdrawals are not available yet')&&r.html.includes('Today: 1 of 2'))});
+ await t('live overview with no data is calm and has a first task',async()=>{const x=loadFlow(live({}));const r=await x.V.portal([]);assert(r.html.includes('Add your first product')&&r.html.includes('Orders appear here as shoppers buy'))});
+ await t('plan page: choose_plan is the only write; paid change after trial shows an honest message',async()=>{const x=loadFlow(live({}));x.ctx.Supa.rpc=(f,a)=>{x.calls.push('RPC '+f);return f==='choose_plan'?Promise.reject(new Error('To change plan, pay for the new plan.')):f==='seller_plan_catalog'?Promise.reject(new Error('x')):Promise.resolve(null)};
+   x.F.sfplan({querySelector:()=>({})},{plan:'plan-pro'});await new Promise(r=>setTimeout(r,20));assert(x.calls.some(c=>c.startsWith('TOAST E Changing plan after your trial needs a payment')))});
+ // ---- admin.js
+ const loadAdmin=(over)=>{const x=make(over||{});x.ctx.Supa.get=(p)=>{x.calls.push('GET '+p);
+   if(p.startsWith('stores?select=id,status'))return Promise.resolve([{id:'a',status:'approved',activation_status:'live'},{id:'b',status:'approved',activation_status:'verification_required'},{id:'c',status:'pending',activation_status:'verification_required'},{id:'o',status:'approved',activation_status:'live',is_official:true}]);
+   if(p.startsWith('products?'))return Promise.resolve([{id:1}]);
+   if(p.startsWith('orders?'))return Promise.resolve([{total:1000,payment_status:'paid'},{total:500,payment_status:'awaiting_payment'}]);
+   if(p.startsWith('seller_orders?'))return Promise.resolve([{status:'delivered',commission:100},{status:'issue',commission:0}]);
+   if(p.startsWith('store_plans'))return Promise.resolve(require('./harness').PLANS);
+   if(p.startsWith('seller_plan_entitlements'))return Promise.resolve(require('./harness').ENTS);
+   if(p.startsWith('seller_verification_rules'))return Promise.resolve(require('./harness').RULES);
+   if(p.startsWith('store_subscriptions'))return Promise.resolve([{store_id:'b',plan_id:'plan-growth',status:'trialing'},{store_id:'a',plan_id:'plan-free',status:'trialing'}]);
+   if(p.startsWith('store_verification_checks'))return Promise.resolve([{store_id:'b',check_type:'phone',status:'verified',provider:'x',updated_at:'t'}]);
+   if(p.startsWith('stores?select=id,name'))return Promise.resolve([{id:'a',name:'Live One',country:'NG',status:'approved',activation_status:'live'},{id:'b',name:'Growth Two',country:'NG',status:'approved',activation_status:'verification_required'}]);
+   return Promise.resolve([]);};
+   vm.runInContext(J('admin.js'),x.ctx);return x};
+ await t('admin overview counts true live stores (approved-not-live and official excluded) and has no verification KPI',async()=>{const x=loadAdmin();const r=await x.V.admin([]);
+   assert(/<b>1<\/b><small>Live stores/.test(r.html),'live=1');assert(/<b>1<\/b><small>Approved, not yet live/.test(r.html));assert(/<b>1<\/b><small>Applications waiting/.test(r.html));
+   assert(r.html.includes('₦1,000')&&r.html.includes('₦100')&&!/verif/i.test(r.html))});
+ await t('seller operations: tabs present, stores show Approved-not-live and plan',async()=>{const x=loadAdmin();const r=await x.V.admin(['sellers','stores']);assert(['Applications','Stores and plans','Plan limits','Verification cases'].every(s=>r.html.includes(s)));assert.equal(r.active,'admin/sellers')});
+ await t('plan limits: only Free is editable; Starter/Growth/Pro read-only',async()=>{const x=loadAdmin();const r=await x.V.admin(['sellers','plans']);assert.equal((r.html.match(/data-form="aplan"/g)||[]).length,1);assert(r.html.includes('Set by Everneed'))});
+ await t('plan limits validation: blocks empty/invalid/no reason, calls the audited RPC with explicit flags otherwise',async()=>{const x=loadAdmin();await x.V.admin([]);const f={querySelector:()=>({}),};
+   x.F.aplan(f,{plan:'plan-free',limit:'',dlimit:'2',reason:'x'.repeat(5)});assert(x.calls.some(c=>c.startsWith('TOAST E Enter a whole number of active products')));
+   x.F.aplan(f,{plan:'plan-free',limit:'5',dlimit:'0',reason:'ok ok'});assert(x.calls.some(c=>c.startsWith('TOAST E Enter a whole number of new listings')));
+   x.F.aplan(f,{plan:'plan-free',limit:'5',dlimit:'2',reason:''});assert(x.calls.some(c=>c.startsWith('TOAST E Add a short reason')));
+   assert(!x.calls.some(c=>c.startsWith('RPC admin_set_plan_entitlements')),'no RPC on invalid input');
+   x.F.aplan(f,{plan:'plan-free',limit:'5',dlimit:'2',ver:'',reason:'Owner decision'});assert(x.calls.some(c=>c.startsWith('RPC admin_set_plan_entitlements')&&c.includes('"p_active_product_limit":5')&&c.includes('"p_active_products_unlimited":false')&&c.includes('"p_daily_new_product_limit":2')))});
+ await t('verification cases: only plan-required stores, open counts, read-only, audit history button',async()=>{const x=loadAdmin();const r=await x.V.admin(['sellers','verification']);
+   assert(r.html.includes('Growth Two')&&!r.html.includes('Live One'),'Free store has no required checks');assert(r.html.includes('3 open')&&r.html.includes('Audit history')&&r.html.includes('never from this screen')&&!/Mark verified|Approve check/.test(r.html))});
+ console.log(pass+' passed');
+})();
