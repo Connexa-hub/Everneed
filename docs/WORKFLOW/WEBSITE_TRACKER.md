@@ -394,3 +394,12 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - The current branch uses timestamped migration filenames for the new migrations. The search returned one migration containing the legacy SQL comment `-- 034` (`20261116201132_seller_onboarding_entitlements_and_quotas.sql`); no pair of files named with a duplicate `034_*.sql` prefix was present in the current remote branch.
 - The newly applied migration is recorded by Supabase as `20261117054738`, and its repository filename now matches that exact version. If Claude's local workspace still shows two files numbered 034, those files are not both present in the current remote `web-portal` tree; reconcile/push the local changes before deciding which file to renumber. Do not renumber already-applied migration history.
 - Migration order/file check and CI are not yet confirmed for the new commit chain.
+
+
+## Seller plan backend regression checks — 17 Nov 2026
+
+- Updated `supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql` to match the approved seeded Free defaults and the new approval/catalogue RPC behavior. The old test incorrectly expected Free to remain inactive and unconfigured.
+- Executed the exact updated SQL test file against Everneed-staging; it completed successfully with no raised assertions.
+- The test now checks Free 5/2 limits, preserved paid-tier limits, Growth/Pro verification flags, payout-independent submission, server-side daily quota trigger, plan-aware approval, seller catalogue fields/grants, and admin-only RLS on direct entitlement-table reads.
+- Updated `.github/workflows/migrations-check.yml` to include migration version `20261117054738` in the exact replay-order allow-list. CI has not yet been confirmed for the latest commit.
+- A read-only staging test under the `authenticated` database role returned zero rows from direct `seller_plan_entitlements` reads, confirming the admin-only RLS policy blocks ordinary seller access despite the underlying SELECT grant. Sellers use the allow-listed catalogue RPC instead.
