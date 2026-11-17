@@ -101,3 +101,12 @@ The platform admin overview should be an executive/operations summary, not a wal
 - **Claude:** implement all frontend UX, animation, responsive behavior, seller overview, admin overview and contextual verification screens.
 - **ChatGPT:** maintain backend plan/entitlement contracts, activation/authorization rules, staging SQL/security tests and documentation coordination.
 - **Do not replace Claude's current frontend design work with a parallel UI implementation.** Coordinate against this contract and review the delivered implementation.
+
+
+## Backend integration addendum — 17 November 2026
+
+- Fetch plan cards from `public.seller_plan_catalog()`; do not query `seller_plan_entitlements` directly. The RPC returns seller-safe fields for active plans, including daily listing quota and verification flags.
+- Persist the explicit plan choice using the authenticated `choose_plan(p_plan)` action before application submission. The backend now requires that selected plan during application approval and copies it to the trial subscription.
+- The backend catalogue values currently resolve to: Free 5 active / 2 new listings per day; Starter 25 active / unlimited daily; Growth 200 active / unlimited daily with included/required commercial verification; Pro unlimited active / unlimited daily with included/required commercial verification. Existing plan prices and commission discounts remain unchanged.
+- Pickup address is not part of onboarding. Collect it in Logistics/Store settings and require it only when enabling hub fulfilment or before the first hub-routed dispatch. Direct-delivery-only sellers must not be blocked.
+- There is not yet a verification provider/start-check backend integration. Growth/Pro screens must be honest about this limitation and must not fabricate a pending check or provider success. A real start action depends on selecting and integrating a provider.
