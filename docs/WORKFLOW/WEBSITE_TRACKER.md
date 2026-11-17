@@ -405,14 +405,11 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - A read-only staging test under the `authenticated` database role returned zero rows from direct `seller_plan_entitlements` reads, confirming the admin-only RLS policy blocks ordinary seller access despite the underlying SELECT grant. Sellers use the allow-listed catalogue RPC instead.
 
 
-## Ninja hosted verification staging implementation — 17 Nov 2026
+## Verification provider decommission and neutral contract — 17 Nov 2026
 
-- Added and applied staging migrations `20261117074652`, `20261117074714`, `20261117074747`, `20261117074852`, and `20261117074929`.
-- Added `business_registration` as a supported verification check, provider verification references, a per-check provider dedupe index, and a distinct `review` status.
-- Added `public.ninja_webhook_events` with RLS enabled, no client policies, and service-role-only privileges. Removed the unused duplicate private event table.
-- Deployed `ninja-verification` to staging, ACTIVE v3, with `verify_jwt=false` because the same endpoint accepts Ninja webhooks and performs its own Supabase bearer-token validation for seller/admin actions.
-- Implemented admin-only sandbox KYC/KYB flow creation, seller-owned hosted-link creation for verification-included plans, HMAC-SHA256 raw-body webhook verification, event-id deduplication, sandbox event isolation, and a 60-second duplicate-link guard.
-- Added `supabase/tests/035_ninja_hosted_verification_checks.sql`. The equivalent read-only assertions were executed successfully against staging.
-- Updated `docs/WORKFLOW/NINJA_PAYSTACK_STAGING_INTEGRATION_HANDOFF.md` with implementation state and the remaining setup steps.
-- Remaining blocker: the owner must add the Ninja Sandbox public/client key as `NINJA_PUBLIC_KEY` and `NINJA_ENV=sandbox` in Supabase staging Edge Function Secrets. The sandbox secret key is already saved. After that, create both flows, save the two flow IDs and their separate webhook signing secrets, then test real sandbox links and signed webhooks.
-- No production resources were changed. PR #31 remains open and unmerged. Claude still needs to wire the existing seller verification screen to the deployed endpoint and show the distinct `review` state.
+- Retired the previous hosted-verification provider after its account eligibility requirements blocked Everneed's current setup.
+- Removed its admin flow-creation controls and provider-specific Edge Function source from the active branch.
+- Added a forward-only staging cleanup migration to remove the unused provider webhook event table and any provider-specific check rows. The table had zero event rows at cleanup time.
+- Preserved the provider-neutral seller verification table, provider references, check types, distinct human-review state, deduplication index, seller plan rules, regional compliance rules, and admin review workflow.
+- The provider-neutral regression test replaces the retired provider-specific test.
+- Staging only; production untouched. PR #31 remains open and unmerged. The next integration will use the selected replacement provider after its sandbox credentials and supported API flow are confirmed.
