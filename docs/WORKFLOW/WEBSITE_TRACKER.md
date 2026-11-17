@@ -372,3 +372,17 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - New authoritative frontend handoff: `docs/PRODUCT/SELLER_ONBOARDING_SIMPLIFICATION_AND_PLAN_SELECTOR.md`.
 - Code inspection found the current five-step `setup.js` still ends with submit/review and routes to `/portal`; it has no plan-selection stage. `core.js` currently exposes a permanent seller Verification nav item. `admin.js` currently counts `stores.status === 'approved'` as "Live stores". These are explicit Claude frontend tasks; no competing UI implementation was made by ChatGPT.
 - Owner-approved plan prices/limits are unchanged. Backend remains source of truth. Staging only; production untouched; PR #31 remains open/unmerged.
+
+
+## 2026-11-17 — Backend plan selection and seller catalogue correction
+
+- Confirmed the approval defect in staging: `choose_plan()` saves `store_applications.plan_id`, but old `approve_store()` ignored it and created a trial subscription with no plan.
+- Added migration `20261117054738_plan_selection_approval_and_seller_catalog.sql` to `web-portal`; it validates the chosen active plan and its entitlement limits, assigns it to the trial subscription on approval, and refuses missing/conflicting plan states rather than silently choosing a tier.
+- Added seller-safe `public.seller_plan_catalog()` RPC. It exposes active plan comparison fields, including daily quota and verification flags, without making the entitlement table generally readable.
+- Commit chain: migration content `46d324823f79101394214e197cd9a67d37cbc41a`; exact migration-ledger filename alignment `476b547c6f8057dd0813c5f2fa25c839df6ec417` and removal of the superseded filename `551457ba19334e56dc3bc85b095b5b1564ac08cf`.
+- Applied successfully to Everneed-staging `vjiadqygpyebpisxslbx`. Read-only SQL checks confirmed the catalogue values and approval function plan checks. Supabase migration ledger records version `20261117054738`.
+- Existing legacy approved applications/subscriptions with null plans were not auto-assigned by this change. Resolve them through the authenticated plan-choice path; do not infer their plan.
+- Supabase security advisor reports the catalogue's SECURITY DEFINER function as callable by anon/authenticated. This is intentional for a pre-signup public plan catalogue, with a read-only query and strict allow-list of public fields. Other pre-existing advisor findings remain outside this task.
+- Logistics decision: reuse existing nullable `store_private.pickup_address`; collect it in Logistics/Store settings and require it only for hub fulfilment / before hub dispatch, not in store onboarding.
+- Verification limitation: staging has no identity/face/business verification provider Edge Function or start-check RPC (only `public-forms` and `paystack`). Keep the UI honest; no fake pending state. A real start-check workflow is blocked on provider selection/integration.
+- CI and authenticated end-to-end approval/plan-selection tests are still outstanding. Production untouched; PR #31 remains open and unmerged.
