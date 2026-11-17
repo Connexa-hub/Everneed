@@ -63,3 +63,17 @@ begin
   end if;
 end
 $$;
+
+-- Ninja's review outcome must remain distinct from a failed/mismatched check.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.store_verification_checks'::regclass
+      and conname='store_verification_checks_status_check'
+      and pg_get_constraintdef(oid) like '%review%'
+  ) then
+    raise exception 'FAIL: verification status must preserve the distinct review state';
+  end if;
+end
+$$;
