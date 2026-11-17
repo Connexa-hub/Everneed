@@ -32,7 +32,7 @@ window.Core=(function(){
       acct=me?'<a class="btn s hide-m" href="'+home+'">'+i.label+'</a>':'<a class="btn o s hide-m" href="/sign-in">Sign in</a><a class="btn s hide-m" href="/create-account">Create account</a>',
       dr=L.map(function(n){return'<a href="/'+n[0]+'">'+ic(n[2],20)+n[1]+'</a>'}).join("")+'<a href="/shop">'+ic("bag",20)+'Shop in the app</a><a href="/pricing">'+ic("tag",20)+'Plans</a><a href="/appearance">'+ic("palette",20)+'Theme and colour</a>'+(me?'<a class="btn" href="'+home+'">'+ic("dash",18)+i.label+'</a><button class="btn o" data-act="out">'+ic("exit",16)+'Sign out</button>':'<a href="/sign-in">'+ic("me",20)+'Sign in</a><a class="btn" href="/create-account">'+ic("me",18)+'Create account</a>'),
       acctCol=me?'<a href="'+home+'">'+i.label+'</a><a href="/appearance">Theme and colour</a>':'<a href="/sign-in">Sign in</a><a href="/create-account">Create account</a><a href="/appearance">Theme and colour</a>';
-    return'<header class="top"><div class="w nav">'+logo()+'<nav aria-label="Main">'+nav+'</nav><span class="sp"></span><a class="btn o s hide-m" href="/shop">Shop in app</a><button class="ib" data-tact="quick" aria-label="Switch light or dark"></button><a class="btn o s hide-m" href="/appearance">'+ic("palette",16)+"Theme</a>"+acct
+    return'<header class="top"><div class="w nav">'+logo()+'<nav aria-label="Main">'+nav+'</nav><span class="sp"></span>'+(me&&window.AX?AX.bell():"")+acct
       +'<button class="ib menu-b" data-act="menu" aria-label="Menu">'+ic("menu",20,1.8)+'</button></div><div class="drawer">'+dr+"</div></header><main>"+inner+'</main>'
       +'<footer class="foot"><div class="w"><div class="fg"><div>'+logo()+'<p class="m" style="margin-top:12px;max-width:30ch">One marketplace for shoppers and independent sellers. Shopping happens in the Everneed app.</p></div>'
       +'<div><h4>Explore</h4><a href="/shop">Shop in the app</a><a href="/how-it-works">How it works</a><a href="/sell">For sellers</a><a href="/pricing">Plans</a></div><div><h4>Company</h4><a href="/about">About</a><a href="/help">Help</a><a href="/early-access">Early access</a></div><div><h4>Account</h4>'+acctCol+'</div></div><div class="cp sm">© 2026 Everneed</div></div></footer>'}
@@ -48,12 +48,11 @@ window.Core=(function(){
       else{a.setAttribute("href",i.home);a.textContent=i.label}
     });
   }
-  /* Seller setup: a focused page. No Products, Messages or Orders while a store is still being set up. */
-  function setup(inner){return'<header class="top"><div class="w nav">'+logo()+'<span class="sp"></span><a class="btn o s" href="/account">Back to Everneed</a><button class="btn o s" data-act="out">'+ic("exit",16)+'Sign out</button></div></header><main><div class="w" style="max-width:820px;padding-top:24px;padding-bottom:80px">'+inner+"</div></main>"}
-  /* Menus. Sellers get no permanent Verification item: a verification task appears only where their plan or a confirmed rule needs it.
-     Admin keeps one Seller operations area for applications, plans, stores and verification cases. */
-  function shell(kind,active,inner){var nav=kind==="admin"?[["admin","Overview","dash"],["inbox","Inbox","chat",1],["admin/sellers","Seller operations","shop"],["admin/review","Product review","check"],["admin/waitlist","Waitlist","users"],["supportset","Support settings","set"],["admin/appearance","Appearance","palette"]]:[["portal","Dashboard","dash"],["inbox","Messages","chat",1],["portal/products","Products","box"],["portal/appearance","Appearance","palette"]];
-    return'<div class="shell"><aside class="side">'+logo()+'<small class="who">'+(kind==="admin"?"Admin console":"Seller portal")+'</small><nav aria-label="Sections">'+nav.map(function(n){return'<a href="/'+n[0]+'"'+(n[0]===active?' class="on"':"")+">"+ic(n[2],20)+n[1]+(n[3]?'<span class="nbd" hidden>0</span>':"")+"</a>"}).join("")+'</nav><div class="grow"></div><div class="row"><button class="ib" data-tact="quick" aria-label="Switch light or dark"></button><button class="btn o s" data-act="out">'+ic("exit",16)+"Sign out</button></div></aside><section class=\"main\">"+inner+"</section></div>"}
+  /* Seller setup: a focused page with one account menu (see appshell.js). */
+  function setup(inner){return AX.setup(inner,me)}
+  /* Seller and admin: app shell with a bottom tab bar on phones and a left rail on desktop (see appshell.js).
+     Sellers get no permanent Verification item. Admin keeps one Seller operations area. */
+  function shell(kind,active,inner){return AX.shell(kind,active,inner,me)}
   function night(){var p=document.documentElement.getAttribute("data-palette")||"emerald";document.querySelectorAll(".night").forEach(function(n){n.setAttribute("data-mode","dark");n.setAttribute("data-palette",p)})}
   new MutationObserver(night).observe(document.documentElement,{attributes:true,attributeFilter:["data-palette"]});
   function thumbs(){document.querySelectorAll(".pth").forEach(function(el){if(el.querySelector("img"))return;var b=el.nextElementSibling&&el.nextElementSibling.querySelector("b");el.innerHTML='<img alt="" src="'+Art.guess(b?b.textContent:"")+'">'})}
