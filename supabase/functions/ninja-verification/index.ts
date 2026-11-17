@@ -127,7 +127,7 @@ async function handleWebhook(req: Request) {
   if (sandbox) return json({ received: true, sandbox: true, applied: false });
 
   const outcome = typeof data.outcome === "string" ? data.outcome : "unknown";
-  const status = outcome === "verified" ? "verified" : "needs_attention";
+  const status = outcome === "verified" ? "verified" : outcome === "review" ? "review" : "needs_attention";
   const completedAt = typeof data.completed_at === "string" ? data.completed_at : new Date().toISOString();
   const baseRow = {
     store_id: storeId,
