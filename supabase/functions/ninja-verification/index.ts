@@ -30,9 +30,33 @@ async function ninjaPost(path: string, payload: Record<string, unknown>) {
     headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const result = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let result: any = {};
+  try {
+    result = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    // Do not log raw provider response text; it may contain sensitive data.
+    result = {};
+  }
   if (!response.ok) {
-    console.error("Ninja API request failed", response.status);
+    const providerError = result?.error && typeof result.error === "object"
+      ? result.error
+      : {};
+    const safeString = (value: unknown, max = 300) =>
+      typeof value === "string" ? value.slice(0, max) : null;
+    const providerType = safeString(result?.type ?? providerError?.type, 100);
+    const providerCode = safeString(result?.code ?? providerError?.code, 100);
+    const providerMessage = safeString(
+      result?.message ?? providerError?.message ?? (typeof result?.error === "string" ? result.error : null),
+      300,
+    );
+    console.error("Ninja API rejected request", {
+      status: response.status,
+      path,
+      type: providerType,
+      code: providerCode,
+      message: providerMessage,
+    });
     throw new Error("Ninja could not complete the request. Check the flow configuration and try again.");
   }
   return result;
