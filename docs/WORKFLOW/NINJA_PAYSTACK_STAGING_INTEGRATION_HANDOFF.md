@@ -7,9 +7,9 @@
 
 ## 0. Ninja implementation status (2026-11-17)
 
-- Applied to staging: migrations `20261117074652`, `20261117074714`, `20261117074747`, and `20261117074852`.
+- Applied to staging: migrations `20261117074652`, `20261117074714`, `20261117074747`, `20261117074852`, and `20261117074929`.
 - Added the `business_registration` check type and provider verification references.
-- Added service-only webhook event storage with RLS enabled and no client policies.
+- Added service-only webhook event storage in the public API schema with RLS enabled and no client policies; removed the unused duplicate private table.
 - Added a distinct `review` status so a Ninja manual-review outcome is not collapsed into a mismatch.
 - Deployed `ninja-verification` to staging as ACTIVE v2 with `verify_jwt=false`; the function authenticates seller actions internally and validates signed provider webhooks.
 - Added regression test `supabase/tests/035_ninja_hosted_verification_checks.sql`; the equivalent read-only staging assertions passed.
