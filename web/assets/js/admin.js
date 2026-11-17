@@ -142,7 +142,7 @@
         cases.push({s:s,plan:sb?(a[5].by[sb.plan_id]||{}).name||sb.plan_id:"Not selected",req:req,st:st,open:req.filter(function(r){return st(r)!=="verified"}).length,chk:chk[s.id]||{}});
       });
       cases.sort(function(x,y){return y.open-x.open});
-      return'<p class="m">'+cases.length+" store"+(cases.length===1?"":"s")+" with plan-required or mandatory checks. Results are recorded by the provider or an authorised review, never from this screen.</p>"
+      var ninjaPanel='<div class="so-case"><h3>Ninja hosted verification · Sandbox setup</h3><p class="sm">Create the reusable KYC and KYB flows once. This does not verify a seller or change any activation status.</p><div class="acts"><button class="btn s" type="button" data-act="ninjaKyc">Create KYC flow</button><button class="btn o s" type="button" data-act="ninjaKyb">Create KYB flow</button></div><p class="sm" id="ninja-setup-result" role="status">After creation, save each flow ID as a Supabase Edge Function secret. Reveal each signing secret in Ninja Sandbox and save it separately.</p></div>';\n      return ninjaPanel+'<p class="m">'+cases.length+" store"+(cases.length===1?"":"s")+" with plan-required or mandatory checks. Results are recorded by the provider or an authorised review, never from this screen.</p>"
         +(cases.length?cases.map(function(c){
           return'<div class="so-case"><h3>'+esc(c.s.name)+"</h3><small>"+esc(c.plan)+" plan · "+esc(storeState(c.s)[0])+" · "+(c.open?c.open+" open":"complete")+"</small>"
             +c.req.map(function(r){var st=c.st(r),k=c.chk[r.check_type]||{},cls=st==="verified"?"ok":st==="pending"?"info":st==="needs_attention"||st==="expired"?"bad":"",sc=r.requirement_scope==="commercial"?"Plan":"Mandatory";
@@ -158,6 +158,34 @@
       box.innerHTML=(r&&r.length)?r.map(function(x){var why=x.after&&x.after.reason||x.after&&x.after.note||"";return"<div><b>"+esc(String(x.action).replace(/_/g," "))+"</b> · "+C.when(x.at)+" · "+esc(x.actor_id?String(x.actor_id).slice(0,8):"system")+(why?" · "+esc(why):"")+"</div>"}).join(""):"No recorded activity yet.";
     }).catch(function(e){box.textContent=e&&e.message||"Could not load the history."});
   };
+
+
+  function ninjaCreate(kind,button){
+    var result=document.getElementById("ninja-setup-result");
+    var label=kind==="kyc"?"KYC":"KYB";
+    if(button.disabled)return;
+    button.disabled=true;button.textContent="Creating…";
+    if(result)result.textContent="Creating the Ninja "+label+" sandbox flow…";
+    Supa.fn("ninja-verification",{action:kind==="kyc"?"create_kyc_flow":"create_kyb_flow"})
+      .then(function(r){
+        if(r&&r.already_configured){
+          if(result)result.textContent=label+" flow is already configured: "+r.flow_id+". Do not create another.";
+          C.toast(label+" flow already configured");
+          return;
+        }
+        if(!r||!r.created||!r.flow_id)throw new Error("Ninja returned no flow ID.");
+        if(result)result.textContent=label+" flow created. Flow ID: "+r.flow_id+". Save it as "+(kind==="kyc"?"NINJA_KYC_FLOW_ID":"NINJA_KYB_FLOW_ID")+" in Supabase Edge Function secrets. Then reveal its webhook signing secret in Ninja Sandbox and save it as "+(kind==="kyc"?"NINJA_KYC_WEBHOOK_SECRET":"NINJA_KYB_WEBHOOK_SECRET")+".";
+        button.textContent=label+" flow created";
+        C.toast(label+" sandbox flow created");
+      })
+      .catch(function(e){
+        button.disabled=false;button.textContent="Create "+label+" flow";
+        if(result)result.textContent=e&&e.message||"Could not create the "+label+" flow.";
+        fail(e);
+      });
+  }
+  A.ninjaKyc=function(b){ninjaCreate("kyc",b)};
+  A.ninjaKyb=function(b){ninjaCreate("kyb",b)};
 
   /* ---------- other admin pages (unchanged behaviour) ---------- */
   function review(l){return head("Product review",l.length+" waiting")+(l.length?l.map(function(x){var st=one(x.stores)||{},pp=one(x.product_private)||{};
