@@ -386,3 +386,11 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Logistics decision: reuse existing nullable `store_private.pickup_address`; collect it in Logistics/Store settings only when Everneed-arranged collection from the seller's premises is selected. Seller drop-off at the hub needs no pickup address. Do not collect it in store onboarding.
 - Verification limitation: staging has no identity/face/business verification provider Edge Function or start-check RPC (only `public-forms` and `paystack`). Keep the UI honest; no fake pending state. A real start-check workflow is blocked on provider selection/integration.
 - CI and authenticated end-to-end approval/plan-selection tests are still outstanding. Production untouched; PR #31 remains open and unmerged.
+
+
+## Migration numbering investigation — 17 Nov 2026
+
+- Inspected the current remote `web-portal` migration directory and searched repository code for `034` under `supabase/migrations`.
+- The current branch uses timestamped migration filenames for the new migrations. The search returned one migration containing the legacy SQL comment `-- 034` (`20261116201132_seller_onboarding_entitlements_and_quotas.sql`); no pair of files named with a duplicate `034_*.sql` prefix was present in the current remote branch.
+- The newly applied migration is recorded by Supabase as `20261117054738`, and its repository filename now matches that exact version. If Claude's local workspace still shows two files numbered 034, those files are not both present in the current remote `web-portal` tree; reconcile/push the local changes before deciding which file to renumber. Do not renumber already-applied migration history.
+- Migration order/file check and CI are not yet confirmed for the new commit chain.
