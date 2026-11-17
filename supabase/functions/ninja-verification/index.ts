@@ -107,7 +107,7 @@ async function handleWebhook(req: Request) {
   const checkType = isKyb ? "business_registration" : "identity";
   const sandbox = data.sandbox === true;
   const hash = await sha256(raw);
-  const { error: insertError } = await admin.schema("private").from("ninja_webhook_events").insert({
+  const { error: insertError } = await admin.from("ninja_webhook_events").insert({
     event_id: eventId,
     event_type: eventType,
     delivery_id: deliveryId,
@@ -152,14 +152,14 @@ async function handleWebhook(req: Request) {
     onConflict: "store_id,check_type",
   });
   if (upsertError) {
-    await admin.schema("private").from("ninja_webhook_events")
+    await admin.from("ninja_webhook_events")
       .update({ processing_status: "failed", safe_error: "Verification status update failed." })
       .eq("event_id", eventId);
     console.error("Ninja webhook status update failed");
     return json({ error: "Verification result could not be applied." }, 500);
   }
 
-  await admin.schema("private").from("ninja_webhook_events")
+  await admin.from("ninja_webhook_events")
     .update({ processing_status: "processed", processed_at: new Date().toISOString() })
     .eq("event_id", eventId);
   return json({ received: true, applied: true });
@@ -180,6 +180,7 @@ async function handleUserAction(req: Request) {
   const action = body?.action;
 
   if (action === "create_kyc_flow" || action === "create_kyb_flow") {
+    if (env("NINJA_ENV") !== "sandbox") return json({ error: "Flow creation is restricted to Ninja sandbox." }, 403);
     const { data: isAdmin, error: adminError } = await userClient.rpc("is_admin");
     if (adminError || isAdmin !== true) return json({ error: "Administrator access required." }, 403);
 
