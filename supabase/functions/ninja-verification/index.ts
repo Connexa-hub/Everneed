@@ -10,6 +10,17 @@ const corsHeaders = {
 const json = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: corsHeaders });
 
+class NinjaApiError extends Error {
+  status: number;
+  code: string | null;
+  constructor(message: string, status: number, code: string | null = null) {
+    super(message);
+    this.name = "NinjaApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 const env = (name: string) => Deno.env.get(name) ?? "";
 const supabaseUrl = env("SUPABASE_URL");
 const anonKey = env("SUPABASE_ANON_KEY");
@@ -57,7 +68,18 @@ async function ninjaPost(path: string, payload: Record<string, unknown>) {
       code: providerCode,
       message: providerMessage,
     });
-    throw new Error("Ninja could not complete the request. Check the flow configuration and try again.");
+    if (providerType === "individual_scope") {
+      throw new NinjaApiError(
+        "Ninja hosted verification is unavailable on this individual account. Ninja requires a registered business account for hosted KYC/KYB flows. Complete Ninja business onboarding or use a verification provider that supports your current account type.",
+        409,
+        providerType,
+      );
+    }
+    throw new NinjaApiError(
+      "Ninja rejected the hosted verification request. Check the Ninja account's permissions and flow configuration.",
+      response.status >= 400 && response.status < 500 ? response.status : 502,
+      providerType ?? providerCode,
+    );
   }
   return result;
 }
@@ -324,6 +346,18 @@ Deno.serve(async (req: Request) => {
   try {
     return isWebhook ? await handleWebhook(req) : await handleUserAction(req);
   } catch (error) {
+    if (error instanceof NinjaApiError) {
+      console.error("Ninja verification request failed", {
+        status: error.status,
+        code: error.code,
+        message: error.message,
+      });
+      return json({
+        error: error.message,
+        provider: "ninja",
+        provider_code: error.code,
+      }, error.status);
+    }
     console.error("Ninja verification request failed", error instanceof Error ? error.message : "unknown error");
     return json({ error: error instanceof Error ? error.message : "Unexpected verification error." }, 500);
   }
