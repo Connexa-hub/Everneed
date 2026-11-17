@@ -22,27 +22,12 @@ const admin = createClient(supabaseUrl, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-async function ninjaToken(): Promise<string> {
-  const publicKey = env("NINJA_PUBLIC_KEY");
-  const secretKey = env("NINJA_SECRET_KEY");
-  if (!publicKey || !secretKey) throw new Error("Ninja API credentials are not fully configured.");
-  const response = await fetch(`${ninjaBase}/auth/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ client_key: publicKey, client_secret: secretKey }),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || typeof result.token !== "string") {
-    throw new Error("Ninja authentication failed. Check the sandbox API keys.");
-  }
-  return result.token;
-}
-
 async function ninjaPost(path: string, payload: Record<string, unknown>) {
-  const token = await ninjaToken();
+  const secretKey = env("NINJA_SECRET_KEY");
+  if (!secretKey) throw new Error("Ninja secret key is not configured.");
   const response = await fetch(`${ninjaBase}${path}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   const result = await response.json().catch(() => ({}));
