@@ -133,3 +133,5 @@ This section is deliberately explicit so other AI systems can safely continue th
 - Staging audit confirms legacy orders/seller_orders/ledger_entries/payouts/refunds/offers/cards/payment-attempt infrastructure exists, but no buyer/store wallet account tables or complete double-entry journal are present. Do not describe wallets as live.
 - Finance implementation is planned as FIN-00 through FIN-11. Priority is journal and payment integrity, then seller allocations/withdrawals, credits, promotions, shipping and reconciliation.
 - Cash wallet top-up, P2P transfer and buyer cash-out are gated on Nigerian legal review and a licensed partner; launch with non-transferable promotional/refund credits only if the structure is approved.
+
+- FIN-00 staging function audit is now recorded in the finance architecture: current payout RPC only records a manually completed payout, refund RPC marks refunds processed without executing the provider refund, payment confirmation posts legacy single-entry sale/commission rows, and coupon redemption only increments a global usage counter. These must be replaced/wrapped before calling payouts, refunds or promotions end-to-end complete.
