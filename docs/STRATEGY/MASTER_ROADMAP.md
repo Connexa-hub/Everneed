@@ -582,3 +582,19 @@ Everneed's ambition is to become a digital commerce ecosystem, but its credibili
 The first proof is not the number of features or the size of the vision. It is whether real sellers can operate successfully, customers can shop with confidence, transactions can be fulfilled reliably and the business can create sustainable value.
 
 **Build the marketplace. Prove the model. Grow the ecosystem.**
+
+
+---
+
+## Public milestone status sync — 19 Nov 2026
+
+The repository-root [public roadmap](../../ROADMAP.md) is the concise milestone register for contributors and AI agents. This master document remains the detailed business strategy and staged execution plan.
+
+Current engineering priorities are payment/order integrity first, followed by seller verification integration:
+
+- **Payment and variant checkout:** implementation is on draft PR #32 (branch feature/variant-checkout) against web-portal. Paystack Deno type-check passed; test 039 and 93 Phase 2 checks were reported passing in earlier CI evidence. A subsequent authenticated-RPC boundary run identified an unexpected anonymous-executable SECURITY DEFINER routine. A diagnostic assertion has been committed to name the routine and ACL. Full CI is not yet green.
+- **Staging rollout:** variant checkout migrations have not been applied to Everneed-staging, and the updated Paystack Edge Function has not been deployed there. No end-to-end Paystack sandbox payment/webhook reconciliation is confirmed. Keep variant purchase disabled.
+- **Prembly:** sandbox connection and targeted BVN/NIN/phone/CAC endpoint discovery are confirmed. Sandbox wallet previously reported ₦0.00. No verification transaction or production integration is confirmed. Build only after payment baseline and schema review.
+- **Release safety:** PR #32 remains draft. Production database and production Edge Functions are unchanged by this work.
+
+Do not promote these statuses based on source-code presence. Require CI output, staging migration ledger/catalogue checks, deployed function version and recorded end-to-end sandbox evidence. See ROADMAP.md for milestone IDs, acceptance criteria and AI-agent continuation rules.
