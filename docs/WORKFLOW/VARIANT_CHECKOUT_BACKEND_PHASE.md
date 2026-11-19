@@ -84,3 +84,16 @@ A full local migration replay uncovered a pre-existing public visibility regress
 
 
 - Security review adjustment: internal stock-restoration helper is revoked from public/anon/authenticated and explicitly executable by `service_role`, so trusted server-side cancellation contexts can call it. Regression test 039 checks this grant and denies client roles.
+
+### Regression matrix now exercised by test 039
+
+- Missing required variant, wrong product/variant pairing and inactive variant rejection.
+- Oversell rejection and no stock change after rejected checkout.
+- Server-resolved active sale price and expired-sale fallback to regular variant price.
+- Reservation movement audit reference, SKU/options snapshots, and one-time restoration after duplicate cancellation.
+- Immutable payment snapshot preserves variant identity/options.
+- Backorder reservation and cancellation restoration; untracked stock is not changed.
+- Internal restoration helper ACL: service-role allowed, client roles denied.
+- Official Everneed store remains live without seller subscription; ordinary sellers still retain entitlement/verification gates.
+
+The CI database job is running against a fresh local Supabase replay; the test is not yet marked passed.
