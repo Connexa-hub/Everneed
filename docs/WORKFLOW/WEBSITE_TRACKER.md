@@ -424,3 +424,5 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Gaps confirmed: generic message notifications lack the seller-app message kinds and /inbox/<conversation> deep-link; notifications is not published to Realtime. Push subscriptions/preferences, awaiting/last-sender and urgent contract, conversation identity/order-context RPCs, attachments, quick replies/search, variants/bulk tools and plan-gated analytics remain missing or unconfirmed.
 - Started the highest-priority inbox contract: migration 20261119024723_seller_message_notification_contract.sql adds a post-triage notification normalization trigger and publishes notifications; regression test 036_seller_message_notification_contract_checks.sql validates typed kinds, deep-link keys, trigger order, publication and RLS/grants.
 - Staging rollout and test execution are pending. Production untouched; PR #31 remains open/unmerged.
+
+- Follow-up hardening migration and test 037 restrict direct EXECUTE on the trigger-only SECURITY DEFINER helper to database owner context; staging rollout pending.
