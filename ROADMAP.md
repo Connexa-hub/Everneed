@@ -58,7 +58,7 @@ Everneed begins as a shared marketplace where independent sellers manage their o
 **Still not proven / do not claim**
 - No complete Paystack sandbox transaction has yet been confirmed end to end.
 - Webhook replay, decline, pending, wrong amount/currency, invalid/inactive variant, concurrent stock reservation and cancellation/restoration still need controlled sandbox or transaction-wrapped tests.
-- The Android APK job for CI run 44540581382 is still building; no APK artifact link is available yet.
+- Android APK build succeeded in CI run 44540581382 (build 1219); artifact `everneed-apk` is available from the run's Artifacts section.
 - Keep variant purchasing disabled for customers until staging acceptance tests pass.
 
 **Next acceptance sequence**
@@ -72,7 +72,7 @@ Everneed begins as a shared marketplace where independent sellers manage their o
 
 **Current state**
 - Prembly MCP connection is confirmed in Sandbox environment.
-- Capability discovery indicates Nigerian identity and business verification categories (including BVN, NIN, phone and CAC/KYB), but targeted endpoint searches returned no endpoint definitions or request schemas.
+- Sandbox endpoint discovery now lists BVN, NIN, phone, CAC, TIN and other checks. Read-only catalogue calls succeeded; Nigeria BGC fallback categories include Identity, Education, Employment and Criminal checks. Exact per-endpoint request schemas and commercial applicability still need verification.
 - The sandbox wallet was previously reported as ₦0.00. No verification transaction has been made and no Prembly integration is wired into Everneed.
 - Do not invent endpoint IDs, payload fields, prices or response mappings.
 
