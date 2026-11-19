@@ -81,7 +81,7 @@ begin
   insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
   values(v_store_id,seller,'variant-ci-'||seller,'Variant CI Store','approved','live','NG','Africa/Lagos');
   insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
-  values(v_store_id,'plan-free','trialing',now(),now()+interval '30 days');
+  values(v_store_id,'plan-starter','trialing',now(),now()+interval '30 days');
   insert into public.products(id,name,col,price,store_id,status,slug,stock)
   values(prod,'Variant checkout CI product',(select id from public.collections order by id limit 1),1000,v_store_id,'published',prod,99),
         (other_prod,'Variant mismatch CI product',(select id from public.collections order by id limit 1),1000,store_id,'published',other_prod,99);
