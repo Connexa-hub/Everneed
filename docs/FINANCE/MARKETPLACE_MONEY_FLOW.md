@@ -901,3 +901,21 @@ The allocation must be computed from server-authoritative product/order-item fee
 ### Release block
 
 **Do not connect `private.confirm_payment_core` or `public.settle_verified_payment_attempt` to `post_finance_journal` yet.** Doing so with current schema-version-1 data or base-NGN seller-order totals risks wrong currency amounts, commission revenue and seller payable. No finance integration migration has been created or applied for this blocker. The next implementation should be FIN-02A, not a direct payment-settlement hook.
+
+
+## 30. Promotion funding attribution — unresolved input to FIN-02A — 19 Nov 2026
+
+The current `offers` catalogue stores offer type/value, minimum total, country, start/end dates and a global usage limit. It does not store a funding party, seller/store contribution, platform contribution, campaign budget reservation, per-buyer cap or redemption allocation. The checkout snapshot stores the total discount and proportional item discount allocation, but not who funded that discount.
+
+This means a discount cannot safely be treated as a reduction of seller proceeds by default, nor can it be treated as an Everneed-funded subsidy by default. Either assumption changes seller payable and platform expense/revenue.
+
+### Safe implementation rule
+
+- Every schema-version-2 checkout allocation must identify the funding party for every discount minor unit: seller/store, Everneed/platform, or an explicitly funded split.
+- A promotion with no persisted funding allocation is marked `funding_status = 'unallocated'` and is ineligible for automated financial journal posting.
+- Do not infer funding from coupon ownership, offer creator, seller store association or the fact that the coupon is global.
+- Existing schema-version-1 orders remain legacy and are not auto-posted into the new journal.
+- A future migration should add explicit campaign funding rules and a redemption allocation record in the same transaction as coupon reservation/redemption. Budget reservation must be idempotent and reversible on order cancellation/payment failure.
+- Until that exists, test the no-discount path and any explicitly funded promotion path separately. Do not enable coupon-backed seller settlement through FIN-02 without attribution.
+
+This is a data-contract blocker, not a cosmetic reporting gap. FIN-02A must include a funding source and funding amount per allocation; FIN-02B must reject missing or inconsistent funding attribution.
