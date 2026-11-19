@@ -279,4 +279,4 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Regression assertions are in supabase/tests/036_seller_message_notification_contract_checks.sql. Staging application and execution evidence will be recorded after rollout. Push delivery and seller notification preferences remain unimplemented.
 
 
-- Follow-up migration `chat_notification_trigger_acl` revokes EXECUTE from PUBLIC, anon and authenticated on the trigger-only SECURITY DEFINER helper; regression test 037 asserts API roles cannot call it directly.
+- Follow-up migration `20261119024825_chat_notification_trigger_acl` revokes EXECUTE from PUBLIC, anon and authenticated on the trigger-only SECURITY DEFINER helper; regression test 037 asserts API roles cannot call it directly.
