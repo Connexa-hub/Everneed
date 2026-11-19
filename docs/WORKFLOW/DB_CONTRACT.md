@@ -290,3 +290,6 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Plan feature flags seeded: variants and category attributes for all tiers; bulk/CSV/promotions/reports Growth and Pro; analytics none/basic/advanced; inventory alerts Starter+; team seats 1/2/5. Prices and existing product limits are unchanged. These flags are not proof that bulk, CSV, promotions, analytics or team workflows exist.
 - RLS enabled on all new tables; seller owner/admin management and public read on published, visible, live and schedule-eligible product content. Private cost/supplier data is owner/admin only.
 - Regression test 038 passed on staging inside a rollback transaction. CI includes the test. Product variants are not yet wired into checkout/order_items; price tiers not yet applied at checkout; media upload storage, bulk tools, multi-location inventory, promotions, analytics and team-seat enforcement remain pending.
+
+
+- Admin store-context RPC `admin_store_workspace_context(p_store)` is admin-only. It returns selected store/owner/subscription, full admin capability override, counts, and honest module-readiness markers. The official store can be selected explicitly. Variant checkout, uploads, bulk/import/export, promotions, analytics, team management and multi-location inventory are marked pending rather than presented as ready.
