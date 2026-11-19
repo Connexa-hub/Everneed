@@ -131,7 +131,7 @@ begin
     array['Feature one','Feature two'],array['test','catalogue'],1200,950,
     jsonb_build_object('length',10,'width',5,'height',3,'unit','cm'),'hidden');
 
-  insert into public.products(id,name,col,price,store_id,status,slug)
+  insert into public.products(id,name,col,price,store_id,status,slug,stock)
   values(product_b,'Catalogue regression related product',category_id,1500,'everneed-official','draft',product_b,4);
 
   insert into public.product_variants(product_id,sku,option_values,price,stock,weight_g,dimensions,position)
