@@ -426,3 +426,10 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Staging rollout and test execution are pending. Production untouched; PR #31 remains open/unmerged.
 
 - Follow-up hardening migration and test 037 restrict direct EXECUTE on the trigger-only SECURITY DEFINER helper to database owner context; staging rollout pending.
+
+
+## Staging notification contract rollout — 19 Nov 2026
+
+- Applied staging migration `20261119024723_seller_message_notification_contract` and `20261119024825_chat_notification_trigger_acl`. The migration filenames in web-portal and CI replay manifest are aligned to the staging ledger versions.
+- Regression SQL tests 036 and 037 both executed against Everneed-staging successfully (no raised assertions). Catalog verification confirms the typed-notification trigger is ordered after chat triage, notifications is in supabase_realtime, and the trigger helper's EXECUTE privilege is revoked from anon/authenticated.
+- Existing notifications RLS remains enabled and owner/admin SELECT policy is unchanged. No production schema/function changes.
