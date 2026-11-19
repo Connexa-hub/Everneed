@@ -1,30 +1,37 @@
-/* Messages: inbox for admins (all chats + live visitors), sellers (customers + Everneed) and any signed-in user. Support settings for admins. */
+/* Messages: inbox for admins (all chats + live visitors), sellers (customers + Everneed) and any signed-in user. Support settings for admins.
+   Smart sorting for sellers and admins uses only fields the backend already keeps: status, priority, SLA due time and the member's unread count.
+   Urgent = escalated, priority 2 or higher, or reply deadline passed. Needs reply = unread. Everything else open is Ongoing. */
 (function(){
   var C=Core,V=C.V,A=C.A,F=C.F,esc=C.esc,ic=Ico.svg,$=C.$;
-  var S={list:[],unread:{},guests:[],sel:null,tab:"all",q:"",th:null,gt:null,kind:"buyer",store:null,tm:null};
+  var S={list:[],unread:{},guests:[],sel:null,tab:"all",q:"",th:null,gt:null,kind:"buyer",store:null,tm:null,smart:"all"};
   var KIND={store:"Customer chat",support:"Support",seller_admin:"Seller support",admin_user:"From Everneed"};
+  var BL={urgent:"Urgent",reply:"Needs reply",ongoing:"Ongoing"},BORDER=["urgent","reply","ongoing"];
   function title(c){var k=S.kind,cr=c.creator&&c.creator.name,st=c.store&&c.store.name;
     if(k==="admin")return c.kind==="store"?(cr||"Customer")+" \u2192 "+(st||"Store"):c.kind==="admin_user"?(c.subject||"Message"):(cr||"Member")+(st?" \u00b7 "+st:"");
     if(k==="seller")return c.kind==="store"?(cr||"Customer"):"Everneed Support";
     return c.kind==="store"?(st||c.subject||"Store"):"Everneed Support"}
   function av(c){if(S.kind!=="admin"&&c.kind!=="store")return'<span class="av2"><img alt="" src="/favicon.svg"></span>';
     if(c.kind==="store"&&S.kind!=="seller"&&c.store)return'<span class="av2"><img alt="" src="'+esc(c.store.logo_url||Art.col(c.store.name))+'"></span>';
-    return'<span class="av2">'+(S.kind==="seller"?ic("me",20):esc(title(c).charAt(0).toUpperCase()))+"</span>"}
+    return'<span class="av2">'+(S.kind==="seller"?esc((title(c).charAt(0)||"C").toUpperCase()):esc(title(c).charAt(0).toUpperCase()))+"</span>"}
+  function overdue(c){return!!c.sla_due_at&&c.status!=="resolved"&&new Date(c.sla_due_at)<Date.now()}
   function sla(c){if(c.status==="resolved"||!c.sla_due_at||S.kind==="buyer")return"";var m=Math.round((new Date(c.sla_due_at)-Date.now())/60000);
     return m>=0?'<span class="pill info">Reply due in '+(m>=60?Math.round(m/60)+"h":m+"m")+"</span>":'<span class="pill bad">Overdue '+(-m>=60?Math.round(-m/60)+"h":-m+"m")+"</span>"}
   function chips(c){var h="";if(c.status==="escalated")h+='<span class="pill bad">Escalated</span>';else if(c.status==="resolved")h+='<span class="pill ok">Resolved</span>';
     if(c.priority>=2)h+='<span class="pill bad">Urgent</span>';if(S.kind==="admin"&&c.tier&&c.tier!=="none")h+='<span class="pill info">'+ic("star",11,2)+esc(c.tier)+"</span>";
+    if(c.kind==="store"&&c.order_id&&S.kind!=="buyer")h+='<span class="pill">Order '+esc(String(c.order_id).slice(0,8))+"</span>";
     (c.tags||[]).slice(0,2).forEach(function(t){h+='<span class="pill">'+esc(t)+"</span>"});return h+sla(c)}
   function unread(c){return S.kind==="admin"?(c.admin_unread?1:0):(S.unread[c.id]||0)}
+  function bucket(c){if(c.status==="escalated"||c.priority>=2||overdue(c))return"urgent";if(unread(c)>0)return"reply";return"ongoing"}
   function tabs(){var a=S.kind;if(a==="admin")return[["all","All"],["escalated","Escalated"],["unassigned","Unassigned"],["mine","Mine"],["resolved","Resolved"]];
     if(a==="seller")return[["store","Customers"],["seller_admin","Everneed"],["resolved","Resolved"]];return[["all","All"],["resolved","Resolved"]]}
   function pass(c){var t=S.tab,me=Supa.uid();if(t==="resolved")return c.status==="resolved";if(c.status==="resolved")return false;
     if(t==="escalated")return c.status==="escalated";if(t==="unassigned")return !c.assignee;if(t==="mine")return c.assignee===me;if(t==="store"||t==="seller_admin")return c.kind===t||(t==="seller_admin"&&(c.kind==="support"||c.kind==="admin_user"));return true}
+  function smartOn(){return S.kind!=="buyer"&&S.tab!=="resolved"}
   function shellHtml(){var admin=S.kind==="admin",btn=admin?'<button class="btn s" data-ix="new">'+ic("plus",16,2)+"New message</button>":S.kind==="seller"?'<button class="btn s" data-ix="sup">'+ic("chat",16)+"Message Everneed</button>":"";
-    return'<div class="ibh"><h1>Messages</h1><div class="row">'+(admin?'<button class="btn o s" data-ix="sweep">'+ic("clock",16)+"Check reply deadlines</button>":"")+btn+'</div></div><div class="ibx" id="ibx"><aside class="ibl"><div class="ibf" id="ibf"></div><label class="cws">'+ic("search",18)+'<input id="ibq" placeholder="Search conversations" aria-label="Search conversations"></label><div id="gq"></div><div class="cvl" id="cvl"></div></aside><section class="ibt" id="ibt"><div class="empty"><b>Select a conversation</b><p>Messages arrive here live.</p></div></section></div>'}
+    return'<div class="ibh"><h1>Messages</h1><div class="row">'+(admin?'<button class="btn o s" data-ix="sweep">'+ic("clock",16)+"Check reply deadlines</button>":"")+btn+'</div></div><div class="ibx" id="ibx"><aside class="ibl"><div class="ibf" id="ibf"></div><div class="ibs" id="ibs"></div><label class="cws">'+ic("search",18)+'<input id="ibq" placeholder="Search conversations" aria-label="Search conversations"></label><div id="gq"></div><div class="cvl" id="cvl"></div></aside><section class="ibt" id="ibt"><div class="empty"><b>Select a conversation</b><p>Messages arrive here live.</p></div></section></div>'}
   V.inbox=function(p){if(!Supa.uid())return{redirect:"#/login"};var me=C.me(),admin=me&&me.role==="admin";
     return(admin?Promise.resolve([]):Supa.get("stores?owner_id=eq."+Supa.uid()+"&select=id,name,status&limit=1").catch(function(){return[]})).then(function(st){
-      S.store=st&&st[0]||null;S.kind=admin?"admin":S.store?"seller":"buyer";S.sel=p[0]||null;S.tab=S.kind==="seller"?"store":"all";S.q="";
+      S.store=st&&st[0]||null;S.kind=admin?"admin":S.store?"seller":"buyer";S.sel=p[0]||null;S.tab=S.kind==="seller"?"store":"all";S.q="";S.smart="all";
       var layout=admin?"admin":S.store?"portal":"pub",h=shellHtml();return{layout:layout,active:"inbox",title:"Messages",html:layout==="pub"?'<section class="sec"><div class="w">'+h+"</div></section>":h,after:init}})};
   var BASE="conversations?select=*&order=last_message_at.desc&limit=150",EMB="conversations?select=*,creator:created_by(name,email),store:store_id(name,logo_url,slug)&order=last_message_at.desc&limit=150";
   function load(){return Promise.all([Supa.get(EMB).catch(function(){return Supa.get(BASE)}),S.kind==="admin"?Promise.resolve([]):Supa.get("conversation_members?user_id=eq."+Supa.uid()+"&select=conversation_id,unread")]).then(function(a){
@@ -32,9 +39,19 @@
   function cur(){return S.list.filter(function(x){return x.id===S.sel})[0]}
   function paintTabs(){var n={};S.list.forEach(function(c){tabs().forEach(function(t){var o=S.tab;S.tab=t[0];if(pass(c)&&unread(c))n[t[0]]=(n[t[0]]||0)+1;S.tab=o})});
     $("#ibf").innerHTML=tabs().map(function(t){return'<button data-ix="tab" data-t="'+t[0]+'" class="'+(S.tab===t[0]?"on":"")+'">'+t[1]+(n[t[0]]?"<em>"+n[t[0]]+"</em>":"")+"</button>"}).join("")}
-  function paintList(){var q=S.q.toLowerCase(),l=S.list.filter(pass).filter(function(c){return!q||(title(c)+" "+(c.last_preview||"")+" "+(c.subject||"")).toLowerCase().indexOf(q)>-1});
-    if(S.kind==="admin")l.sort(function(a,b){return(b.status==="escalated")-(a.status==="escalated")||b.priority-a.priority||new Date(b.last_message_at)-new Date(a.last_message_at)});
-    $("#cvl").innerHTML=l.length?l.map(function(c){var n=unread(c);return'<div class="cv'+(c.id===S.sel?" on":"")+(n?" un":"")+'" data-ix="open" data-id="'+c.id+'" tabindex="0" role="button">'+av(c)+'<div class="grow1"><div class="rowi"><b>'+esc(title(c))+"</b><small>"+C.ago(c.last_message_at)+"</small></div><p>"+esc(c.last_preview||c.subject||"New conversation")+'</p><div class="cvm">'+chips(c)+"</div></div>"+(n?'<span class="udot">'+(n>99?"99+":n)+"</span>":"")+"</div>"}).join(""):'<div class="empty" style="margin:16px"><b>No conversations here</b><p>'+(S.kind==="seller"?"When a customer messages your store, it appears here instantly.":"Nothing to show yet.")+"</p></div>"}
+  function paintSmart(base){var el=$("#ibs");if(!el)return;if(!smartOn()){el.innerHTML="";return}
+    var n={urgent:0,reply:0,ongoing:0};base.forEach(function(c){n[bucket(c)]++});
+    el.innerHTML=[["all","All"]].concat(BORDER.map(function(k){return[k,BL[k]]})).map(function(t){return'<button type="button" data-ix="smart" data-s="'+t[0]+'" class="'+(S.smart===t[0]?"on":"")+'" aria-pressed="'+(S.smart===t[0])+'">'+t[1]+(t[0]!=="all"&&n[t[0]]?"<em>"+n[t[0]]+"</em>":"")+"</button>"}).join("")}
+  function row(c){var n=unread(c);return'<div class="cv'+(c.id===S.sel?" on":"")+(n?" un":"")+(smartOn()?" b-"+bucket(c):"")+'" data-ix="open" data-id="'+c.id+'" tabindex="0" role="button">'+av(c)+'<div class="grow1"><div class="rowi"><b>'+esc(title(c))+"</b><small>"+C.ago(c.last_message_at)+"</small></div><p>"+esc(c.last_preview||c.subject||"New conversation")+'</p><div class="cvm">'+chips(c)+"</div></div>"+(n?'<span class="udot">'+(n>99?"99+":n)+"</span>":"")+"</div>"}
+  function paintList(){var q=S.q.toLowerCase(),base=S.list.filter(pass).filter(function(c){return!q||(title(c)+" "+(c.last_preview||"")+" "+(c.subject||"")).toLowerCase().indexOf(q)>-1}),l=base.slice();
+    paintSmart(base);
+    if(smartOn()&&S.smart!=="all")l=l.filter(function(c){return bucket(c)===S.smart});
+    var by=function(a,b){return new Date(b.last_message_at)-new Date(a.last_message_at)};
+    if(smartOn())l.sort(function(a,b){return BORDER.indexOf(bucket(a))-BORDER.indexOf(bucket(b))||b.priority-a.priority||by(a,b)});
+    else if(S.kind==="admin")l.sort(function(a,b){return(b.status==="escalated")-(a.status==="escalated")||b.priority-a.priority||by(a,b)});
+    var html="",last="";
+    l.forEach(function(c){if(smartOn()&&S.smart==="all"){var b=bucket(c);if(b!==last){last=b;html+='<h4 class="sg">'+BL[b]+" <em>"+l.filter(function(x){return bucket(x)===b}).length+"</em></h4>"}}html+=row(c)});
+    $("#cvl").innerHTML=l.length?html:'<div class="empty" style="margin:16px"><b>'+(smartOn()&&S.smart!=="all"?"Nothing "+BL[S.smart].toLowerCase()+" right now":"No conversations here")+"</b><p>"+(S.kind==="seller"?"When a customer messages your store, it appears here instantly.":"Nothing to show yet.")+"</p></div>"}
   function paintGuests(){var el=$("#gq");if(!el||S.kind!=="admin")return;if(!S.guests.length){el.innerHTML="";return}
     el.innerHTML='<h4><span class="live"></span>Live visitors ('+S.guests.length+")</h4>"+S.guests.map(function(g){return'<div class="rw"><span><b>'+esc(g.name||"Visitor")+"</b><small>"+esc(g.topic||"Live chat")+" \u00b7 waiting "+C.ago(g.created_at).replace(" ago","")+'</small></span><button class="btn s" data-ix="join" data-id="'+esc(g.id)+'">'+(g.status==="active"?"Open":"Join")+"</button></div>"}).join("")}
   function loadGuests(){if(S.kind!=="admin")return;Supa.get("support_queue?status=neq.closed&order=created_at.asc").then(function(g){S.guests=(g||[]).filter(function(x){return Date.now()-new Date(x.last_seen)<150000});paintGuests()}).catch(function(){})}
@@ -53,7 +70,8 @@
   function modal(html,ok){var d=document.createElement("dialog");d.innerHTML='<form method="dialog">'+html+'<div class="row"><button class="btn o s" value="x" formnovalidate>Cancel</button><button class="btn s" value="ok">Send</button></div></form>';document.body.appendChild(d);
     d.addEventListener("close",function(){var f=d.querySelector("form");if(d.returnValue==="ok")ok(new FormData(f));d.remove()});d.showModal()}
   document.addEventListener("click",function(e){var b=e.target.closest("[data-ix]");if(!b||!$("#ibx"))return;var a=b.getAttribute("data-ix"),me=Supa.uid();
-    if(a==="tab"){S.tab=b.getAttribute("data-t");paintTabs();paintList()}
+    if(a==="tab"){S.tab=b.getAttribute("data-t");S.smart="all";paintTabs();paintList()}
+    else if(a==="smart"){S.smart=b.getAttribute("data-s");paintList()}
     else if(a==="open")open(b.getAttribute("data-id"));
     else if(a==="join")openGuest(b.getAttribute("data-id"));
     else if(a==="back"){dispose();S.sel=null;$("#ibx").classList.remove("sel");try{history.replaceState(null,"","#/inbox")}catch(x){}paintList()}
