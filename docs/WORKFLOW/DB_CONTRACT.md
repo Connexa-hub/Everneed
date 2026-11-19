@@ -314,3 +314,6 @@ Migration `20261119042700_variant_checkout_inventory.sql` and test 039 are on `f
 ## Official store visibility correction
 
 Migration `20261119042710_official_store_live_entitlement_bypass.sql` fixes the seller entitlement version of `private.store_live()` so the approved official Everneed store remains live without a seller subscription/entitlement row. Non-official sellers still require a valid plan, activation status, verification and subscription period. Added to the feature branch migration replay manifest; CI validation pending.
+
+
+- Variant-restoration helper ACL: `private.restore_variant_order_item(text)` is client-role-revoked and service-role-only; regression test 039 asserts both sides of the privilege boundary.
