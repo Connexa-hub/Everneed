@@ -87,6 +87,8 @@ begin
     if sqlerrm='Only the EverNeed team can do that.' then denied:=true; else raise; end if;
   end;
   if not denied then raise exception 'FAIL: seller was allowed to call admin store-context RPC'; end if;
+  -- Reset to the admin fixture so subsequent smoke-test inserts bypass seller plan limits.
+  perform set_config('request.jwt.claim.sub','9c3bd65b-4d23-42ca-838a-6eaca8133459',true);
 
   if not exists(select 1 from pg_policies where schemaname='public' and tablename='products' and policyname='products_public_read' and qual like '%publish_at%') then
     raise exception 'FAIL: scheduled products must remain hidden until publish_at';
