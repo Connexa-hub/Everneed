@@ -415,3 +415,12 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Preserved the provider-neutral seller verification table, provider references, check types, distinct human-review state, deduplication index, seller plan rules, regional compliance rules, and admin review workflow.
 - The provider-neutral regression test replaces the retired provider-specific test.
 - Staging only; production untouched. PR #31 remains open and unmerged. The next integration will use the selected replacement provider after its sandbox credentials and supported API flow are confirmed.
+
+
+## 19 Nov 2026 — Seller app backend audit and first notification contract
+
+- Audited Claude's SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md against current web-portal source and Everneed-staging schema, RPC definitions, triggers, RLS and Realtime publication.
+- Existing: seller entitlement/catalogue RPCs, seller orders and transition RPC, chat start/send/read/set/escalate, participant unread counters, conversation preview/SLA/triage, notifications table and owner-read RLS.
+- Gaps confirmed: generic message notifications lack the seller-app message kinds and /inbox/<conversation> deep-link; notifications is not published to Realtime. Push subscriptions/preferences, awaiting/last-sender and urgent contract, conversation identity/order-context RPCs, attachments, quick replies/search, variants/bulk tools and plan-gated analytics remain missing or unconfirmed.
+- Started the highest-priority inbox contract: migration 20261119112000_seller_message_notification_contract.sql adds a post-triage notification normalization trigger and publishes notifications; regression test 036_seller_message_notification_contract_checks.sql validates typed kinds, deep-link keys, trigger order, publication and RLS/grants.
+- Staging rollout and test execution are pending. Production untouched; PR #31 remains open/unmerged.
