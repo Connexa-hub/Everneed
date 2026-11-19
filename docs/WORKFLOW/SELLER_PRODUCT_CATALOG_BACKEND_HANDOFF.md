@@ -200,3 +200,16 @@ It passed against staging; its transaction rolled back test data. Add this test 
 ## Claude frontend deliverable
 
 Please implement the product editor/list/management UI and admin store-context switcher against the backend additions above. Do not create fake variants or upload previews that don't persist. Keep mobile usability first. Treat variant checkout, upload bucket, bulk operations and promotion/report RPCs as unavailable until backend phases land. Give ChatGPT a backend gap list when the frontend needs new contracts. Do not edit `main` or merge PR #31.
+
+
+## Global benchmark references
+
+- Shopify Products overview and product editor fields: https://help.shopify.com/en/manual/products — media, variants, compare-at pricing, inventory, tags, metafields, SEO and rich product information.
+- Shopify bulk editing: https://help.shopify.com/en/manual/shopify-admin/productivity-tools/bulk-editing — bulk updates across products and variants.
+- Amazon Seller Central listing, variations, pricing, inventory and listing-quality workflow: https://sell.amazon.com/tools/seller-central and Manage Products dashboard (Seller Central help).
+- Walmart Marketplace Seller Center: https://marketplace.walmart.com/getting-started-in-seller-center/ — catalog setup, listing issue queues, media library, pricing/deals, orders/returns, performance, analytics and reports.
+- Alibaba.com seller tools: https://seller.alibaba.com/features — storefront/catalog, ladder pricing/MOQ, communications, promotions, dashboards, logistics and payments.
+- Alibaba listing optimization: https://seller.alibaba.com/pages/dlx5yf9p5/index.html — smart posting, product information score and improvement recommendations.
+- AliExpress Seller Workbench User Manual (PDF, surfaced from AliExpress media CDN): https://ae-pic-a1.aliexpress-media.com/kf/S270b37a6df9f4c038d3156879ff19aeao.pdf — seller workbench modules for products, orders, after-sales, logistics, marketing, store operations and analytics.
+
+Everneed's benchmark should be feature breadth and backend correctness, not copying a foreign marketplace's mandatory paperwork, shipping model, fee structure or UI. Keep Nigerian mobile-first seller flows, local delivery/hub, seller plan limits and product/country compliance rules authoritative.
