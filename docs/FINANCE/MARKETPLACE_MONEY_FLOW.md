@@ -770,3 +770,12 @@ The existing FIN-01 implementation was located in the current branch and checked
 8. Define legacy cutover/opening-balance policy before backfill. Never replay historical orders into the new journal without a source-event mapping and double-posting guard.
 
 **FIN-01 implementation status:** initial schema and RPCs exist and are staged; integration into the marketplace financial lifecycle and the hardening items above remain in progress. No production migration or live money movement was performed.
+
+
+
+
+### Expanded FIN-01 regression evidence — 19 Nov 2026
+
+The existing `supabase/tests/033_double_entry_finance_journal_checks.sql` was expanded and re-executed against staging after the change. The transaction completed without an SQL error and rolled back its fixtures. Additional negative cases now cover unsupported currency, unknown account, zero/negative amount, invalid direction, non-array line payload, non-object metadata, more than 1,000 lines, reversal of a reversal, missing original journal, and UPDATE/DELETE attempts against posted journal lines and headers. The test continues to check service-role-only posting/reversal RPCs, client read denial, no direct service-role table writes, balanced posting, idempotent replay, changed-payload rejection and exact reversal entries.
+
+This is staging regression evidence for the existing journal foundation. The CI workflow also runs test 033 after applying all migrations to its local Supabase database; the latest test commit still needs its own CI result before it is marked CI-verified.
