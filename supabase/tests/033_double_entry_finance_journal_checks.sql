@@ -185,6 +185,97 @@ begin
   end;
   if not v_failed then raise exception 'Non-object metadata was accepted.'; end if;
 
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      repeat('x',65),'phase3-long-source-type','ci-long-source-type','NGN','Long source type',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Overlong source type was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test',repeat('s',161),'ci-long-source-id','NGN','Long source ID',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Overlong source ID was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-long-idem',repeat('i',161),'NGN','Long idempotency key',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Overlong idempotency key was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-long-description','ci-long-description','NGN',repeat('d',241),
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Overlong journal description was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-large-metadata','ci-large-metadata','NGN','Large metadata',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      jsonb_build_object('blob',repeat('m',17000))
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Oversized metadata was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-bigint-overflow','ci-bigint-overflow','NGN','Bigint overflow',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"9999999999999999999"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"9999999999999999999"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Bigint overflow amount was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-extra-line-key','ci-extra-line-key','NGN','Unexpected line key',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"1","secret":"unexpected"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Unexpected journal line field was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-long-line-ref','ci-long-line-ref','NGN','Long line reference',
+      jsonb_build_array(
+        jsonb_build_object('account_code','asset.paystack_clearing','direction','debit','amount_minor','1','order_id',repeat('o',129)),
+        jsonb_build_object('account_code','liability.seller_payable','direction','credit','amount_minor','1')
+      ),
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Overlong line reference was accepted.'; end if;
+
   select jsonb_agg(jsonb_build_object(
     'account_code', case when g=1 then 'asset.paystack_clearing' else 'liability.seller_payable' end,
     'direction', case when g=1 then 'debit' else 'credit' end,
