@@ -322,3 +322,8 @@ Migration `20261119042710_official_store_live_entitlement_bypass.sql` fixes the 
 ## Seller quota guard trusted execution fix (draft)
 
 Regression test 034 found `private.products_guard()` was not SECURITY DEFINER although it reads private entitlement/event data for quota enforcement. Additive migration `20261119122500_seller_product_quota_guard_security_definer.sql` redefines it as SECURITY DEFINER with an empty search_path and revokes direct EXECUTE from API roles. This migration is on `feature/variant-checkout` only; CI rerun pending, staging/production unchanged.
+
+
+## Product guard caller-role preservation — CI regression fix
+
+The SECURITY DEFINER quota guard must use the original JWT role, not PostgreSQL `current_user` (which becomes the function owner inside the definer context). Additive migration `20261119124500_products_guard_preserve_caller_role.sql` updates `private.is_privileged()` to evaluate `auth.role()` with a safe fallback and retain the admin check. This prevents ordinary authenticated sellers from being treated as privileged when the quota guard executes. CI Phase 2 product permission tests exposed this regression; the new migration is included in the local replay manifest. Draft PR only; staging and production are unchanged pending CI.
