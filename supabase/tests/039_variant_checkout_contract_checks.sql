@@ -106,6 +106,16 @@ begin
   select stock into stock_after from public.product_variants where id=variant;
   if stock_after<>5 then raise exception 'FAIL: rejected cart changed variant stock'; end if;
 
+  -- Oversell attempt fails without changing tracked stock.
+  begin
+    perform public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',6)),'NG','bank',cust,1,'NGN',0,null,0,null);
+  exception when others then caught:=true;
+  end;
+  if not caught then raise exception 'FAIL: checkout allowed an oversell beyond tracked variant stock'; end if;
+  caught:=false;
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>5 then raise exception 'FAIL: oversell attempt changed inventory'; end if;
+
   -- Variant sale price is server-resolved, and stock is reserved/audited atomically.
   checkout:=public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',2)),'NG','bank',cust,1,'NGN',0,null,0,null);
   v_order_id:=checkout->>'id';
