@@ -55,6 +55,9 @@ begin
   if jsonb_typeof(p_lines) <> 'array' then
     raise exception 'Finance journal lines must be a JSON array.';
   end if;
+  if octet_length(p_lines::text) > 524288 then
+    raise exception 'Finance journal line payload exceeds 512 KiB.';
+  end if;
   if jsonb_array_length(p_lines) < 2 or jsonb_array_length(p_lines) > 1000 then
     raise exception 'Finance journal requires between 2 and 1000 lines.';
   end if;
