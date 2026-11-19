@@ -90,15 +90,15 @@ begin
   if has_function_privilege('anon','public.admin_store_workspace_context(text)','EXECUTE') then
     raise exception 'FAIL: anonymous users can execute admin store-context RPC';
   end if;
-  perform set_config('request.jwt.claim.sub',''||admin_user||'',true);
+  perform set_config('request.jwt.claim.sub',admin_user::text,true);
   admin_context:=public.admin_store_workspace_context('everneed-official');
   if admin_context->'store'->>'id'<>'everneed-official'
     or coalesce((admin_context->'capabilities'->>'admin_override')::boolean,false) is not true
     or admin_context->'module_readiness'->>'variant_checkout'<>'pending' then
     raise exception 'FAIL: official store admin context/capability or readiness contract invalid';
   end if;
-  perform set_config('request.jwt.claim.sub',''||seller_user||'',true);
-  seller_caps:=public.seller_product_capabilities('382b84b5-5bd9-4448-bd07-b0bada0121ca');
+  perform set_config('request.jwt.claim.sub',seller_user::text,true);
+  seller_caps:=public.seller_product_capabilities(fixture_store);
   if seller_caps->>'plan_id'<>'plan-free' or seller_caps->>'product_editor_mode'<>'guided' or coalesce((seller_caps->>'advanced_product_editor')::boolean,false) is not true then
     raise exception 'FAIL: Free seller should have rich product fields in guided mode';
   end if;
