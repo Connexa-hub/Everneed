@@ -317,3 +317,8 @@ Migration `20261119042710_official_store_live_entitlement_bypass.sql` fixes the 
 
 
 - Variant-restoration helper ACL: `private.restore_variant_order_item(text)` is client-role-revoked and service-role-only; regression test 039 asserts both sides of the privilege boundary.
+
+
+## Seller quota guard trusted execution fix (draft)
+
+Regression test 034 found `private.products_guard()` was not SECURITY DEFINER although it reads private entitlement/event data for quota enforcement. Additive migration `20261119122500_seller_product_quota_guard_security_definer.sql` redefines it as SECURITY DEFINER with an empty search_path and revokes direct EXECUTE from API roles. This migration is on `feature/variant-checkout` only; CI rerun pending, staging/production unchanged.
