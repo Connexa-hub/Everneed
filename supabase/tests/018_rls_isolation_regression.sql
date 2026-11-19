@@ -125,7 +125,7 @@ begin
   -- Seed the lowest-cost plan for these CI-only stores as the service fixture.
   perform public.zz_q01_svc();
   insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
-  select st.id, (select id from public.store_plans order by price asc limit 1),
+  select st.id, (select id from public.store_plans where active order by price asc limit 1),
          'trialing', now(), now()+interval '30 days'
   from public.stores st where st.id in (v_store_a,v_store_b)
   on conflict (store_id) do update set plan_id=excluded.plan_id;
