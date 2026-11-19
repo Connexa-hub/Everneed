@@ -14,6 +14,8 @@ declare
   child_id text:=gen_random_uuid()::text;
   leaf_id text:=gen_random_uuid()::text;
   fourth_id text:=gen_random_uuid()::text;
+  admin_context jsonb;
+  denied boolean:=false;
 begin
   select id into category_id from public.collections where lower(name)='phones and tablets' limit 1;
   if category_id is null then raise exception 'FAIL: seeded Phones and Tablets category missing'; end if;
@@ -65,6 +67,26 @@ begin
   if not exists(select 1 from public.seller_plan_entitlements where plan_id='plan-pro' and team_seats=5 and bulk_tools_enabled) then
     raise exception 'FAIL: Pro capabilities missing';
   end if;
+  if to_regprocedure('public.admin_store_workspace_context(text)') is null then
+    raise exception 'FAIL: admin store-context RPC missing';
+  end if;
+  if has_function_privilege('anon','public.admin_store_workspace_context(text)','EXECUTE') then
+    raise exception 'FAIL: anonymous users can execute admin store-context RPC';
+  end if;
+  perform set_config('request.jwt.claim.sub','9c3bd65b-4d23-42ca-838a-6eaca8133459',true);
+  admin_context:=public.admin_store_workspace_context('everneed-official');
+  if admin_context->'store'->>'id'<>'everneed-official'
+    or coalesce((admin_context->'capabilities'->>'admin_override')::boolean,false) is not true
+    or admin_context->'module_readiness'->>'variant_checkout'<>'pending' then
+    raise exception 'FAIL: official store admin context/capability or readiness contract invalid';
+  end if;
+  perform set_config('request.jwt.claim.sub','e8349848-7c00-454e-9f02-8616d233674c',true);
+  begin
+    perform public.admin_store_workspace_context('everneed-official');
+  exception when others then
+    if sqlerrm='Only the EverNeed team can do that.' then denied:=true; else raise; end if;
+  end;
+  if not denied then raise exception 'FAIL: seller was allowed to call admin store-context RPC'; end if;
 
   if not exists(select 1 from pg_policies where schemaname='public' and tablename='products' and policyname='products_public_read' and qual like '%publish_at%') then
     raise exception 'FAIL: scheduled products must remain hidden until publish_at';
