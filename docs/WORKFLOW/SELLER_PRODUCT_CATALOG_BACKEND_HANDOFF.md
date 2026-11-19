@@ -61,6 +61,7 @@ Category tree:
 
 RPCs:
 - `seller_product_category_schema(p_collection)`: category tree + category-specific attribute definitions.
+- `admin_store_workspace_context(p_store)`: admin-only context switch data, store/owner/subscription, counts, full capability override and module readiness.
 - `seller_product_capabilities(p_store)`: authenticated owner/admin; returns plan capabilities. Admin context returns full override.
 - `seller_adjust_variant_stock(p_variant, p_quantity, p_reason, p_reference)`: atomic stock adjustment with audit movement.
 
