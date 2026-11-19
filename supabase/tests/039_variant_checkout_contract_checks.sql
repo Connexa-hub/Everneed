@@ -30,6 +30,9 @@ begin
     raise exception 'FAIL: checkout RPC grants do not remain service-role-only';
   end if;
 
+
+  if not private.store_live('everneed-official') then raise exception 'FAIL: official Everneed store must remain publicly live without seller subscription'; end if;
+
   snapshot_def:=pg_get_functiondef('public.create_order_with_snapshot(uuid,jsonb,text,text,jsonb,numeric,text,numeric,jsonb,numeric,text,jsonb)'::regprocedure);
   if snapshot_def not ilike '%variant_id%' or snapshot_def not ilike '%variant_options%' or snapshot_def not ilike '%variant_sku%' then
     raise exception 'FAIL: immutable payment snapshot omits variant identity/options/SKU';
