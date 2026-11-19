@@ -1076,7 +1076,7 @@ do $$
 declare f record;
 begin
   for f in
-    select p.oid::regprocedure as signature
+    select p.oid::regprocedure as signature, p.proname
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
@@ -1085,7 +1085,7 @@ begin
   loop
     execute format('alter function %s set search_path = ''''', f.signature);
     execute format('revoke execute on function %s from public', f.signature);
-    if f.signature::text not like 'support_guest_open%' and f.signature::text not like 'support_guest_ping%' and f.signature::text not like 'support_guest_close%' and f.signature::text not like 'join_waitlist%' and f.signature::text not like 'store_reply_stats%' and f.signature::text not like 'support_sla_public%' then
+    if f.proname not in ('support_guest_open', 'support_guest_ping', 'support_guest_close', 'join_waitlist', 'store_reply_stats', 'support_sla_public') then
       execute format('revoke execute on function %s from anon', f.signature);
     end if;
   end loop;
