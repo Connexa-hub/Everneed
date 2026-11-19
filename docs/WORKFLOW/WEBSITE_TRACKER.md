@@ -491,3 +491,10 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Deployed reviewed Paystack Edge Function to staging as version 13. No sandbox transaction has yet been run, so payment flow is not yet certified end-to-end. Keep variant purchase UI disabled pending acceptance tests.
 - APK job remains in progress. Prembly endpoint searches returned no concrete endpoint definitions; no verification request or wallet spend has occurred.
 - No production changes, PR merge or live payment.
+
+
+## 19 Nov 2026 — APK and Prembly discovery update
+
+- APK job in CI run 44540581382 completed successfully: build 1219, artifact `everneed-apk`, 9.48 MB ZIP. Download from the run's Artifacts section.
+- Prembly sandbox endpoint registry is now visible and includes BVN, NIN, phone, CAC and TIN operations. Read-only wallet balance is ₦0.00 NGN (active/unlocked). Nigeria BGC fallback categories include Identity, Education, Employment and Criminal; the Entry Package catalogue contains Identity and NIN items. No verification request was submitted and no wallet spend occurred.
+- Exact endpoint payload schemas and the appropriate seller verification flow remain to be confirmed. A package-detail lookup returned 404; no package was created. Preserve manual/non-CAC review and obtain owner approval before funding or any paid verification.
