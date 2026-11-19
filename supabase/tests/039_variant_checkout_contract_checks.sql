@@ -117,6 +117,18 @@ begin
   select stock into stock_after from public.product_variants where id=variant;
   if stock_after<>5 then raise exception 'FAIL: oversell attempt changed inventory'; end if;
 
+  -- Inactive variants are rejected even when the UUID belongs to this product.
+  update public.product_variants set active=false where id=variant;
+  begin
+    perform public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',2)),'NG','bank',cust,1,'NGN',0,null,0,null);
+  exception when others then caught:=true;
+  end;
+  if not caught then raise exception 'FAIL: checkout accepted an inactive variant'; end if;
+  caught:=false;
+  update public.product_variants set active=true where id=variant;
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>5 then raise exception 'FAIL: inactive variant rejection changed stock'; end if;
+
   -- Variant sale price is server-resolved, and stock is reserved/audited atomically.
   checkout:=public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',2)),'NG','bank',cust,1,'NGN',0,null,0,null);
   v_order_id:=checkout->>'id';
@@ -140,6 +152,19 @@ begin
   if (select count(*) from public.product_inventory_movements where variant_id=variant and reason='cancellation_restoration' and delta=2)<>1 then
     raise exception 'FAIL: duplicate cancellation produced duplicate restoration movement';
   end if;
+
+  -- Sale price must stop applying after its configured end time.
+  update public.product_variants set sale_ends_at=now()-interval '1 minute' where id=variant;
+  checkout:=public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',1)),'NG','bank',cust,1,'NGN',0,null,0,null);
+  v_order_id:=checkout->>'id';
+  select so.id into seller_order_id from public.seller_orders so where so.order_id=v_order_id and so.store_id=v_store_id;
+  if not exists(select 1 from public.order_items oi where oi.order_id=v_order_id and oi.variant_id=variant and oi.unit_price=1200 and oi.line_total=1200) then
+    raise exception 'FAIL: expired sale price was still used';
+  end if;
+  perform private.cancel_so(seller_order_id,'CI expired-sale test cleanup',seller,'cancelled');
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>5 then raise exception 'FAIL: expired-sale test cleanup did not restore stock'; end if;
+  update public.product_variants set sale_ends_at=now()+interval '1 day' where id=variant;
 
   -- Snapshot-backed card checkout retains variant identity and options.
   checkout:=public.create_order_with_snapshot(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',1)),'NG','card',cust,1,'NGN',0,null,0,null,pricing);
