@@ -327,3 +327,8 @@ Regression test 034 found `private.products_guard()` was not SECURITY DEFINER al
 ## Product guard caller-role preservation — CI regression fix
 
 The SECURITY DEFINER quota guard must use the original JWT role, not PostgreSQL `current_user` (which becomes the function owner inside the definer context). Additive migration `20261119124500_products_guard_preserve_caller_role.sql` updates `private.is_privileged()` to evaluate `auth.role()` with a safe fallback and retain the admin check. This prevents ordinary authenticated sellers from being treated as privileged when the quota guard executes. CI Phase 2 product permission tests exposed this regression; the new migration is included in the local replay manifest. Draft PR only; staging and production are unchanged pending CI.
+
+
+## Seller plan catalogue RPC grant restoration
+
+CI test 034 found that the seller-safe `public.seller_plan_catalog()` RPC had lost its explicit read grants to `anon` and `authenticated`. Additive migration `20261119125500_restore_seller_plan_catalog_read_grants.sql` revokes PUBLIC and explicitly grants those two API roles execute. The RPC exposes only plan/entitlement comparison fields; private entitlement table RLS remains admin-only. Included in migration replay manifest; CI rerun pending, no staging/production change.
