@@ -97,3 +97,8 @@ A full local migration replay uncovered a pre-existing public visibility regress
 - Official Everneed store remains live without seller subscription; ordinary sellers still retain entitlement/verification gates.
 
 The CI database job is running against a fresh local Supabase replay; the test is not yet marked passed.
+
+
+## CI regression found outside the variant test
+
+Test 039 passed, and Phase 2 checks plus public RPC security checks passed in the current local Supabase CI run. The run then failed at legacy test 017 because its seller application fixtures did not provide the required selected `plan_id` after the plan-selection approval gate was added. The fixture now explicitly selects `plan-starter` for both stores. CI needs a fresh rerun to confirm the fix and continue the remaining security/payment/catalogue suite.
