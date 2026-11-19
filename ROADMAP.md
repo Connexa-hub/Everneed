@@ -33,7 +33,7 @@ Everneed begins as a shared marketplace where independent sellers manage their o
 | EV-00 | Company, governance and project controls | IN PROGRESS | Accurate company/legal status, decision log, branch/environment rules, public roadmap and product status maintained | Founder decisions; legal advice where needed |
 | EV-01 | Customer marketplace and web portal | IN PROGRESS | Customer discovery, account, product detail, cart, checkout, order tracking; seller onboarding/store/product/order tools; admin review and audit flows pass end-to-end | Auth, catalogue, backend policies |
 | EV-02 | Rich seller product catalogue and seller plans | IN PROGRESS | Complete structured product editor, category-specific attributes, variants, media, pricing, stock, product status and plan entitlements; seller cannot exceed plan or access another store | Catalogue schema, storage, plan enforcement, mobile QA |
-| EV-03 | Payment and order integrity | BLOCKED | Server-side price/variant validation; successful, failed, pending and duplicate webhook paths; immutable payment/order snapshots; reconciliation and refund paths proven in sandbox; no false paid orders | Checkout migrations, security CI, staging rollout, Paystack sandbox |
+| EV-03 | Payment and order integrity | IN PROGRESS | Server-side price/variant validation; successful, failed, pending and duplicate webhook paths; immutable payment/order snapshots; reconciliation and refund paths proven in sandbox; no false paid orders | Checkout migrations, security CI, staging rollout, Paystack sandbox |
 | EV-04 | Seller identity and store verification | PLANNED | Prembly sandbox integration for supported checks; secure evidence handling; status transitions, idempotency, audit trail and manual review; non-CAC sellers have a documented alternative path where legally appropriate | EV-03 payment baseline; Prembly endpoint/payload validation; sandbox wallet/API access |
 | EV-05 | Security, reliability and recovery | IN PROGRESS | RLS/RPC boundary tests, role isolation, secret hygiene, webhook signature verification, backup/restore exercise, monitoring and incident process | EV-01 to EV-04 |
 | EV-06 | Seller operations, settlement and admin control plane | IN PROGRESS | Seller order queues and transitions; auditable commission/ledger; prompt settlement eligibility rules; actual provider transfer/reconciliation; admin can manage Everneed's own official store with controlled privileges | Payment integrity, finance ledger and payout provider support |
@@ -47,43 +47,42 @@ Everneed begins as a shared marketplace where independent sellers manage their o
 
 ### Payment and variant checkout (EV-03)
 
-**Current state**
-- Variant-aware Paystack checkout changes are in draft PR [#32](https://github.com/Connexa-hub/Everneed/pull/32), branch `feature/variant-checkout`, based on `web-portal`.
-- Server-side variant ownership/activity and price resolution, sale-window handling, variant ID preservation and inventory reservation/restoration contract have been implemented in the draft branch.
-- Paystack Deno type-check passed.
-- Variant checkout contract test 039 passed in the reported CI run; Phase 2 checks reported 93/93 passing.
-- A later authenticated-RPC security regression test still found an anonymous-accessible SECURITY DEFINER RPC. A diagnostic was committed to identify the exact routine and ACL. The newest diagnostic run has not yet returned results.
+**Current verified state**
+- Draft PR [#32](https://github.com/Connexa-hub/Everneed/pull/32) remains open and unmerged on `feature/variant-checkout`, based on `web-portal`.
+- Full web/install and database CI jobs passed on head `4d65c8191b8f5b74c804a9e6bc9bf83361f2d140`, including variant checkout contract test 039, Phase 2 checks, public/authenticated RPC security, buyer/seller/admin RLS isolation, payment attempt/recovery, finance journal, seller entitlement/quota and catalogue regressions.
+- Six previously missing checkout/security migrations were applied successfully to Everneed staging project `vjiadqygpyebpisxslbx`. The ledger now records all six; the order-item variant snapshot columns are present.
+- Staging ACL verification confirms anonymous access remains enabled for the seller-safe `seller_plan_catalog()`, while anonymous access is denied for `seller_product_category_schema(text)` and internal `private.products_guard()`. Authenticated sellers retain the category-schema RPC.
+- Reviewed Paystack Edge Function source from this branch is deployed to staging as version 13. It retains `verify_jwt=false` because it validates signed Paystack webhooks itself and authenticates user requests in the function.
+- Production project `zpgasfweaixwsktlueje` was not changed. No PR merge or live payment was performed.
 
-**Not yet proven / do not claim**
-- The draft checkout migrations have not been applied to staging.
-- The updated Paystack Edge Function has not been deployed to staging.
-- No end-to-end Paystack sandbox payment and webhook reconciliation has been confirmed.
-- Variant purchasing must remain disabled until CI and staging acceptance checks pass.
-- Production has not been changed.
+**Still not proven / do not claim**
+- No complete Paystack sandbox transaction has yet been confirmed end to end.
+- Webhook replay, decline, pending, wrong amount/currency, invalid/inactive variant, concurrent stock reservation and cancellation/restoration still need controlled sandbox or transaction-wrapped tests.
+- The Android APK job for CI run 44540581382 is still building; no APK artifact link is available yet.
+- Keep variant purchasing disabled for customers until staging acceptance tests pass.
 
 **Next acceptance sequence**
-1. Resolve the exact anonymous RPC grant regression and obtain green full CI.
-2. Review and apply the missing migrations to staging in strict dependency order; verify schema and ACLs.
-3. Deploy the reviewed Paystack Edge Function to staging only, with required secrets already configured server-side.
-4. Run sandbox checkout tests for success, decline/failure, pending, duplicate webhook, wrong amount/currency, invalid/inactive variant, stock race and cancellation restoration.
-5. Verify payment attempts, order snapshots, seller orders, inventory movements and finance journal reconcile exactly.
-6. Record evidence in the tracker and keep PR #32 draft until owner-approved review.
+1. Run controlled Paystack sandbox checkout tests, including success, decline/failure, pending and duplicate webhook delivery.
+2. Test wrong amount/currency, invalid/inactive variant, stock race and cancellation/restoration without using live funds.
+3. Reconcile payment attempts, immutable checkout snapshots, seller orders, inventory movements, refunds and finance journal.
+4. Confirm the Android APK workflow completes and publish its artifact link for device testing.
+5. Record evidence in the tracker and keep PR #32 draft until owner-approved review.
 
 ### Prembly verification (EV-04)
 
 **Current state**
-- Prembly connection is confirmed in Sandbox environment.
-- Targeted endpoint discovery returned Nigeria identity and business-check endpoint definitions, including BVN, NIN, phone and CAC categories.
-- Sandbox wallet was reported as ₦0.00.
-- No Prembly verification request has been confirmed and no Prembly integration is currently considered live.
+- Prembly MCP connection is confirmed in Sandbox environment.
+- Capability discovery indicates Nigerian identity and business verification categories (including BVN, NIN, phone and CAC/KYB), but targeted endpoint searches returned no endpoint definitions or request schemas.
+- The sandbox wallet was previously reported as ₦0.00. No verification transaction has been made and no Prembly integration is wired into Everneed.
+- Do not invent endpoint IDs, payload fields, prices or response mappings.
 
 **Next acceptance sequence**
-1. Inspect the current store verification schema, RPCs, Edge Functions and secret names without exposing secret values.
-2. Confirm exact sandbox endpoint IDs, required payloads, response fields, pricing and wallet requirements from Prembly's current endpoint definitions.
-3. Implement provider calls server-side only; add request idempotency, rate limiting, audit events, safe redaction and controlled status transitions.
-4. Support manual review and an appropriate individual/non-CAC seller path; never treat BVN/NIN as proof of CAC incorporation.
+1. Inspect the provider's currently available endpoint-discovery documentation and obtain exact sandbox operation IDs, payload schemas, response fields, pricing and wallet requirements.
+2. Inspect Everneed's provider-neutral verification schema, RPCs, Edge Functions and secret names without exposing secret values.
+3. Implement provider calls server-side only, with idempotency, rate limiting, safe redaction, audit events and controlled status transitions.
+4. Support manual review and an appropriate non-CAC seller path; BVN/NIN must not be represented as proof of CAC incorporation.
 5. Test approved, rejected, pending, provider-error, duplicate and retry outcomes in sandbox.
-6. Document wallet funding requirements and obtain explicit approval before any live verification spend.
+6. Obtain explicit approval before funding a wallet or incurring any live verification spend.
 
 ## Cross-cutting product quality requirements
 
