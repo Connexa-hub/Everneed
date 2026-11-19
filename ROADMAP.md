@@ -125,3 +125,11 @@ This section is deliberately explicit so other AI systems can safely continue th
 **Roadmap integrity statement:** this document describes the intended sequence and the evidence currently available as of its status date. It is not a launch announcement, service guarantee, funding claim or certification of security/compliance.
 
 - The exact variant checkout regression file 039 was also executed against Everneed staging after migration rollout; it completed successfully and its transaction rolled back all test fixtures. This validates the variant pricing, invalid/inactive selection rejection, stock reservation, backorder handling, one-time cancellation restoration and immutable checkout snapshot against the staging schema.
+
+
+## Financial operating system workstream — 19 November 2026
+
+- Added [Marketplace Money Flow & Payments Architecture](docs/FINANCE/MARKETPLACE_MONEY_FLOW.md), covering buyer checkout/payment methods, seller settlement wallet, buyer credits, withdrawal lifecycle, coupons/promotions/cashback, direct/hub shipping, refunds, risk, reconciliation and international currency controls.
+- Staging audit confirms legacy orders/seller_orders/ledger_entries/payouts/refunds/offers/cards/payment-attempt infrastructure exists, but no buyer/store wallet account tables or complete double-entry journal are present. Do not describe wallets as live.
+- Finance implementation is planned as FIN-00 through FIN-11. Priority is journal and payment integrity, then seller allocations/withdrawals, credits, promotions, shipping and reconciliation.
+- Cash wallet top-up, P2P transfer and buyer cash-out are gated on Nigerian legal review and a licensed partner; launch with non-transferable promotional/refund credits only if the structure is approved.
