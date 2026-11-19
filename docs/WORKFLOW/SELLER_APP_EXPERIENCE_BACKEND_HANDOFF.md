@@ -96,3 +96,8 @@ Data functions behind them, all scoped to the caller's store with server-side pl
 ## 8. What the frontend ships first, so you know what exists
 
 App shell with bottom tabs (phone) and rail (desktop), notification centre, full-screen Me page, plan carousel, commerce-first seller overview, admin overview and Seller operations. Next: Messenger-style inbox on the existing chat functions, and the product workspace on the existing columns. New fields will be added to the editor as each contract above lands.
+
+
+## Product catalogue foundation added by ChatGPT (19 Nov 2026)
+
+See `docs/WORKFLOW/SELLER_PRODUCT_CATALOG_BACKEND_HANDOFF.md` for the new backend schema, RPCs, RLS, plan capability flags, tested contracts and the next product-editor/admin workspace requirements. Product variants are not yet checkout-integrated and must not be enabled for purchase until that backend contract is complete.
