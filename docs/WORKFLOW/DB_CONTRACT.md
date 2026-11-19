@@ -268,3 +268,12 @@ Everneed-staging (`vjiadqygpyebpisxslbx`) now records the seller entitlement seq
 The Free/Entry tier and its free trial are active with 5 active products and 2 new product listings per seller-local calendar day. The four enabled Nigerian seller checks are classified as commercial storefront-verification requirements: Free and Starter do not require them to activate; Growth and Pro retain their plan verification requirement. This does not waive separate payment-provider, AML/KYC, wallet, virtual-account or payout eligibility checks. Staging only; production is untouched.
 
 For new migrations, use the exact timestamp version assigned by the staging migration tool and keep the repository filename, staging ledger and `.github/workflows/migrations-check.yml` replay list identical. After applying a staging migration, commit its SQL file and update the replay list and relevant contracts/tracker. Do not invent a different timestamp for the same applied migration.
+
+
+## Seller message notification contract — staging migration 20261119112000
+
+- Existing chat_triage_ai already writes a generic notification for each non-muted conversation participant except the sender. The new zzz_chat_notification_contract AFTER INSERT trigger runs after it and upgrades that row without creating duplicates.
+- Notification kinds: store conversations message_customer; seller-to-Everneed/admin conversations message_everneed; support conversations message_support.
+- Payload now includes url: /inbox/<conversation UUID>, conversation_id, and backward-compatible conversation plus conversation kind.
+- The notifications table is added to supabase_realtime; notifications RLS remains enabled and owner/admin SELECT policy remains in force. API roles cannot INSERT notifications directly.
+- Regression assertions are in supabase/tests/036_seller_message_notification_contract_checks.sql. Staging application and execution evidence will be recorded after rollout. Push delivery and seller notification preferences remain unimplemented.
