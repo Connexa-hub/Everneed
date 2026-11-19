@@ -200,8 +200,9 @@ begin
   select * into o from public.orders where id = so.order_id;
   perform set_config('app.order_bypass', '1', true);
   update public.seller_orders set status = p_to, rejected_reason = p_reason where id = p_so;
-  for it in select product_id, size, qty from public.order_items where seller_order_id = p_so loop
-    perform private.stock_add(it.product_id, it.size, it.qty);
+  for it in select id,product_id,size,qty,variant_id,inventory_reserved,inventory_restored from public.order_items where seller_order_id=p_so loop
+    if it.variant_id is not null then perform private.restore_variant_order_item(it.id);
+    else perform private.stock_add(it.product_id,it.size,it.qty); end if;
   end loop;
   if o.payment_status in ('paid', 'partially_refunded') and so.released then
     select coalesce(sum(line_total), 0) into mine from public.order_items where seller_order_id = p_so;
