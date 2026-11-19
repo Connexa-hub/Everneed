@@ -428,7 +428,7 @@ revoke execute on function public.seller_product_capabilities(text) from public,
 grant execute on function public.seller_product_capabilities(text) to authenticated;
 
 -- Respect visibility in the existing public catalogue RLS policy.
-drop policy if exists products public read on public.products;
+drop policy if exists "products public read" on public.products;
 drop policy if exists products_public_read on public.products;
 create policy products_public_read on public.products for select to anon,authenticated
 using (status='published' and visibility='public' and private.store_live(store_id));
