@@ -147,6 +147,7 @@ begin
   if not exists(select 1 from public.product_inventory_movements where product_inventory_movements.variant_id=v_variant_id and reason='CI stock adjustment' and delta=-3 and reference='CI-REF-038') then
     raise exception 'FAIL: stock adjustment movement record/reference missing';
   end if;
+  perform set_config('everneed.inventory_reason','product_stock_change',true);
   update public.products set stock=2 where id=product_b;
   if not exists(select 1 from public.product_inventory_movements where product_id=product_b and variant_id is null and reason='product_stock_change' and delta=-2) then
     raise exception 'FAIL: legacy product stock movement audit missing';
