@@ -97,7 +97,7 @@ begin
 
   insert into public.product_media(product_id,store_id,media_type,url,alt_text,sort_order,is_primary)
   values(product_a,'everneed-official','image','https://example.invalid/catalog-test.jpg','Test media',0,true);
-  insert into public.product_price_tiers(product_id,v_variant_id,store_id,min_quantity,unit_price)
+  insert into public.product_price_tiers(product_id,variant_id,store_id,min_quantity,unit_price)
   values(product_a,v_variant_id,'everneed-official',5,900);
   insert into public.product_links(product_id,linked_product_id,store_id,link_kind)
   values(product_a,product_b,'everneed-official','related');
