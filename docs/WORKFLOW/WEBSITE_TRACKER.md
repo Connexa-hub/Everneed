@@ -582,3 +582,9 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - `order_items.unit_price` uses zero-decimal display rounding for NGN/KES while `line_total` is stored at two decimals. New allocation must use authoritative persisted line totals and quote provenance, never reconstruct totals from display unit price × quantity.
 - Schema-v2 should calculate commission in buyer order currency using the frozen policy. Seller-funded discounts reduce seller-funded merchandise consideration before commission; platform-funded discounts do not reduce seller proceeds and are separately attributed to Everneed. This defines a fair commission basis without inventing a commission rate.
 - FIN-02A must be a forward-only versioned path. Preserve v1 orders and existing payment verification/quarantine. Inspect all callers, triggers, grants and immutability controls before migration. See finance architecture section 32.
+
+
+## FIN-02A allocation math added — 19 Nov 2026
+- Added migration 035 with a private immutable pure helper for integer-minor-unit per-item allocations, explicit seller/platform discount funding basis points, commission on seller consideration after seller-funded discount, deterministic residuals and reconciliation.
+- Added SQL tests 035 for multi-item proportional allocation, split funding, exact totals, input validation and order-independent results; CI now runs this suite and migration replay validates the new file.
+- Scope is intentionally limited: no checkout caller, v2 snapshot persistence, campaign budget reservation, payment settlement, seller release or journal posting is connected yet. See finance architecture section 33.
