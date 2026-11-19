@@ -801,3 +801,6 @@ The hardened service-only posting RPC now enforces:
 Test file `supabase/tests/034_finance_journal_input_hardening_checks.sql` adds negative cases for oversized source fields, idempotency keys, descriptions, metadata and line payloads, unexpected line keys, overlong references and BIGINT overflow, plus a valid bounded posting. The CI workflow now runs test 034 and the migration-order allow-list includes migration 034.
 
 **Rollout status:** code and tests are committed to the draft feature branch. Migration 034 has not yet been applied to staging; wait for the full database workflow and inspect its result before applying. No journal business-event integration, wallet funding, payout automation or production deployment is included in this hardening migration.
+
+
+The same limits now cover `reverse_finance_journal`: 1–160 character idempotency key, 1–240 character reason, no control characters, object metadata capped at 16 KiB, with the original-journal existence and no-reversal-of-reversal rules preserved. Test 034 includes negative and positive reversal cases.
