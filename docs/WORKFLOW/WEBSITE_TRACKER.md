@@ -481,3 +481,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Prembly sandbox connection and targeted Nigeria BVN/NIN/phone/CAC endpoint discovery are confirmed; sandbox wallet previously reported ₦0.00. No verification transaction or live integration is confirmed.
 - No production migration, Edge Function deployment, PR merge or live transaction was performed.
 - Next order: resolve security regression → green full CI → apply reviewed migrations to staging → deploy Paystack to staging → run payment lifecycle/reconciliation tests → implement and sandbox-test Prembly.
+
+
+## 19 Nov 2026 — CI green and payment staging rollout
+
+- CI run 44540581382: web/install checks passed; database tests passed, including Deno type checks for Paystack and payment recovery, variant checkout contract test 039, Phase 2, public/authenticated RPC security, buyer/seller/admin RLS isolation, payment attempts/recovery, finance journal, seller plan/quota and catalogue regressions.
+- Applied six missing migrations from `feature/variant-checkout` to Everneed staging `vjiadqygpyebpisxslbx`: variant checkout/inventory, official-store live entitlement exception, seller quota trigger hardening, caller-role preservation, public seller plan catalogue grants, and anonymous category-schema RPC revocation. All six returned success and appear in the staging migration ledger.
+- Read-only staging verification: all five variant snapshot columns exist; anon can execute seller_plan_catalog; anon cannot execute seller_product_category_schema or private.products_guard; authenticated sellers can execute seller_product_category_schema.
+- Deployed reviewed Paystack Edge Function to staging as version 13. No sandbox transaction has yet been run, so payment flow is not yet certified end-to-end. Keep variant purchase UI disabled pending acceptance tests.
+- APK job remains in progress. Prembly endpoint searches returned no concrete endpoint definitions; no verification request or wallet spend has occurred.
+- No production changes, PR merge or live payment.
