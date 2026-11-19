@@ -6,7 +6,7 @@ declare
   category_id text;
   product_a text := gen_random_uuid()::text;
   product_b text := gen_random_uuid()::text;
-  variant_id uuid;
+  v_variant_id uuid;
   missing_message text;
   schema_result jsonb;
   movement_count integer;
@@ -85,20 +85,20 @@ begin
   insert into public.product_variants(product_id,sku,option_values,price,stock,weight_g,dimensions,position)
   values(product_a,'CAT-TEST-'||product_a,jsonb_build_object('Storage','128GB','Colour','Blue'),1000,10,250,
     jsonb_build_object('length',10,'width',5,'height',3,'unit','cm'),1)
-  returning id into variant_id;
+  returning id into v_variant_id;
 
   perform set_config('everneed.inventory_reason','CI stock adjustment',true);
-  update public.product_variants set stock=7 where id=variant_id;
-  select count(*) into movement_count from public.product_inventory_movements where product_inventory_movements.variant_id=variant_id;
+  update public.product_variants set stock=7 where id=v_variant_id;
+  select count(*) into movement_count from public.product_inventory_movements where product_inventory_movements.v_variant_id=v_variant_id;
   if movement_count<>2 then raise exception 'FAIL: expected initial and adjustment inventory movements, got %',movement_count; end if;
-  if not exists(select 1 from public.product_inventory_movements where variant_id=variant_id and reason='CI stock adjustment' and delta=-3) then
+  if not exists(select 1 from public.product_inventory_movements where v_variant_id=v_variant_id and reason='CI stock adjustment' and delta=-3) then
     raise exception 'FAIL: stock adjustment movement record missing';
   end if;
 
   insert into public.product_media(product_id,store_id,media_type,url,alt_text,sort_order,is_primary)
   values(product_a,'everneed-official','image','https://example.invalid/catalog-test.jpg','Test media',0,true);
-  insert into public.product_price_tiers(product_id,variant_id,store_id,min_quantity,unit_price)
-  values(product_a,variant_id,'everneed-official',5,900);
+  insert into public.product_price_tiers(product_id,v_variant_id,store_id,min_quantity,unit_price)
+  values(product_a,v_variant_id,'everneed-official',5,900);
   insert into public.product_links(product_id,linked_product_id,store_id,link_kind)
   values(product_a,product_b,'everneed-official','related');
 
