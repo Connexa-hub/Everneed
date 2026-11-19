@@ -861,3 +861,43 @@ Do not wire accounting by simply adding a journal call to the existing payment-c
 - Finance/admin visibility and audit logs are in place before enabling operational payouts.
 
 **Current FIN-02 status:** design contract only. No payment-confirmation, refund, seller-release or payout function has been modified to post to the journal. No Paystack refund/transfer request or live money movement has been performed.
+
+
+## 29. FIN-02 implementation audit — checkout allocation blocker — 19 Nov 2026
+
+### Verified implementation details
+
+The live staging definitions and branch checkout migration were inspected before designing the journal integration:
+
+- `public.create_order_with_snapshot(...)` creates schema-version-1 immutable snapshots. It records currency/exponent, FX provenance, gross/net merchandise minor units, allocated discount, delivery fee, total, and per-item gross/net refundable amounts.
+- The snapshot does **not** currently include a frozen per-item commission amount, seller-payable amount, commission policy version, or seller-level financial allocation summary.
+- The current checkout migration creates `seller_orders.subtotal`, `commission` and `earning` from base-price values. In `create_order`, `order_item_fees.commission_amount` is also calculated from the base line amount. The buyer checkout total is separately converted using the effective rate.
+- Consequently, those seller-order and commission values cannot safely be posted as amounts in the buyer's checkout currency. The problem is especially material for non-NGN orders.
+- The snapshot function currently sets the currency exponent to 2 for NGN, GHS, KES, ZAR, GBP and USD. FIN-02 must use the persisted snapshot exponent and exact minor-unit amounts; it must not infer a different exponent from a generic currency lookup.
+- Existing `settle_verified_payment_attempt` validates the provider reference, transaction ID, payment-attempt ownership, order ownership, immutable snapshot hash/version, amount, currency and exponent. It quarantines mismatches as `reconciliation_required`. These checks are mandatory prerequisites and must remain unchanged in meaning.
+
+### Required checkout allocation enhancement before posting
+
+Add a forward-only checkout snapshot version that persists, at quote/order creation time:
+
+1. The applied commission rate and commission-policy version for every order item.
+2. Per-item merchandise gross, discount allocation, net merchandise amount, commission amount and seller payable, all as integer minor units in the order currency.
+3. Seller-level grouped totals by store: merchandise net, commission, seller payable and any seller-funded promotion contribution.
+4. Platform-funded promotion amount and delivery allocation, separated from seller merchandise payable.
+5. A deterministic rounding policy: item allocations use integer minor units; per-seller and order totals must reconcile exactly; the final ordered item receives any documented residual.
+6. Pricing provenance (FX rate/source/time, markup, policy version) already present in the snapshot, plus a financial-allocation policy version.
+7. An explicit treatment of tax, if applicable, and a hard failure if the order includes an amount that cannot be attributed to a supported account/allocation.
+
+The allocation must be computed from server-authoritative product/order-item fee rows and persisted seller/store ownership, not from browser payloads. The snapshot remains immutable after creation. Existing schema-version-1 orders must not be silently reinterpreted or retroactively journaled using today's commission rules.
+
+### FIN-02 revised sequence
+
+- **FIN-02A — Allocation snapshot:** implement schema-version-2 checkout snapshot with frozen seller/platform allocations and deterministic integer rounding; regression-test single seller, multiple sellers, mixed commission rates, official store zero commission, discounts, delivery fee, FX conversion, zero/negative edge cases and rounding residuals.
+- **FIN-02B — Pure accounting mapper:** map only a verified payment attempt plus schema-version-2 snapshot into balanced journal lines. Validate that gross collected equals all allocations exactly. Do not write a journal if snapshot version is unsupported or any allocation is missing.
+- **FIN-02C — Atomic payment settlement:** integrate journal posting with the successful payment-attempt settlement transaction only after 02A/02B tests pass. Payment state and journal posting must commit or roll back together. Preserve duplicate webhook/recovery idempotency and mismatch quarantine.
+- **FIN-02D — Provider fees and bank settlement:** record provider-confirmed fee and net settlement separately from customer collection. Do not estimate fees as actual cash movement.
+- **FIN-02E — Seller release, refunds and payouts:** implement separate pending/available/reserved/payout-in-transit states and provider-confirmed refund/transfer events.
+
+### Release block
+
+**Do not connect `private.confirm_payment_core` or `public.settle_verified_payment_attempt` to `post_finance_journal` yet.** Doing so with current schema-version-1 data or base-NGN seller-order totals risks wrong currency amounts, commission revenue and seller payable. No finance integration migration has been created or applied for this blocker. The next implementation should be FIN-02A, not a direct payment-settlement hook.
