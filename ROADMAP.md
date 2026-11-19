@@ -135,3 +135,15 @@ This section is deliberately explicit so other AI systems can safely continue th
 - Cash wallet top-up, P2P transfer and buyer cash-out are gated on Nigerian legal review and a licensed partner; launch with non-transferable promotional/refund credits only if the structure is approved.
 
 - FIN-00 staging function audit is now recorded in the finance architecture: current payout RPC only records a manually completed payout, refund RPC marks refunds processed without executing the provider refund, payment confirmation posts legacy single-entry sale/commission rows, and coupon redemption only increments a global usage counter. These must be replaced/wrapped before calling payouts, refunds or promotions end-to-end complete.
+
+
+
+
+## 19 November 2026 — finance audit completion and CI checkpoint
+
+- Current draft PR #32 head: `2e0b9554f9b27352d2b16f8ff597786b37d8815c`, base `web-portal`. The PR remains open and draft; it has not been merged.
+- GitHub Actions at this head: **Migration files — success** (run 44543116567); **Build Android app — success** (run 44543116525, build 1231). These results do not constitute Paystack end-to-end acceptance.
+- FIN-00 function-level audit is complete and recorded in `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` sections 22–24. It includes cancellation/refund side effects, delivery confirmation, seller release semantics, payment recovery, trigger effects and execute ACLs.
+- Key distinction: the legacy `seller_orders.released` flag is set at payment confirmation, but it is not a payout or proof of seller funds being withdrawable. Delivery confirmation also does not trigger a seller bank transfer. An approved refund is not proof that the provider returned funds.
+- FIN-01 double-entry journal contract is documented in section 25. It remains a design contract; no journal/wallet migration has been applied as part of this step. The next implementation must add database-enforced per-currency balancing, immutable posted entries, idempotency and least-privilege posting, with regression tests before staging rollout.
+- Staging only; production remains untouched. Do not merge, deploy production, initiate live payments/transfers or fund verification without explicit owner approval.
