@@ -50,4 +50,94 @@ begin
     raise exception 'FAIL: variant restore helper is callable by client roles';
   end if;
 end $$;
+-- End-to-end smoke tests run as the local database owner/service caller and roll back all fixture rows.
+do $
+declare
+  buyer uuid:=gen_random_uuid();
+  seller uuid:=gen_random_uuid();
+  store_id text:=gen_random_uuid()::text;
+  prod text:=gen_random_uuid()::text;
+  other_prod text:=gen_random_uuid()::text;
+  variant uuid;
+  bad_variant uuid:=gen_random_uuid();
+  checkout jsonb;
+  order_id text;
+  seller_order_id text;
+  stock_after integer;
+  restored boolean;
+  snapshot jsonb;
+  caught boolean:=false;
+  cust jsonb:=jsonb_build_object('name','CI buyer','phone','0000000000','city','Lokoja','state','Kogi','street','CI address');
+  pricing jsonb:=jsonb_build_object('fx_rate',1,'markup_percent',0,'fx_source','ci-test','fx_fetched_at',now(),'pricing_policy_version','variant-ci','currency_exponent',2);
+begin
+  insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
+  values(buyer,'authenticated','authenticated','variant-ci-buyer-'||buyer||'@example.test','',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false),
+        (seller,'authenticated','authenticated','variant-ci-seller-'||seller||'@example.test','',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
+  insert into public.profiles(id,name,email,role) values(buyer,'Variant CI Buyer','variant-ci-buyer-'||buyer||'@example.test','customer'),
+    (seller,'Variant CI Seller','variant-ci-seller-'||seller||'@example.test','merchant');
+  insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
+  values(store_id,seller,'variant-ci-'||seller,'Variant CI Store','approved','live','NG','Africa/Lagos');
+  insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
+  values(store_id,'plan-free','trialing',now(),now()+interval '30 days');
+  insert into public.products(id,name,col,price,store_id,status,slug,stock)
+  values(prod,'Variant checkout CI product',(select id from public.collections order by id limit 1),1000,store_id,'published',prod,99),
+        (other_prod,'Variant mismatch CI product',(select id from public.collections order by id limit 1),1000,store_id,'published',other_prod,99);
+  insert into public.product_variants(product_id,store_id,sku,option_values,price,sale_price,sale_starts_at,sale_ends_at,stock,track_stock,allow_backorder,active)
+  values(prod,store_id,'VAR-CI-SKU',jsonb_build_object('Colour','Blue','Size','M'),1200,900,now()-interval '1 hour',now()+interval '1 day',5,true,false,true)
+  returning id into variant;
+
+  -- A product with active variants cannot be checked out without a selection.
+  begin
+    perform public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'qty',1)),'NG','bank',cust,1,'NGN',0,null,0,null);
+  exception when others then caught:=true;
+  end;
+  if not caught then raise exception 'FAIL: checkout accepted a variant-required product without a variant'; end if;
+  caught:=false;
+
+  -- Wrong product/variant pair is rejected before stock is touched.
+  begin
+    perform public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',other_prod,'variant_id',variant,'qty',1)),'NG','bank',cust,1,'NGN',0,null,0,null);
+  exception when others then caught:=true;
+  end;
+  if not caught then raise exception 'FAIL: checkout accepted a variant belonging to another product'; end if;
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>5 then raise exception 'FAIL: rejected cart changed variant stock'; end if;
+
+  -- Variant sale price is server-resolved, and stock is reserved/audited atomically.
+  checkout:=public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',2)),'NG','bank',cust,1,'NGN',0,null,0,null);
+  order_id:=checkout->>'id';
+  select so.id into seller_order_id from public.seller_orders so where so.order_id=order_id and so.store_id=store_id;
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>3 then raise exception 'FAIL: variant stock was not reserved (expected 3, got %)',stock_after; end if;
+  if not exists(select 1 from public.order_items where order_id=order_id and variant_id=variant and variant_sku='VAR-CI-SKU'
+      and variant_options=jsonb_build_object('Colour','Blue','Size','M') and unit_price=900 and line_total=1800 and inventory_reserved and not inventory_restored) then
+    raise exception 'FAIL: order item did not preserve authoritative variant price/SKU/options/reservation';
+  end if;
+  if not exists(select 1 from public.product_inventory_movements where variant_id=variant and reason='checkout_reservation' and delta=-2 and reference=order_id) then
+    raise exception 'FAIL: checkout reservation movement was not audited with order reference';
+  end if;
+
+  -- Cancel/reject restores a reservation exactly once.
+  perform private.cancel_so(seller_order_id,'CI cancellation',seller,'cancelled');
+  perform private.cancel_so(seller_order_id,'CI duplicate cancellation',seller,'cancelled');
+  select stock into stock_after from public.product_variants where id=variant;
+  select inventory_restored into restored from public.order_items where order_id=order_id and variant_id=variant;
+  if stock_after<>5 or not restored then raise exception 'FAIL: cancellation did not restore stock exactly once'; end if;
+  if (select count(*) from public.product_inventory_movements where variant_id=variant and reason='cancellation_restoration' and delta=2)<>1 then
+    raise exception 'FAIL: duplicate cancellation produced duplicate restoration movement';
+  end if;
+
+  -- Snapshot-backed card checkout retains variant identity and options.
+  checkout:=public.create_order_with_snapshot(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',1)),'NG','card',cust,1,'NGN',0,null,0,null,pricing);
+  order_id:=checkout->>'id';
+  select checkout_snapshot into snapshot from public.orders where id=order_id;
+  if snapshot->'items'->0->>'variant_id'<>variant::text
+     or snapshot->'items'->0->>'variant_sku'<>'VAR-CI-SKU'
+     or snapshot->'items'->0->'variant_options'<>jsonb_build_object('Colour','Blue','Size','M') then
+    raise exception 'FAIL: immutable payment snapshot omitted variant selection';
+  end if;
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>4 then raise exception 'FAIL: snapshot checkout did not reserve one unit'; end if;
+end $;
+
 rollback;
