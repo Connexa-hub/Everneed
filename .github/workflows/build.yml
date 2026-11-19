@@ -153,3 +153,6 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/036_seller_message_notification_contract_checks.sql
       - name: Seller notification trigger ACL tests (037)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/037_chat_notification_trigger_acl_checks.sql
+
+      - name: Product catalogue foundation regression tests (038)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
