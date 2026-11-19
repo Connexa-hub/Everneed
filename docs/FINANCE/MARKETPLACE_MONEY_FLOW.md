@@ -682,7 +682,7 @@ The remaining function-level staging review is complete for the named paths. Thi
 
 ### FIN-00 outcome
 
-<badge>Verified complete — audit only</badge>
+**Verified complete — audit only.**
 
 The named legacy functions, triggers and execute ACLs have now been inspected. Known constraints to carry forward:
 
