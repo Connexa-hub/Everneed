@@ -638,3 +638,10 @@ The FIN-00 function-level audit is complete. Cancellation, delivery, recovery, t
 ## 19 Nov 2026 — FIN-01 migration discovery correction
 
 The branch already includes `033_double_entry_finance_journal.sql` and its regression test. Staging migration history confirms version 033 is applied; the private journal tables exist with 96 seeded accounts and zero posted journals/lines. The staging test ran successfully inside a rollback transaction. FIN-01's journal foundation is therefore implemented and staged, but it is not integrated with checkout, refunds, seller release or payout execution. The current work is to harden migration 033 and expand negative/security tests before business-event integration. See `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` sections 25–26.
+
+
+
+
+## 19 Nov 2026 — FIN-01 migration 034
+
+Added forward-only migration 034 to harden the staged double-entry journal RPC against oversized/malformed requests. Added dedicated regression test 034 and CI execution. Pending full database CI before staging apply. The journal is still not integrated with Paystack payment confirmation, refunds, seller settlement or buyer/store wallets. Refer to finance architecture section 27.
