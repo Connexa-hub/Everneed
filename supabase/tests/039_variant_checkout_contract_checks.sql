@@ -2,14 +2,14 @@
 begin;
 do $$
 declare
-  column_name text;
+  col text;
   checkout_def text;
   snapshot_def text;
   cancel_def text;
   restore_def text;
 begin
-  foreach column_name in array array['variant_id','variant_sku','variant_options','inventory_reserved','inventory_restored'] loop
-    if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='order_items' and column_name=column_name) then
+  foreach col in array array['variant_id','variant_sku','variant_options','inventory_reserved','inventory_restored'] loop
+    if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='order_items' and information_schema.columns.column_name=col) then
       raise exception 'FAIL: order_items.% missing',column_name;
     end if;
   end loop;
