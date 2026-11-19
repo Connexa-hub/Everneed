@@ -966,3 +966,22 @@ Controls include role-restricted campaign budget approval; maker-checker approva
 The schema-v2 checkout snapshot must freeze the applied commission policy/version, item/store payable allocation, all discount funders and amounts, platform service/delivery allocations and rounding residual. It must not choose a commission rate, tax rule, delivery subsidy or campaign funder at runtime from mutable settings after order creation. If a cost or funding amount needed to calculate the order cannot be established, fail closed for the affected feature or route it for explicit review; do not invent a zero cost or hide a loss.
 
 The next work is FIN-02A schema design and contract tests. This is not authorization to deploy pricing changes, enable campaigns, change seller commissions, execute transfers or alter production. Existing schema-v1 orders remain on their documented path.
+
+
+## 32. FIN-02A deeper checkout function audit — 19 Nov 2026
+
+A further read-only inspection of the staging definitions for `public.create_order(...)` and `public.create_order_with_snapshot(...)` refined the FIN-02A implementation requirements:
+
+- The checkout function computes each seller's commission rate from persisted store override, category policy, plan discount and official-store status, then persists `order_item_fees.commission_rate` and `commission_amount`. The rate is therefore available as a source input, but the current commission amount is calculated from the pre-FX base line amount. It must not be treated as a buyer-currency amount.
+- `seller_orders.subtotal`, `commission` and `earning` are also calculated from the base line amount. They are legacy major-unit values, not a safe buyer-currency journal allocation.
+- The order line stores buyer-currency `line_total` rounded to two decimal places, while `unit_price` uses a display precision branch that rounds NGN and KES to zero decimal places. FIN-02A must use the authoritative persisted line total/quote provenance and exact minor-unit conversion; it must not reconstruct a payable by multiplying the display unit price by quantity.
+- The order creation function currently calculates the total using `round((base merchandise − base discount) × effective FX rate + delivery fee, 2)`, while the snapshot function stores a currency exponent of 2 for the currently supported currencies. The version-2 allocation must explicitly reconcile every persisted order amount, FX conversion, item allocation and provider-verified total. It must not assume that a currency code or a rounded display field proves the monetary exponent or allocation.
+- Current commission basis is the persisted pre-FX item line value and the commission rate is persisted per item, but no immutable policy-version identifier or FX-converted commission/seller-payable allocation is frozen. FIN-02A must define and snapshot the commission basis and version at order creation; a subsequent policy edit cannot alter an existing order.
+
+### Commission and discount accounting rule to encode
+
+For new schema-v2 orders, calculate the commission in the order currency from the frozen commission policy and the seller's funded merchandise consideration. Seller-funded discounts reduce the seller-funded merchandise consideration before commission is calculated. Platform-funded discounts do not reduce the seller's merchandise consideration or seller payable; they are recorded as a separate platform-funded customer discount/marketing cost. For split funding, apply the same rule to the seller-funded portion only. This prevents the seller from paying commission on a discount they funded while preventing an Everneed-funded coupon from silently reducing seller proceeds. The exact commission rate remains a separately approved, versioned business setting; this rule does not set a rate.
+
+### Implementation boundary
+
+FIN-02A must be implemented as a forward-only, explicitly versioned allocation path with regression coverage for the existing v1 checkout behavior. Do not silently retrofit v1 snapshots, rewrite historical seller-order amounts, or change the current create_order commission policy globally. Before migration, inspect all checkout callers, triggers, snapshot immutability constraints and function grants; preserve payment-attempt verification and the current mismatch quarantine. No production change is authorized.
