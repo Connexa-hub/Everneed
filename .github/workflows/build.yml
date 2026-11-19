@@ -40,6 +40,8 @@ jobs:
           version: 3.1.0
       - run: test -f supabase/config.toml || supabase init
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
+      - name: Variant-aware checkout contract tests (039)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/039_variant_checkout_contract_checks.sql
       - name: Run Phase 2 checks
         shell: bash
         run: |
@@ -76,8 +78,6 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/032_legacy_payment_rpc_search_path_checks.sql
       - name: Double-entry finance journal tests (033)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/033_double_entry_finance_journal_checks.sql
-      - name: Variant-aware checkout contract tests (039)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/039_variant_checkout_contract_checks.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
   apk:
