@@ -85,6 +85,29 @@ begin
   v_id := public.post_finance_journal('ci_test','input-hardening','valid-small','NGN','Valid bounded request',
     v_lines,'{"test":true}');
   if v_id is null then raise exception 'Valid bounded request did not post.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.reverse_finance_journal(v_id,repeat('i',161),'Reason','{}');
+  exception when others then v_failed := true; end;
+  if not v_failed then raise exception 'Overlong reversal idempotency key accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.reverse_finance_journal(v_id,'valid-key',repeat('r',241),'{}');
+  exception when others then v_failed := true; end;
+  if not v_failed then raise exception 'Overlong reversal reason accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.reverse_finance_journal(v_id,'valid-key','Reason',
+      jsonb_build_object('blob',repeat('m',17000)));
+  exception when others then v_failed := true; end;
+  if not v_failed then raise exception 'Oversized reversal metadata accepted.'; end if;
+
+  if public.reverse_finance_journal(v_id,'valid-key','Valid bounded reversal','{}') is null then
+    raise exception 'Valid bounded reversal did not post.';
+  end if;
 end
 $$;
 rollback;
