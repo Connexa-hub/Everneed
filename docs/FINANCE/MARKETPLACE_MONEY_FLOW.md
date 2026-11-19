@@ -919,3 +919,50 @@ This means a discount cannot safely be treated as a reduction of seller proceeds
 - Until that exists, test the no-discount path and any explicitly funded promotion path separately. Do not enable coupon-backed seller settlement through FIN-02 without attribution.
 
 This is a data-contract blocker, not a cosmetic reporting gap. FIN-02A must include a funding source and funding amount per allocation; FIN-02B must reject missing or inconsistent funding attribution.
+
+
+## 31. Everneed unit economics and promotion funding policy — 19 Nov 2026
+
+### Business objective
+Everneed must be a sustainable marketplace and fulfilment operator, not a discount-funded intermediary. GMV is merchandise value passing through the marketplace; it is not Everneed revenue, cash available to spend, or profit. Seller proceeds, buyer funds, provider-clearing balances and restricted reserves are not Everneed operating income.
+
+Everneed's commercial model may earn from distinct, disclosed value streams:
+1. **Marketplace commission** on completed merchandise sales, using a versioned category/store/plan policy. The rate is a configurable business decision and must not be invented by a migration or silently changed for an existing order.
+2. **Seller subscriptions and paid plans** for optional advanced capabilities, higher usage limits, premium analytics, teams, integrations and enhanced storefront tools. Basic seller access and the ability to list and fulfil within plan limits must remain usable.
+3. **Delivery margin** only where Everneed actually coordinates or provides delivery, calculated from the buyer/seller delivery charge less the actual provider, rider, route and operational cost allocated to that delivery.
+4. **Hub-service fees** for disclosed services such as receiving, consolidation, packaging, storage beyond an included period, special handling and oversized parcels. The charge must match a service actually supplied.
+5. **Optional seller advertising and promotion products**, including sponsored placements, boosts and campaign tools. Paid placement must be labelled and measured; sellers must opt in and see the price before purchase.
+6. **Optional value-added seller services** where a measurable service is delivered and the fee is disclosed in advance.
+
+No revenue stream should be counted twice. A hub handling fee is not also delivery revenue unless two separately delivered services and their charges exist.
+
+### Order contribution and pricing gate
+For every order and seller consignment, calculate and retain a transparent contribution view before settlement: gross merchandise value and buyer-paid merchandise amount; seller-funded and platform-funded discounts separately; commission under the frozen policy; delivery charged, provider/rider cost and delivery margin; hub revenue and direct cost; payment-provider fee; applicable tax/withholding; refunds, chargebacks, insurance and other attributable costs; seller payable; platform revenue; marketing expense; and contribution after variable costs.
+
+**Order contribution = Everneed-earned commission + earned service/delivery margin + attributable subscription/advertising revenue − payment fees borne by Everneed − delivery/hub direct costs borne by Everneed − platform-funded discount − other directly attributable costs.** Do not count seller-funded discount as an Everneed marketing expense. Do not count seller payable, GMV, buyer wallet liabilities or pending provider settlement as revenue.
+
+A negative-contribution order or route must be visible and subject to a configurable policy: reprice the service, require an explicitly approved subsidy, route to an alternative fulfilment method, or stop checkout where lawful and commercially appropriate. Never silently make the seller absorb an Everneed operating loss. Any minimum contribution or margin threshold must be a versioned, disclosed policy and account for applicable pricing/tax rules; this specification assumes no numeric threshold.
+
+### Promotion funding rules
+- **Seller-created product/store discount:** seller-funded by default, only after the seller accepts the exact funding terms and amount.
+- **Everneed-wide coupon or platform campaign:** not automatically Everneed-funded. It requires a named funding owner and reserved, approved marketing budget. It may instead be seller-funded by participating sellers or jointly funded by explicit agreement.
+- **Joint campaign:** store each party's amount or deterministic percentage split, budget cap, eligible items/stores, period and redemption limits.
+- **Legacy/unknown funding:** mark unallocated and prevent journal posting/settlement based on an assumed payer. Never retroactively assign funding to Everneed or sellers.
+- **Cashback:** treat separately from a discount; define funder, recipient, liability/expense treatment, eligibility, expiry, reversal and budget reservation before launch.
+
+Every promotion reservation/redemption must be atomic and idempotent. Reserve campaign budget and funding allocation with the order; release it on expiry/cancellation/payment failure; consume it only on the defined successful-payment event; reverse it with a linked compensating event on refund/chargeback. Enforce campaign/per-buyer caps, total budget, maximum discount, eligible categories/stores, minimum basket, date window and stacking rules. A global coupon is not proof that Everneed funds it.
+
+### Operating-cost and cash protection
+Maintain separately reported management reserves for (a) core operations/infrastructure (domain, hosting, Supabase, monitoring and software), (b) payroll and employee obligations, (c) hub/logistics equipment and working capital, (d) refunds/disputes/risk, (e) approved marketing, and (f) retained earnings/reinvestment. These are management allocations, not permission to treat restricted seller or buyer money as company cash. Reserve targets and release authority require management/finance approval; no fixed percentage is prescribed.
+
+Use a rolling cash forecast including actual provider settlement timing, payout obligations, payroll, recurring infrastructure bills, hub rent/utilities, packaging inventory, rider/provider invoices, verification costs and tax obligations. Report unrestricted company cash separately from provider clearing, seller payables, buyer credits, campaign reservations and other restricted balances. Escalate forecast shortfalls before approving campaigns or new fixed costs.
+
+### Required admin reporting and controls
+The admin finance dashboard must distinguish GMV from platform revenue, gross margin from contribution, and contribution from net operating profit. Report by day/week/month, country/currency, category, seller, plan, payment method, delivery route and hub: commission/subscription revenue; delivery/hub charges, direct costs and margin; promotion spend by funder/campaign/redemption and remaining budget; provider fees/refund/chargeback losses and reconciliation exceptions; seller liabilities/payout status; operating expenses/payroll/cash forecast; order and route contribution; operating profit/loss; and reserve coverage.
+
+Controls include role-restricted campaign budget approval; maker-checker approval for material adjustments; immutable policy/version snapshots; full audit trail; no client-supplied funding source; no campaign spend above reserved budget; and no journal entry from an unallocated discount. Thresholds, approval limits and commission schedules require owner/finance approval before activation.
+
+### FIN-02A implementation consequences
+The schema-v2 checkout snapshot must freeze the applied commission policy/version, item/store payable allocation, all discount funders and amounts, platform service/delivery allocations and rounding residual. It must not choose a commission rate, tax rule, delivery subsidy or campaign funder at runtime from mutable settings after order creation. If a cost or funding amount needed to calculate the order cannot be established, fail closed for the affected feature or route it for explicit review; do not invent a zero cost or hide a loss.
+
+The next work is FIN-02A schema design and contract tests. This is not authorization to deploy pricing changes, enable campaigns, change seller commissions, execute transfers or alter production. Existing schema-v1 orders remain on their documented path.
