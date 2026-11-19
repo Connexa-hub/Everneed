@@ -48,7 +48,8 @@ begin
      or restore_def not ilike '%inventory_restored%' or restore_def not ilike '%cancellation_restoration%' then
     raise exception 'FAIL: variant restoration is not locked, audited and idempotent';
   end if;
-  if has_function_privilege('anon','private.restore_variant_order_item(text)','EXECUTE')
+  if not has_function_privilege('service_role','private.restore_variant_order_item(text)','EXECUTE')
+    or has_function_privilege('anon','private.restore_variant_order_item(text)','EXECUTE')
     or has_function_privilege('authenticated','private.restore_variant_order_item(text)','EXECUTE') then
     raise exception 'FAIL: variant restore helper is callable by client roles';
   end if;
