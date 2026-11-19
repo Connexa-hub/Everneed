@@ -643,3 +643,93 @@ The following staging function definitions were inspected on 19 November 2026. T
 - Model legacy ledger entries and seller earnings without double-posting historical orders.
 - Add regression tests for manual payout misuse, false-positive refund completion, coupon cap races and seller release timing.
 - Only then add FIN-01 journal migrations on the feature branch, run migration replay/CI, and apply to staging through the controlled migration workflow.
+
+
+
+
+## 24. FIN-00 completion — cancellation, delivery, recovery, triggers and ACL (19 Nov 2026)
+
+The remaining function-level staging review is complete for the named paths. This closes the FIN-00 inspection checklist; it does not mean the financial capabilities themselves are implemented.
+
+### Cancellation and partial seller-order refunds
+
+- `public.cancel_order_for` is a SECURITY DEFINER wrapper with a fixed `public` search path and is executable by `service_role` (not by ordinary authenticated/anonymous clients in the inspected ACL). It delegates to `private.cancel_order_core`.
+- `private.cancel_order_core` locks the parent order, checks buyer ownership unless the trusted caller supplies the admin path, prevents buyer cancellation after a seller has started, iterates eligible seller orders, restores variant or legacy stock, and marks the parent order cancelled.
+- `private.cancel_so` restores inventory and, when a paid/released seller order is cancelled, computes a proportional paid share, inserts a refund row with status `approved`, reverses legacy sale/commission entries by changing their status, changes the parent payment status, and notifies the buyer that a refund is on its way.
+- This cancellation path does **not** itself execute a Paystack refund. An `approved` refund row and a reversed seller ledger entry are not evidence of provider refund completion. The new refund orchestrator must pick up approved requests, call the provider idempotently, verify the provider result and only then complete the customer-facing refund state.
+- The proportional calculation is a legacy fallback, not a sufficient allocation rule for the future system. It does not yet fully model item-level funded discounts, seller/platform promo shares, shipping refunds, tax or gateway fee treatment.
+
+### Delivery confirmation and seller release
+
+- `public.mark_delivered(order, code)` is SECURITY DEFINER with an empty search path and is executable by authenticated users. It requires a signed-in user, permits admin or the owning seller only for direct-route seller orders, rate-limits code attempts, checks the delivery code and calls `private.deliver`.
+- `private.deliver` marks eligible seller orders and the parent order delivered, writes/updates the delivery proof record, and notifies/audits the event. It does not initiate a seller bank transfer or provider transfer.
+- Payment confirmation sets `seller_orders.released=true` and an acceptance deadline immediately after payment confirmation. This flag is an operational release/acceptance signal in the legacy workflow; it must not be interpreted as funds being withdrawable or paid to the seller.
+- FIN-01 and FIN-02 must define separate states for seller order acceptance, fulfilment completion, earnings pending, reserve, earnings available, withdrawal processing and provider-confirmed payout. Delivery is an input to the settlement policy, not a transfer instruction by itself.
+
+### Payment recovery and trusted execution boundary
+
+- Stale payment attempts use bounded recovery claims with `FOR UPDATE SKIP LOCKED`, per-attempt lease tokens, expiry, attempt limits and dead-letter/reconciliation states. Provider-event recovery has a similar leased and bounded retry model.
+- Recovery claim/finish functions and `settle_verified_payment_attempt` are SECURITY DEFINER with an empty search path and service-role-only execute grants in the inspected ACL. Preserve this server-only boundary.
+- `get_payment_attempt_recovery_context` is also service-role-only and returns only the fields needed by the recovery worker. Do not expose provider recovery context to buyer/seller clients.
+- `settle_verified_payment_attempt` checks the immutable snapshot hash/version, order and user ownership, provider reference, provider transaction ID, exact minor-unit amount, currency and exponent. It treats duplicate same-transaction success idempotently and quarantines conflicting references, second successful charges, terminal-attempt success and paid-after-cancellation cases. This is a strong control and must remain intact when journal posting is added.
+
+### Triggers, immutable legacy records and ACL observations
+
+- Existing financial/order triggers inspected: `private.ledger_guard` protects `ledger_entries` against DELETE and edits to amount, kind, store, order, seller-order and currency; `orders_checkout_snapshot_immutable` protects the checkout snapshot; order and seller-order guards enforce their lifecycle invariants.
+- The legacy ledger guard permits status transitions used by the old workflow (for example reversal/availability) while preventing changes to core amount/reference fields. The new journal must be stricter: posted journal headers and lines are immutable; corrections use compensating postings.
+- The inspected execute grants place internal `private` helpers behind the postgres owner. Trusted payment confirmation, cancellation, delivery and recovery wrappers have role-specific execute grants; do not widen them as part of finance work without an explicit security test and least-privilege review.
+- The inspected SECURITY DEFINER wrappers use fixed search paths (or an empty path for recovery/delivery); every new privileged RPC must use an empty search path and schema-qualify referenced objects.
+
+### FIN-00 outcome
+
+<badge>Verified complete — audit only</badge>
+
+The named legacy functions, triggers and execute ACLs have now been inspected. Known constraints to carry forward:
+
+1. A payment-confirmed seller order is not a paid-out seller order.
+2. An approved refund is not a provider-confirmed refund.
+3. A delivery confirmation is not a seller transfer.
+4. Legacy ledger reversals and proportional refund calculations are not a complete multi-seller accounting model.
+5. Existing payment attempt validation and leased recovery protections must be preserved.
+
+## 25. FIN-01 design contract — append-only double-entry journal
+
+FIN-01 should introduce the accounting foundation without changing checkout or seller payout behaviour in the same release. The initial migration is to be created on `feature/variant-checkout`, reviewed and tested before it is applied to staging.
+
+### Initial schema boundary
+
+- `private.financial_accounts`: stable account identity, account code, account class, owner scope, currency, normal balance, status and metadata. Unique account identity by legal entity + owner scope + purpose + currency. Do not create cross-currency accounts.
+- `private.journal_transactions`: event ID, event type, source system, source reference, idempotency key, currency, actor, effective/posted timestamps, status and metadata hash. A unique idempotency constraint prevents the same business event from posting twice.
+- `private.journal_lines`: transaction ID, account ID, currency, debit_minor and credit_minor, optional order/seller-order/payment/refund/payout references and a safe description. Amounts are positive BIGINT minor units; each line has exactly one non-zero side. Zero-value lines are prohibited.
+- Balance snapshots are deliberately deferred. They can be introduced as rebuildable projections only after the journal posting contract is stable.
+
+### Posting invariants
+
+1. Every posted transaction has at least two lines and total debits equal total credits for its single currency.
+2. Account currency, transaction currency and line currency must match exactly.
+3. A transaction is created in a non-posted state, its lines are inserted through a private posting operation, and it becomes posted only after the balance check succeeds in the same database transaction.
+4. A deferred constraint trigger or equivalent database-enforced posting gate must reject a posted transaction that has no lines or is unbalanced. A client-side check is not sufficient.
+5. Posted transaction headers and lines cannot be updated or deleted. Reversal creates a new transaction with opposite entries and a reference to the original.
+6. Idempotency is enforced by a unique key scoped to the source/event identity. Reuse with a different amount, currency, source reference or payload hash is an error, not a silent replay.
+7. No direct INSERT/UPDATE/DELETE grants are given to anon or authenticated users. Only a narrowly scoped private posting function/service role can post; read access is exposed through owner-scoped safe views/RPCs later.
+8. SECURITY DEFINER functions use `SET search_path TO ''`, fully qualify all relations/functions, validate the actor/source and reject unsupported currency/account combinations.
+9. Journal posting must not automatically make seller funds withdrawable. Settlement policy and payout transfer are separate milestones.
+10. Do not backfill historical legacy ledger rows as if they were new live transactions. FIN-01 should create the journal and tests; a separately reviewed migration plan must define opening balances and historical cutover without double-posting.
+
+### Initial account families
+
+Seed only the minimum NGN accounts required for controlled tests: provider clearing receivable, bank settlement asset, seller payable pending, seller payable available, marketplace commission revenue, payment processing expense, refunds payable and a controlled reconciliation/suspense account. The exact legal entity and account owner mapping must be explicit. Do not seed buyer cash-wallet liabilities or enable buyer top-ups in FIN-01.
+
+### Required FIN-01 regression tests
+
+- Balanced two-line and multi-line postings succeed.
+- Unbalanced posting, single-line posting, zero/negative amount, mixed currency and account/currency mismatch fail.
+- Duplicate idempotency with identical payload returns the original posting; changed payload is rejected.
+- Posted headers/lines cannot be edited or deleted; compensating reversal succeeds and links to the original.
+- anon/authenticated direct table writes and posting RPC execution are denied.
+- service-role/private posting succeeds only for valid accounts and a permitted event type.
+- Concurrent duplicate posting produces exactly one posted transaction.
+- Existing checkout, payment-attempt, recovery, legacy ledger, seller-order and refund tests remain unchanged and pass.
+- Migration replay on a clean database and staging apply both succeed without touching production.
+
+**FIN-01 status:** design contract documented; migration and tests are not yet applied. Proceed with schema implementation only after checking the current branch migration naming/order and CI conventions.
