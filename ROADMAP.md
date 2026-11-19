@@ -123,3 +123,5 @@ This section is deliberately explicit so other AI systems can safely continue th
 ---
 
 **Roadmap integrity statement:** this document describes the intended sequence and the evidence currently available as of its status date. It is not a launch announcement, service guarantee, funding claim or certification of security/compliance.
+
+- The exact variant checkout regression file 039 was also executed against Everneed staging after migration rollout; it completed successfully and its transaction rolled back all test fixtures. This validates the variant pricing, invalid/inactive selection rejection, stock reservation, backorder handling, one-time cancellation restoration and immutable checkout snapshot against the staging schema.
