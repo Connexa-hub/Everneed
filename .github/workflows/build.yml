@@ -148,3 +148,8 @@ jobs:
 
       - name: Seller onboarding, plan entitlement and quota tests (034)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
+
+      - name: Seller message notification contract tests (036)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/036_seller_message_notification_contract_checks.sql
+      - name: Seller notification trigger ACL tests (037)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/037_chat_notification_trigger_acl_checks.sql
