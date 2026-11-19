@@ -89,7 +89,7 @@ begin
 
   perform set_config('everneed.inventory_reason','CI stock adjustment',true);
   update public.product_variants set stock=7 where id=variant_id;
-  select count(*) into movement_count from public.product_inventory_movements where variant_id=variant_id;
+  select count(*) into movement_count from public.product_inventory_movements where product_inventory_movements.variant_id=variant_id;
   if movement_count<>2 then raise exception 'FAIL: expected initial and adjustment inventory movements, got %',movement_count; end if;
   if not exists(select 1 from public.product_inventory_movements where variant_id=variant_id and reason='CI stock adjustment' and delta=-3) then
     raise exception 'FAIL: stock adjustment movement record missing';
