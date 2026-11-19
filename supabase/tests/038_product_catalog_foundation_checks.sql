@@ -4,6 +4,9 @@ begin;
 do $$
 declare
   category_id text;
+  admin_user uuid:=gen_random_uuid();
+  seller_user uuid:=gen_random_uuid();
+  fixture_store text:=gen_random_uuid()::text;
   product_a text := gen_random_uuid()::text;
   product_b text := gen_random_uuid()::text;
   v_variant_id uuid;
@@ -18,6 +21,19 @@ declare
   seller_caps jsonb;
   denied boolean:=false;
 begin
+  insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
+  values(admin_user,'authenticated','authenticated','catalog-ci-admin-'||admin_user||'@example.test','',now(),'{}'::jsonb,jsonb_build_object('name','Catalogue CI Admin'),now(),now(),false);
+  insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
+  values(seller_user,'authenticated','authenticated','catalog-ci-seller-'||seller_user||'@example.test','',now(),'{}'::jsonb,jsonb_build_object('name','Catalogue CI Seller'),now(),now(),false);
+  insert into public.profiles(id,name,email,role) values(admin_user,'Catalogue CI Admin','catalog-ci-admin-'||admin_user||'@example.test','admin')
+    on conflict(id) do update set role='admin',name=excluded.name,email=excluded.email;
+  insert into public.profiles(id,name,email,role) values(seller_user,'Catalogue CI Seller','catalog-ci-seller-'||seller_user||'@example.test','merchant')
+    on conflict(id) do update set role='merchant',name=excluded.name,email=excluded.email;
+  insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
+  values(fixture_store,seller_user,'catalog-ci-'||seller_user,'Catalogue CI Store','approved','live','NG','Africa/Lagos');
+  insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
+  values(fixture_store,'plan-free','trialing',now(),now()+interval '30 days');
+
   select id into category_id from public.collections where lower(name)='phones and tablets' limit 1;
   if category_id is null then raise exception 'FAIL: seeded Phones and Tablets category missing'; end if;
 
@@ -74,14 +90,14 @@ begin
   if has_function_privilege('anon','public.admin_store_workspace_context(text)','EXECUTE') then
     raise exception 'FAIL: anonymous users can execute admin store-context RPC';
   end if;
-  perform set_config('request.jwt.claim.sub','9c3bd65b-4d23-42ca-838a-6eaca8133459',true);
+  perform set_config('request.jwt.claim.sub',''||admin_user||'',true);
   admin_context:=public.admin_store_workspace_context('everneed-official');
   if admin_context->'store'->>'id'<>'everneed-official'
     or coalesce((admin_context->'capabilities'->>'admin_override')::boolean,false) is not true
     or admin_context->'module_readiness'->>'variant_checkout'<>'pending' then
     raise exception 'FAIL: official store admin context/capability or readiness contract invalid';
   end if;
-  perform set_config('request.jwt.claim.sub','e8349848-7c00-454e-9f02-8616d233674c',true);
+  perform set_config('request.jwt.claim.sub',''||seller_user||'',true);
   seller_caps:=public.seller_product_capabilities('382b84b5-5bd9-4448-bd07-b0bada0121ca');
   if seller_caps->>'plan_id'<>'plan-free' or seller_caps->>'product_editor_mode'<>'guided' or coalesce((seller_caps->>'advanced_product_editor')::boolean,false) is not true then
     raise exception 'FAIL: Free seller should have rich product fields in guided mode';
@@ -93,7 +109,7 @@ begin
   end;
   if not denied then raise exception 'FAIL: seller was allowed to call admin store-context RPC'; end if;
   -- Reset to the admin fixture so subsequent smoke-test inserts bypass seller plan limits.
-  perform set_config('request.jwt.claim.sub','9c3bd65b-4d23-42ca-838a-6eaca8133459',true);
+  perform set_config('request.jwt.claim.sub',''||admin_user||'',true);
 
   if not exists(select 1 from pg_policies where schemaname='public' and tablename='products' and policyname='products_public_read' and qual like '%publish_at%') then
     raise exception 'FAIL: scheduled products must remain hidden until publish_at';
