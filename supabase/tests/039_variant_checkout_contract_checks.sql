@@ -76,7 +76,8 @@ begin
   values(buyer,'authenticated','authenticated','variant-ci-buyer-'||buyer||'@example.test','',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false),
         (seller,'authenticated','authenticated','variant-ci-seller-'||seller||'@example.test','',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
   insert into public.profiles(id,name,email,role) values(buyer,'Variant CI Buyer','variant-ci-buyer-'||buyer||'@example.test','customer'),
-    (seller,'Variant CI Seller','variant-ci-seller-'||seller||'@example.test','merchant');
+    (seller,'Variant CI Seller','variant-ci-seller-'||seller||'@example.test','merchant')
+    on conflict(id) do update set name=excluded.name,email=excluded.email,role=excluded.role;
   insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
   values(v_store_id,seller,'variant-ci-'||seller,'Variant CI Store','approved','live','NG','Africa/Lagos');
   insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
