@@ -309,3 +309,8 @@ Catalogue variants are currently database-managed only. Existing `create_order` 
 ## Variant-aware checkout draft
 
 Migration `20261119042700_variant_checkout_inventory.sql` and test 039 are on `feature/variant-checkout`, not applied to staging. It adds order-item variant identity/options/SKU and reservation/restoration markers, server-side variant price resolution, atomic stock decrement, snapshot integration and cancellation restoration. CI/staging validation pending; variant buying remains disabled. Other catalog workflow gaps (price tiers, media storage, bulk tools, promotions, analytics, team seats, multi-location inventory) remain open.
+
+
+## Official store visibility correction
+
+Migration `20261119042710_official_store_live_entitlement_bypass.sql` fixes the seller entitlement version of `private.store_live()` so the approved official Everneed store remains live without a seller subscription/entitlement row. Non-official sellers still require a valid plan, activation status, verification and subscription period. Added to the feature branch migration replay manifest; CI validation pending.
