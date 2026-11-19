@@ -779,3 +779,25 @@ The existing FIN-01 implementation was located in the current branch and checked
 The existing `supabase/tests/033_double_entry_finance_journal_checks.sql` was expanded and re-executed against staging after the change. The transaction completed without an SQL error and rolled back its fixtures. Additional negative cases now cover unsupported currency, unknown account, zero/negative amount, invalid direction, non-array line payload, non-object metadata, more than 1,000 lines, reversal of a reversal, missing original journal, and UPDATE/DELETE attempts against posted journal lines and headers. The test continues to check service-role-only posting/reversal RPCs, client read denial, no direct service-role table writes, balanced posting, idempotent replay, changed-payload rejection and exact reversal entries.
 
 This is staging regression evidence for the existing journal foundation. The CI workflow also runs test 033 after applying all migrations to its local Supabase database; the latest test commit still needs its own CI result before it is marked CI-verified.
+
+
+
+
+## 27. FIN-01 input hardening — migration 034 (19 Nov 2026)
+
+Added `supabase/migrations/034_finance_journal_input_hardening.sql` as a forward-only function replacement; migration 033 remains unchanged because it is already recorded in staging history.
+
+The hardened service-only posting RPC now enforces:
+
+- Source type: 1–64 characters, lower-case event identifier pattern.
+- Source ID and idempotency key: 1–160 characters, trimmed, with control characters rejected.
+- Currency: canonical uppercase supported code; lowercase/non-canonical input is rejected rather than silently normalized into a different idempotency identity.
+- Description: 1–240 characters, trimmed.
+- Metadata: JSON object only, maximum 16 KiB serialized.
+- Lines: JSON array, 2–1,000 entries, maximum 512 KiB serialized.
+- Each line must be an object containing only approved keys; account code and minor-unit amount have bounded formats, and optional store/order/seller-order references and descriptions have explicit length/type limits.
+- Individual amounts remain positive integer minor units and must fit PostgreSQL BIGINT; overflow is rejected.
+
+Test file `supabase/tests/034_finance_journal_input_hardening_checks.sql` adds negative cases for oversized source fields, idempotency keys, descriptions, metadata and line payloads, unexpected line keys, overlong references and BIGINT overflow, plus a valid bounded posting. The CI workflow now runs test 034 and the migration-order allow-list includes migration 034.
+
+**Rollout status:** code and tests are committed to the draft feature branch. Migration 034 has not yet been applied to staging; wait for the full database workflow and inspect its result before applying. No journal business-event integration, wallet funding, payout automation or production deployment is included in this hardening migration.
