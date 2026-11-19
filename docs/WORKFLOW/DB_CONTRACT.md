@@ -293,3 +293,5 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 
 
 - Admin store-context RPC `admin_store_workspace_context(p_store)` is admin-only. It returns selected store/owner/subscription, full admin capability override, counts, and honest module-readiness markers. The official store can be selected explicitly. Variant checkout, uploads, bulk/import/export, promotions, analytics, team management and multi-location inventory are marked pending rather than presented as ready.
+
+- Follow-up migration `20261119030905_inventory_movement_reference_and_legacy_stock_audit` adds references to variant movement records and audits legacy `products.stock` initial/adjustment changes as well. Test 038 now validates both stock models and reference preservation.
