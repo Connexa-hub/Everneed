@@ -161,3 +161,13 @@ The existing branch already contains `supabase/migrations/033_double_entry_finan
 ## FIN-01 hardening update — 19 Nov 2026
 
 Migration `034_finance_journal_input_hardening.sql` now bounds journal source identifiers, idempotency keys, descriptions, metadata size, line payload size, line object keys, references and BIGINT amount inputs. Dedicated regression test `034_finance_journal_input_hardening_checks.sql` and the CI workflow step have been added. This is committed to the draft feature branch; CI must pass before applying migration 034 to staging. The journal is still not connected to payment, refund, wallet or payout events.
+
+
+## Finance checkpoint — 19 November 2026
+
+- FIN-01 migration 034 (journal posting/reversal input hardening) is applied to Everneed staging only; migration history, function security settings and service-role-only execution were verified.
+- Full CI on PR head 01ee1c0811f07f3243e88c767f176f25b8b4c917 passed, including database regressions 033/034 and Android APK build (workflow 44546455256).
+- Test 034 executed against staging successfully with rollback-based fixtures. No business journal postings were created.
+- FIN-02 is the next workstream: design and test verified payment-event accounting, provider clearing/fees, seller pending and available payable, delivery allocation, refunds, chargebacks and provider-confirmed payouts. Existing payment confirmation/refund/payout functions are not yet journal-integrated.
+- PR #32 remains draft/open/unmerged. Production and live money movement remain untouched.
+- See docs/FINANCE/MARKETPLACE_MONEY_FLOW.md sections 27–28 for evidence, event mapping and release gates.
