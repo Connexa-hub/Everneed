@@ -588,3 +588,10 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Added migration 035 with a private immutable pure helper for integer-minor-unit per-item allocations, explicit seller/platform discount funding basis points, commission on seller consideration after seller-funded discount, deterministic residuals and reconciliation.
 - Added SQL tests 035 for multi-item proportional allocation, split funding, exact totals, input validation and order-independent results; CI now runs this suite and migration replay validates the new file.
 - Scope is intentionally limited: no checkout caller, v2 snapshot persistence, campaign budget reservation, payment settlement, seller release or journal posting is connected yet. See finance architecture section 33.
+
+
+## 19 Nov 2026 — FIN-02A staging checkpoint
+- Migration 035 applied to Everneed staging only; SQL contract test 035 executed successfully and rolled back fixtures.
+- Catalog confirms private allocation helper exists; EXECUTE denied to anon, authenticated and service_role. No order/payment/journal/payout data changed; production untouched.
+- Migration-file workflow passed at head ffb6b6f. Android/database CI was queued behind an earlier build; verify the latest head before claiming CI-green.
+- Next: seller consent, approved currency budgets, atomic reservations/release, immutable financial allocation snapshot and checkout integration.
