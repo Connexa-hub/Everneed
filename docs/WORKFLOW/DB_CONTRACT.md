@@ -280,3 +280,13 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 
 
 - Follow-up migration `20261119024825_chat_notification_trigger_acl` revokes EXECUTE from PUBLIC, anon and authenticated on the trigger-only SECURITY DEFINER helper; regression test 037 asserts API roles cannot call it directly.
+
+
+## Rich product catalogue foundation — staging migrations 20261119030341 and 20261119030531
+
+- Added backwards-compatible product detail fields and structured category attributes, product variants/private variant data, product media, quantity price tiers, product relationships and inventory movement audit table.
+- Added category tree metadata with three-level depth and cycle prevention; seeded 47 category attribute definitions across existing categories. All seed attributes remain optional until admin configures requiredness.
+- RPCs: `seller_product_category_schema`, `seller_product_capabilities`, `seller_adjust_variant_stock`. Stock adjustment is audited. Product submission validates category-required attribute presence and basic data types.
+- Plan feature flags seeded: variants and category attributes for all tiers; bulk/CSV/promotions/reports Growth and Pro; analytics none/basic/advanced; inventory alerts Starter+; team seats 1/2/5. Prices and existing product limits are unchanged. These flags are not proof that bulk, CSV, promotions, analytics or team workflows exist.
+- RLS enabled on all new tables; seller owner/admin management and public read on published, visible, live and schedule-eligible product content. Private cost/supplier data is owner/admin only.
+- Regression test 038 passed on staging inside a rollback transaction. CI includes the test. Product variants are not yet wired into checkout/order_items; price tiers not yet applied at checkout; media upload storage, bulk tools, multi-location inventory, promotions, analytics and team-seat enforcement remain pending.
