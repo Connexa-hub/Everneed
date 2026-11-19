@@ -464,3 +464,6 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Draft migration `20261119042700_variant_checkout_inventory.sql` committed on `feature/variant-checkout`: variant validation, database-resolved price/sale windows, atomic tracked-stock reservation, SKU/options item snapshots, immutable checkout snapshot extension, movement reference and one-time cancellation restoration.
 - Regression test 039 and CI invocation added; migration replay manifest updated on this branch.
 - **Not staging-applied or CI-validated yet.** Keep variant purchase UI disabled until full SQL replay, regression suite and staging verification pass. Production untouched.
+
+
+- CI revealed the official store was being hidden by the subscription/entitlement JOIN inside the newer `private.store_live()`. Follow-up migration `20261119042710_official_store_live_entitlement_bypass` restores the official-store exception without relaxing seller gates; regression assertion added to test 039.
