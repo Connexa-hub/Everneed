@@ -152,6 +152,113 @@ end
 $function$;
 
 
+
+create or replace function public.reverse_finance_journal(
+  p_original_journal_id uuid,
+  p_idempotency_key text,
+  p_reason text,
+  p_metadata jsonb default '{}'::jsonb
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_original private.finance_journals%rowtype;
+  v_existing_id uuid;
+  v_existing_hash text;
+  v_journal_id uuid;
+  v_hash text;
+begin
+  if p_original_journal_id is null
+     or p_idempotency_key is null or p_idempotency_key <> btrim(p_idempotency_key)
+     or length(p_idempotency_key) < 1 or length(p_idempotency_key) > 160
+     or p_idempotency_key ~ '[[:cntrl:]]'
+     or p_reason is null or p_reason <> btrim(p_reason)
+     or length(p_reason) < 1 or length(p_reason) > 240
+     or p_reason ~ '[[:cntrl:]]'
+     or jsonb_typeof(coalesce(p_metadata, '{}'::jsonb)) <> 'object'
+     or octet_length(coalesce(p_metadata, '{}'::jsonb)::text) > 16384 then
+    raise exception 'Invalid finance journal reversal request.';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(
+    'finance-reversal:' || p_original_journal_id::text, 0
+  ));
+
+  select * into v_original
+    from private.finance_journals
+   where id = p_original_journal_id
+   for update;
+  if not found then
+    raise exception 'Original finance journal was not found.';
+  end if;
+  if v_original.reversal_of is not null then
+    raise exception 'A reversal journal cannot itself be reversed.';
+  end if;
+
+  v_hash := encode(extensions.digest(convert_to(jsonb_build_object(
+    'original_journal_id', p_original_journal_id,
+    'idempotency_key', p_idempotency_key,
+    'reason', p_reason,
+    'metadata', coalesce(p_metadata, '{}'::jsonb)
+  )::text, 'UTF8'), 'sha256'), 'hex');
+
+  select j.id, j.request_hash
+    into v_existing_id, v_existing_hash
+    from private.finance_journals j
+   where j.reversal_of = p_original_journal_id
+   for update;
+  if v_existing_id is not null then
+    if v_existing_hash <> v_hash then
+      raise exception 'Original finance journal has already been reversed with different details.';
+    end if;
+    return v_existing_id;
+  end if;
+
+  insert into private.finance_journals(
+    source_type, source_id, idempotency_key, currency, description,
+    request_hash, metadata, reversal_of
+  ) values (
+    'journal_reversal', p_original_journal_id::text, p_idempotency_key,
+    v_original.currency, left('Reversal: ' || p_reason, 240),
+    v_hash, coalesce(p_metadata, '{}'::jsonb), p_original_journal_id
+  ) returning id into v_journal_id;
+
+  insert into private.finance_journal_lines(
+    journal_id, line_number, account_id, direction, amount_minor,
+    store_id, order_id, seller_order_id, description
+  )
+  select
+    v_journal_id,
+    l.line_number,
+    l.account_id,
+    case when l.direction = 'debit' then 'credit' else 'debit' end,
+    l.amount_minor,
+    l.store_id,
+    l.order_id,
+    l.seller_order_id,
+    left('Reversal: ' || coalesce(l.description, p_reason), 240)
+  from private.finance_journal_lines l
+  where l.journal_id = p_original_journal_id
+  order by l.line_number;
+
+  if not exists (select 1 from private.finance_journal_lines where journal_id = v_journal_id) then
+    raise exception 'Original finance journal has no lines to reverse.';
+  end if;
+
+  return v_journal_id;
+end
+$function$;
+
+
+revoke all on function public.reverse_finance_journal(uuid,text,text,jsonb) from public, anon, authenticated;
+grant execute on function public.reverse_finance_journal(uuid,text,text,jsonb) to service_role;
+
+comment on function public.reverse_finance_journal(uuid,text,text,jsonb) is
+  'Service-only idempotent full reversal with bounded request fields. Original and reversal are immutable; partial refunds require a separate allocation flow.';
+
 revoke all on function public.post_finance_journal(text,text,text,text,text,jsonb,jsonb) from public, anon, authenticated;
 grant execute on function public.post_finance_journal(text,text,text,text,text,jsonb,jsonb) to service_role;
 
