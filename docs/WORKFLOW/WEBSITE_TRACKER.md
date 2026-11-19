@@ -470,3 +470,14 @@ Goal: the app and the website use the same files, labels, money rules and look.
 
 
 - CI wiring correction: seller onboarding test 034 and seller notification/catalogue tests 036–038 were located under the APK job, where the local Supabase database is not started. They are moved into the database job so they run against the replayed local schema. This is on the feature branch; full CI pending.
+
+
+## Public roadmap and payment/verification checkpoint — 19 Nov 2026
+
+- Added repository-root ROADMAP.md as the public milestone register for humans and AI agents. It records milestone IDs EV-00–EV-11, status definitions, exit criteria, current payment blocker, Prembly sequence, security constraints and source-of-truth documents. Root README links to it.
+- Draft PR #32 remains open/draft on feature/variant-checkout against web-portal; latest known diagnostic commit at time of update: 528ff3e1b813b9b15ce91ce49d25ab9cf576666a.
+- Paystack Deno type-check passed; variant checkout test 039 and Phase 2 (93/93) were reported passing in earlier CI evidence. The subsequent authenticated-RPC boundary test still reports an anonymous-executable SECURITY DEFINER routine. A diagnostic was added to report exact routine name and ACL; latest diagnostic CI result is pending/not yet available.
+- Variant checkout migrations are not applied to staging. Updated Paystack Edge Function is not deployed to staging. End-to-end Paystack sandbox checkout/webhook/reconciliation remains unverified. Keep variant purchase disabled.
+- Prembly sandbox connection and targeted Nigeria BVN/NIN/phone/CAC endpoint discovery are confirmed; sandbox wallet previously reported ₦0.00. No verification transaction or live integration is confirmed.
+- No production migration, Edge Function deployment, PR merge or live transaction was performed.
+- Next order: resolve security regression → green full CI → apply reviewed migrations to staging → deploy Paystack to staging → run payment lifecycle/reconciliation tests → implement and sandbox-test Prembly.
