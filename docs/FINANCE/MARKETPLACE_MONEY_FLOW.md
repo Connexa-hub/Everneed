@@ -993,3 +993,20 @@ FIN-02A must be implemented as a forward-only, explicitly versioned allocation p
 - Staging also has `orders_guard` and `seller_orders_guard` triggers. Their current definitions must be reviewed before changing order or seller-order write paths.
 - The inspected staging grants show `create_order` and `create_order_with_snapshot` EXECUTE granted to `service_role` and `postgres`; no anon/authenticated EXECUTE grant appeared. Preserve the server-only boundary and re-verify exact ACLs after any forward migration.
 - The function-definition search found no other public SQL function body invoking `create_order_with_snapshot`; application/Edge Function RPC callers still need a repository-wide source search before replacing or routing the checkout call.
+
+
+## 33. FIN-02A deterministic allocation primitive — 19 Nov 2026
+
+Added `supabase/migrations/035_fin02a_allocation_math.sql` and `supabase/tests/035_fin02a_allocation_math_checks.sql`.
+
+The new private, immutable, non-API-executable helper `private.allocate_order_financial_items_v2(jsonb,bigint)` is a pure calculation primitive. It accepts server-prepared persisted item inputs (order item/store IDs, buyer-currency gross minor units, persisted commission rate and explicit seller/platform funding basis points) and the authoritative buyer-currency net merchandise total. It does not query or mutate orders, offers, budgets, wallets, journals or payouts.
+
+Contract:
+- 1–50 unique order item IDs; exact six-key object shape; positive integer minor-unit gross values within BIGINT; commission rate 0–100; funding basis points each 0–10,000 and summing to 10,000.
+- Proportional discount allocation uses floor per item ordered by stable order-item ID; the final item receives the exact residual. This is independent of caller JSON array order.
+- Within each item's discount, seller-funded share is floored by its basis points and platform-funded share receives the split residual. This deliberately prevents the platform from under-recording its subsidy by a rounding cent.
+- Commission is rounded to the nearest minor unit on seller consideration after seller-funded discount only. Platform-funded discount does not reduce seller consideration or seller payable.
+- Reconciliation invariant: total seller payable + commission = buyer net merchandise paid + platform-funded discount.
+- The function is private and execution is revoked from PUBLIC, anon, authenticated and service_role. It is callable only by trusted database-owner/SECURITY DEFINER code in a later checkout integration.
+
+Important boundary: this is the tested arithmetic primitive only. It is not yet called by `create_order_with_snapshot`, it does not yet persist a schema-v2 allocation snapshot, reserve campaign budgets, or alter payment/settlement behaviour. FIN-02A integration must first add authenticated seller funding consent, management-approved platform budgets, currency-specific reservations, immutable snapshot persistence and refund/cancellation release rules. Existing v1 orders remain untouched. Do not treat this migration as authorization to settle v2 orders or post finance journals.
