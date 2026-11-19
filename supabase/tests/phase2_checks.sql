@@ -53,12 +53,12 @@ begin
   r := r || public.zz_ok('merchant cannot make self admin', public.zz_try(format($q$update public.profiles set role='admin' where id=%L$q$, um1)) like 'ERR%' or (select role from public.profiles where id = um1) = 'customer');
   insert into public.store_private(store_id, pickup_address, phone, direct_delivery_enabled, delivery_zones) values (sA, 'Shop 1 Ikeja', '08030000000', true, '["Lagos"]');
   r := r || public.zz_ok('merchant cannot set own commission override', public.zz_try(format($q$update public.store_private set commission_override=0 where store_id=%L$q$, sA)) like 'ERR%');
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name) values (sA, 'Urban Finds Ltd', 'NIN', '123', 'GTB', '0123456789', 'Urban Finds');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id) values (sA, 'Urban Finds Ltd', 'NIN', '123', 'GTB', '0123456789', 'Urban Finds', 'plan-starter');
   perform public.submit_store(sA);
   perform public.zz_back();
   perform public.zz_as(um2);
   insert into public.stores(owner_id, name, status, country, state, city) values (um2, 'TechNest', 'draft', 'NG', 'Abuja', 'Abuja') returning id into sB;
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name) values (sB, 'TechNest Ltd', 'NIN', '456', 'GTB', '0987654321', 'TechNest');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id) values (sB, 'TechNest Ltd', 'NIN', '456', 'GTB', '0987654321', 'TechNest', 'plan-starter');
   perform public.submit_store(sB);
   perform public.zz_back();
 
@@ -68,11 +68,8 @@ begin
   perform public.zz_as(um1); r := r || public.zz_ok('merchant cannot call approve_store', public.zz_try(format('select public.approve_store(%L)', sA)) like 'ERR%'); perform public.zz_back();
   perform public.zz_as(ua); perform public.approve_store(sA, 'ok'); perform public.approve_store(sB, 'ok'); perform public.zz_back();
 
-  -- The entitlement migration requires an explicit plan before seller activation or catalogue writes.
-  -- CI selects the existing Starter plan for both fixtures; no production plan defaults are changed.
-  perform public.zz_svc();
-  update public.store_subscriptions set plan_id='plan-starter' where store_id in (sA,sB);
-  perform public.zz_back();
+  -- The approval RPC consumes the seller-selected plan from the application; no implicit plan assignment.
+
 
   -- The regional activation gate (019) intentionally keeps approved stores offline
   -- until every required provider verification has been recorded. Seed trusted,
