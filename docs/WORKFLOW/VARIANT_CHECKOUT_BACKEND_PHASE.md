@@ -81,3 +81,6 @@ Do not enable the frontend variant purchase path until the backend and test matr
 ## CI-discovered official-store visibility fix
 
 A full local migration replay uncovered a pre-existing public visibility regression in the newer seller entitlement `private.store_live()`: its subscription/entitlement JOIN unintentionally required the official Everneed store to have a seller subscription. Migration `20261119042710_official_store_live_entitlement_bypass.sql` preserves the official-store exception while leaving all non-official seller activation, verification and subscription gates intact. Regression assertion was added to test 039. CI is being rerun on a temporary validation PR because the original CI run stopped in Phase 2 before test 039.
+
+
+- Security review adjustment: internal stock-restoration helper is revoked from public/anon/authenticated and explicitly executable by `service_role`, so trusted server-side cancellation contexts can call it. Regression test 039 checks this grant and denies client roles.
