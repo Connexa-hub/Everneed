@@ -467,3 +467,6 @@ Goal: the app and the website use the same files, labels, money rules and look.
 
 
 - CI revealed the official store was being hidden by the subscription/entitlement JOIN inside the newer `private.store_live()`. Follow-up migration `20261119042710_official_store_live_entitlement_bypass` restores the official-store exception without relaxing seller gates; regression assertion added to test 039.
+
+
+- CI wiring correction: seller onboarding test 034 and seller notification/catalogue tests 036–038 were located under the APK job, where the local Supabase database is not started. They are moved into the database job so they run against the replayed local schema. This is on the feature branch; full CI pending.
