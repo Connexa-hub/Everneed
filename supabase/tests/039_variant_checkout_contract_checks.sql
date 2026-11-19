@@ -2,6 +2,7 @@
 begin;
 do $$
 declare
+  missing_message text;
   checkout_def text;
   snapshot_def text;
   cancel_def text;
