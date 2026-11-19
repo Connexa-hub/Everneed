@@ -330,21 +330,92 @@ begin
   perform private.sync_order(so.order_id);
 end $$;
 
-create or replace function public.hub_receive(p_so text, p_check jsonb) returns void language plpgsql security definer set search_path = public as $$
-declare so record; bad int; missing int;
+create or replace function public.hub_receive(p_so text, p_check jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  so record;
+  bad integer;
+  missing integer;
+  expected integer;
 begin
-  perform private.need_admin(); perform private.throttle('hub_receive', 120, 60);
+  perform private.need_admin();
+  perform private.throttle('hub_receive', 120, 60);
+
   select * into so from public.seller_orders where id = p_so for update;
-  if not found or so.status <> 'handover_pending' then raise exception 'This seller order is not waiting at the hub.'; end if;
-  if jsonb_typeof(p_check) <> 'array' then raise exception 'Send one check result per item.'; end if;
-  select count(*) into missing from public.order_items i where i.seller_order_id = p_so and not exists (select 1 from jsonb_array_elements(p_check) c where c->>'item_id' = i.id);
-  if missing > 0 then raise exception 'Every item must be checked.'; end if;
-  select count(*) into bad from jsonb_array_elements(p_check) c where coalesce(c->>'status', '') not in ('received', 'missing', 'damaged') or (c->>'status') <> 'received';
-  update public.seller_orders set hub_check = p_check, hub_received_at = now(), status = case when bad = 0 then 'at_hub' else 'issue' end where id = p_so;
-  if bad > 0 then perform private.notify_admins('hub_issue', 'Hub check found a problem', null, jsonb_build_object('seller_order_id', p_so)); end if;
+  if not found or so.status <> 'handover_pending' then
+    raise exception 'This seller order is not waiting at the hub.';
+  end if;
+
+  if jsonb_typeof(p_check) is distinct from 'array' then
+    raise exception 'Send one check result per item.';
+  end if;
+
+  select count(*) into expected
+  from public.order_items
+  where seller_order_id = p_so;
+
+  if expected = 0 or jsonb_array_length(p_check) <> expected then
+    raise exception 'Send exactly one check result per item.';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_check) c
+    where jsonb_typeof(c) <> 'object'
+       or nullif(btrim(c->>'item_id'), '') is null
+       or coalesce(c->>'status', '') not in ('received', 'missing', 'damaged')
+  ) then
+    raise exception 'Each item needs a valid check result.';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_check) c
+    where not exists (
+      select 1
+      from public.order_items i
+      where i.seller_order_id = p_so
+        and i.id = c->>'item_id'
+    )
+  ) then
+    raise exception 'The check contains an item that is not in this seller order.';
+  end if;
+
+  select count(*) into missing
+  from public.order_items i
+  where i.seller_order_id = p_so
+    and not exists (
+      select 1
+      from jsonb_array_elements(p_check) c
+      where c->>'item_id' = i.id
+    );
+
+  if missing > 0 then
+    raise exception 'Every item must be checked exactly once.';
+  end if;
+
+  select count(*) into bad
+  from jsonb_array_elements(p_check) c
+  where c->>'status' <> 'received';
+
+  update public.seller_orders
+  set hub_check = p_check,
+      hub_received_at = now(),
+      status = case when bad = 0 then 'at_hub' else 'issue' end
+  where id = p_so;
+
+  if bad > 0 then
+    perform public.notify_admins('hub_issue', 'Hub check found a problem', null, jsonb_build_object('seller_order_id', p_so));
+  end if;
+
   perform private.audit(auth.uid(), 'hub_receive', 'seller_order', p_so, null, p_check);
   perform private.sync_order(so.order_id);
-end $$;
+end
+$function$;
 
 create or replace function public.hub_consolidate(p_order text) returns void language plpgsql security definer set search_path = public as $$
 declare o record; n int;
@@ -808,21 +879,92 @@ begin
   perform private.sync_order(so.order_id);
 end $$;
 
-create or replace function public.hub_receive(p_so text, p_check jsonb) returns void language plpgsql security definer set search_path = public as $$
-declare so record; bad int; missing int;
+create or replace function public.hub_receive(p_so text, p_check jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  so record;
+  bad integer;
+  missing integer;
+  expected integer;
 begin
-  perform private.need_admin(); perform private.throttle('hub_receive', 120, 60);
+  perform private.need_admin();
+  perform private.throttle('hub_receive', 120, 60);
+
   select * into so from public.seller_orders where id = p_so for update;
-  if not found or so.status <> 'handover_pending' then raise exception 'This seller order is not waiting at the hub.'; end if;
-  if jsonb_typeof(p_check) <> 'array' then raise exception 'Send one check result per item.'; end if;
-  select count(*) into missing from public.order_items i where i.seller_order_id = p_so and not exists (select 1 from jsonb_array_elements(p_check) c where c->>'item_id' = i.id);
-  if missing > 0 then raise exception 'Every item must be checked.'; end if;
-  select count(*) into bad from jsonb_array_elements(p_check) c where coalesce(c->>'status', '') not in ('received', 'missing', 'damaged') or (c->>'status') <> 'received';
-  update public.seller_orders set hub_check = p_check, hub_received_at = now(), status = case when bad = 0 then 'at_hub' else 'issue' end where id = p_so;
-  if bad > 0 then perform private.notify_admins('hub_issue', 'Hub check found a problem', null, jsonb_build_object('seller_order_id', p_so)); end if;
+  if not found or so.status <> 'handover_pending' then
+    raise exception 'This seller order is not waiting at the hub.';
+  end if;
+
+  if jsonb_typeof(p_check) is distinct from 'array' then
+    raise exception 'Send one check result per item.';
+  end if;
+
+  select count(*) into expected
+  from public.order_items
+  where seller_order_id = p_so;
+
+  if expected = 0 or jsonb_array_length(p_check) <> expected then
+    raise exception 'Send exactly one check result per item.';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_check) c
+    where jsonb_typeof(c) <> 'object'
+       or nullif(btrim(c->>'item_id'), '') is null
+       or coalesce(c->>'status', '') not in ('received', 'missing', 'damaged')
+  ) then
+    raise exception 'Each item needs a valid check result.';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_check) c
+    where not exists (
+      select 1
+      from public.order_items i
+      where i.seller_order_id = p_so
+        and i.id = c->>'item_id'
+    )
+  ) then
+    raise exception 'The check contains an item that is not in this seller order.';
+  end if;
+
+  select count(*) into missing
+  from public.order_items i
+  where i.seller_order_id = p_so
+    and not exists (
+      select 1
+      from jsonb_array_elements(p_check) c
+      where c->>'item_id' = i.id
+    );
+
+  if missing > 0 then
+    raise exception 'Every item must be checked exactly once.';
+  end if;
+
+  select count(*) into bad
+  from jsonb_array_elements(p_check) c
+  where c->>'status' <> 'received';
+
+  update public.seller_orders
+  set hub_check = p_check,
+      hub_received_at = now(),
+      status = case when bad = 0 then 'at_hub' else 'issue' end
+  where id = p_so;
+
+  if bad > 0 then
+    perform public.notify_admins('hub_issue', 'Hub check found a problem', null, jsonb_build_object('seller_order_id', p_so));
+  end if;
+
   perform private.audit(auth.uid(), 'hub_receive', 'seller_order', p_so, null, p_check);
   perform private.sync_order(so.order_id);
-end $$;
+end
+$function$;
 
 create or replace function public.hub_consolidate(p_order text) returns void language plpgsql security definer set search_path = public as $$
 declare o record; n int;
