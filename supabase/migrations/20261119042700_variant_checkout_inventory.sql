@@ -1084,6 +1084,7 @@ begin
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')
   loop
     execute format('alter function %s set search_path = ''''', f.signature);
+    execute format('revoke execute on function %s from public', f.signature);
   end loop;
 end $$;
 commit;
