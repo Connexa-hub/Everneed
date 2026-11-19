@@ -299,3 +299,8 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+## Variant-aware checkout phase (design pending implementation)
+
+Catalogue variants are currently database-managed only. Existing `create_order` checkout reads `products.price` and legacy `products.stock` / `products.stocks`; it does not validate a `product_variants` selection or snapshot variant SKU/options. Existing cancellation path restores legacy stock via `private.stock_add`. Until the variant-aware checkout phase is implemented and tested, clients must not offer variant selection as a purchasable checkout feature. See `VARIANT_CHECKOUT_BACKEND_PHASE.md` for contract and acceptance tests.
