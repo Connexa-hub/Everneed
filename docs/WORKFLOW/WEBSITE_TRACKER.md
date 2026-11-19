@@ -500,3 +500,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Exact endpoint payload schemas and the appropriate seller verification flow remain to be confirmed. A package-detail lookup returned 404; no package was created. Preserve manual/non-CAC review and obtain owner approval before funding or any paid verification.
 
 - Executed the exact `supabase/tests/039_variant_checkout_contract_checks.sql` against Everneed staging after applying the six migrations. It completed without raised assertions and ends with `ROLLBACK`, so the test's buyer/seller/store/product/order/inventory fixtures were not retained. This validates variant requirement/ownership checks, sale-price window, stock oversell protection, reservation audit, immutable snapshot, backorder/untracked stock behavior and idempotent cancellation restoration on the actual staging database.
+
+
+## Marketplace financial operating system — 19 Nov 2026
+
+- Added `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` as the detailed source of truth for buyer checkout, payment methods, seller wallet/settlement, buyer credits, coupons/promotions/cashback, shipping/hub charges, refunds, withdrawals, reconciliation and risk/compliance.
+- Staging audit: orders, seller_orders, order_item_fees, legacy ledger_entries, payouts, refunds, store_payments, offers, cards and payment attempt/provider-event flows exist. There are no wallet account tables and legacy ledger_entries is not a balanced double-entry journal. Do not expose a wallet UI as functional until FIN-01 onward is implemented and tested.
+- Current Paystack function has card initialize/charge/verify and webhook handling; bank transfer/USSD full lifecycle, wallet tender, seller transfer lifecycle, full refund gateway lifecycle and multi-seller financial allocation/reconciliation remain to be proven/implemented.
+- Critical credential review: cards.code stores a provider authorization token. Treat as sensitive server-only data; inspect and harden RLS/column access and token encryption before saved-card rollout.
+- Work sequence: FIN-00 existing-contract/security audit; FIN-01 double-entry journal; FIN-02 payment collection hardening; FIN-03 seller allocations/reserves; FIN-04 seller withdrawals; FIN-05 buyer credits and safe card tokens; FIN-06 promotions/cashback; FIN-07 shipping/hub finance; FIN-08 refunds/disputes; FIN-09 reconciliation; FIN-10 regulatory partner/wallet approval; FIN-11 controlled beta.
+- Cash buyer wallet top-up, peer transfers and bank cash-out are not authorised for launch without Nigeria-specific legal review and a licensed issuing/custody partner. Seller wallet is initially a settlement ledger, not an e-money account.
