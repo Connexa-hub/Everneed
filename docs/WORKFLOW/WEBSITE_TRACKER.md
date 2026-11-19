@@ -525,3 +525,15 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Existing triggers protect checkout snapshots and legacy ledger core fields. Privileged RPCs are role-restricted; new finance SECURITY DEFINER functions must use an empty search path and schema-qualified references.
 - FIN-01 posting contract is documented but not migrated. No wallet/journal schema was added in this checkpoint.
 - Current PR #32 head at checkpoint: `2e0b9554f9b27352d2b16f8ff597786b37d8815c`. Migration validation and Android build workflows passed (runs 44543116567 and 44543116525). PR remains draft/open/unmerged; production untouched.
+
+
+
+
+## FIN-01 implementation audit correction — 19 Nov 2026
+
+- Located migration 033 and test 033 already in the feature branch. Staging migration ledger confirms 033 is applied.
+- Staging has 96 seeded finance account rows and zero journal transactions/lines. The journal is not yet connected to live business events.
+- Executed test 033 against staging; it completed without an SQL error and rolled back all test postings.
+- Service role has SELECT-only access to private journal tables; posting/reversal are service-role-only RPCs. Anon/authenticated cannot read the tables.
+- FIN-01 foundation is therefore implemented/staged; remaining work is migration 033 hardening, expanded negative/security tests, and integration design. Do not create a duplicate journal migration or imply that wallets/payouts/refunds are fully implemented.
+- Full audit and remaining hardening checklist: finance architecture sections 25–26.
