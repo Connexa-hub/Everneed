@@ -121,7 +121,7 @@ begin
   perform private.cancel_so(seller_order_id,'CI cancellation',seller,'cancelled');
   perform private.cancel_so(seller_order_id,'CI duplicate cancellation',seller,'cancelled');
   select stock into stock_after from public.product_variants where id=variant;
-  select inventory_restored into restored from public.order_items where order_id=order_id and variant_id=variant;
+  select oi.inventory_restored into restored from public.order_items oi where oi.order_id=v_order_id and oi.variant_id=variant;
   if stock_after<>5 or not restored then raise exception 'FAIL: cancellation did not restore stock exactly once'; end if;
   if (select count(*) from public.product_inventory_movements where variant_id=variant and reason='cancellation_restoration' and delta=2)<>1 then
     raise exception 'FAIL: duplicate cancellation produced duplicate restoration movement';
