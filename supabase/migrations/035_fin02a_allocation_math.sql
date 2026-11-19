@@ -37,7 +37,10 @@ begin
     select 1
       from jsonb_array_elements(p_items) e
      where jsonb_typeof(e) <> 'object'
-        or (select count(*) from jsonb_object_keys(e)) <> 6
+        or case when jsonb_typeof(e) = 'object'
+             then (select count(*) from jsonb_object_keys(e)) <> 6
+             else true
+           end
         or not (e ?& array[
           'order_item_id','store_id','gross_minor','commission_rate',
           'seller_funding_bps','platform_funding_bps'
@@ -50,6 +53,10 @@ begin
         or jsonb_typeof(e->'platform_funding_bps') <> 'number'
         or coalesce(length(trim(e->>'order_item_id')), 0) not between 1 and 128
         or coalesce(length(trim(e->>'store_id')), 0) not between 1 and 128
+        or (e->>'gross_minor')::numeric <> trunc((e->>'gross_minor')::numeric)
+        or (e->>'gross_minor')::numeric not between 1 and 9223372036854775807
+        or (e->>'seller_funding_bps')::numeric <> trunc((e->>'seller_funding_bps')::numeric)
+        or (e->>'platform_funding_bps')::numeric <> trunc((e->>'platform_funding_bps')::numeric)
   ) then
     raise exception 'Financial allocation item shape is invalid.';
   end if;
