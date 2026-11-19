@@ -15,6 +15,7 @@ declare
   leaf_id text:=gen_random_uuid()::text;
   fourth_id text:=gen_random_uuid()::text;
   admin_context jsonb;
+  seller_caps jsonb;
   denied boolean:=false;
 begin
   select id into category_id from public.collections where lower(name)='phones and tablets' limit 1;
@@ -58,10 +59,10 @@ begin
     raise exception 'FAIL: seeded phone storage attribute missing';
   end if;
 
-  if not exists(select 1 from public.seller_plan_entitlements where plan_id='plan-free' and product_variants_enabled and category_attributes_enabled and not bulk_tools_enabled) then
-    raise exception 'FAIL: Free capabilities should include variations/attributes but not bulk tools';
+  if not exists(select 1 from public.seller_plan_entitlements where plan_id='plan-free' and product_variants_enabled and category_attributes_enabled and not bulk_tools_enabled and advanced_product_editor and product_editor_mode='guided') then
+    raise exception 'FAIL: Free should retain rich product fields in guided mode but not bulk tools';
   end if;
-  if not exists(select 1 from public.seller_plan_entitlements where plan_id='plan-growth' and bulk_tools_enabled and csv_import_enabled and csv_export_enabled and analytics_level='advanced' and promotions_enabled) then
+  if not exists(select 1 from public.seller_plan_entitlements where plan_id='plan-growth' and bulk_tools_enabled and csv_import_enabled and csv_export_enabled and analytics_level='advanced' and promotions_enabled and product_editor_mode='full') then
     raise exception 'FAIL: Growth capabilities missing';
   end if;
   if not exists(select 1 from public.seller_plan_entitlements where plan_id='plan-pro' and team_seats=5 and bulk_tools_enabled) then
@@ -81,6 +82,10 @@ begin
     raise exception 'FAIL: official store admin context/capability or readiness contract invalid';
   end if;
   perform set_config('request.jwt.claim.sub','e8349848-7c00-454e-9f02-8616d233674c',true);
+  seller_caps:=public.seller_product_capabilities('382b84b5-5bd9-4448-bd07-b0bada0121ca');
+  if seller_caps->>'plan_id'<>'plan-free' or seller_caps->>'product_editor_mode'<>'guided' or coalesce((seller_caps->>'advanced_product_editor')::boolean,false) is not true then
+    raise exception 'FAIL: Free seller should have rich product fields in guided mode';
+  end if;
   begin
     perform public.admin_store_workspace_context('everneed-official');
   exception when others then
