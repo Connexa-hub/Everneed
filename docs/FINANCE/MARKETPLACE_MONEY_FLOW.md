@@ -694,7 +694,7 @@ The named legacy functions, triggers and execute ACLs have now been inspected. K
 
 ## 25. FIN-01 design contract — append-only double-entry journal
 
-FIN-01 should introduce the accounting foundation without changing checkout or seller payout behaviour in the same release. The initial migration is to be created on `feature/variant-checkout`, reviewed and tested before it is applied to staging.
+FIN-01's initial accounting foundation already exists in `supabase/migrations/033_double_entry_finance_journal.sql` and is present in Everneed staging. The current task is to audit and harden that implementation before integrating it with checkout, refunds or seller settlement. Do not create a duplicate journal migration.
 
 ### Initial schema boundary
 
@@ -732,4 +732,41 @@ Seed only the minimum NGN accounts required for controlled tests: provider clear
 - Existing checkout, payment-attempt, recovery, legacy ledger, seller-order and refund tests remain unchanged and pass.
 - Migration replay on a clean database and staging apply both succeed without touching production.
 
-**FIN-01 status:** design contract documented; migration and tests are not yet applied. Proceed with schema implementation only after checking the current branch migration naming/order and CI conventions.
+**FIN-01 status:** initial migration 033 and regression test 033 already exist in the branch; staging migration history confirms version `033` (`double_entry_finance_journal`) is applied. Staging currently contains 96 seeded finance accounts and zero journal headers/lines, so no business transactions have been posted to this journal. The test `supabase/tests/033_double_entry_finance_journal_checks.sql` was executed against staging in a transaction and completed without an error; its fixtures were rolled back. Continue with a focused hardening review and expanded tests before any production integration.
+
+
+## 26. FIN-01 implementation audit — migration 033 (19 Nov 2026)
+
+The existing FIN-01 implementation was located in the current branch and checked against staging; it predates this documentation-only continuation.
+
+### Verified staging state
+
+- Migration history includes version `033`, name `double_entry_finance_journal`.
+- `private.finance_accounts`, `private.finance_journals` and `private.finance_journal_lines` exist in staging.
+- The chart currently seeds 16 account codes across six currencies (96 account rows). This is an account catalogue, not evidence that Paystack collection/settlement is enabled in all six currencies.
+- Staging currently has zero journal headers and zero journal lines. The journal has not yet been wired into payment, refund, delivery, payout or wallet operations.
+- Service role has SELECT but not INSERT/UPDATE access to the three private finance tables. Anon and authenticated have no SELECT access. Posting and reversal are exposed through service-role-only RPCs.
+- The existing migration's test 033 was executed against staging inside its own transaction; it completed without an SQL error and rolled back its test journal entries.
+
+### What migration 033 already does
+
+- Creates private finance accounts, journal headers and journal lines using integer minor units.
+- Restricts currencies to NGN, GHS, KES, ZAR, GBP and USD at the account/journal level.
+- Posts through `public.post_finance_journal`, a SECURITY DEFINER function with an empty search path and service-role-only EXECUTE grant.
+- Uses an advisory transaction lock and a request hash for idempotent replay; rejects changed payloads under the same source/idempotency identity.
+- Requires at least two lines, positive integer amounts, configured account codes for the journal currency and equal debit/credit totals before returning.
+- Prevents updates/deletes to journal headers and lines; corrections use a separate reversal RPC that copies the original lines with opposite directions.
+- Exposes private tables to service_role for SELECT only; it does not grant direct service-role table writes.
+
+### Hardening items before business integration
+
+1. Add explicit length and format bounds for source type, source ID, idempotency key, currency and line-level references; keep error messages safe and bounded.
+2. Add a database-level posted-state/balance invariant or formally document why the no-direct-write privilege boundary plus single posting RPC is the enforced invariant. Test that no alternate privileged path can insert incomplete headers/lines.
+3. Extend tests for mixed/unsupported currency, missing account code, invalid JSON line shape, bigint overflow, zero/negative amount, too many lines, empty line arrays and metadata type validation.
+4. Add explicit tests for reversal of missing journal, reversal-of-reversal, duplicate reversal, changed reversal key/reason, immutable line updates/deletes and direct-write denial for every client role.
+5. Review whether all six seeded currency catalogues should remain, and document that account seed presence is not a provider/country capability flag.
+6. Add a safe journal inspection RPC/view for authorized finance admins later; do not grant direct client SELECT on private journal tables.
+7. Add a controlled integration design for payment success, provider fee, seller pending payable, delivery release, seller reserve, refunds and payout transfer. Never post seller payable as available merely because an order is paid or delivered.
+8. Define legacy cutover/opening-balance policy before backfill. Never replay historical orders into the new journal without a source-event mapping and double-posting guard.
+
+**FIN-01 implementation status:** initial schema and RPCs exist and are staged; integration into the marketplace financial lifecycle and the hardening items above remain in progress. No production migration or live money movement was performed.
