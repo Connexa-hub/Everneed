@@ -70,16 +70,16 @@ begin
   insert into public.stores(owner_id, name, about, status, country, state, city)
   values (v_seller_a, 'F17 Store A', 'Security test', 'draft', 'NG', 'Lagos', 'Ikeja')
   returning id into v_store_a;
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name)
-  values (v_store_a, 'F17 Store A Ltd', 'NIN', 'F17-A', 'Test Bank', '0000000001', 'F17 Store A');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id)
+  values (v_store_a, 'F17 Store A Ltd', 'NIN', 'F17-A', 'Test Bank', '0000000001', 'F17 Store A', 'plan-starter');
   perform public.zz_f17_back();
 
   perform public.zz_f17_as(v_seller_b);
   insert into public.stores(owner_id, name, about, status, country, state, city)
   values (v_seller_b, 'F17 Store B', 'Security test', 'draft', 'NG', 'Lagos', 'Ikeja')
   returning id into v_store_b;
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name)
-  values (v_store_b, 'F17 Store B Ltd', 'NIN', 'F17-B', 'Test Bank', '0000000002', 'F17 Store B');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id)
+  values (v_store_b, 'F17 Store B Ltd', 'NIN', 'F17-B', 'Test Bank', '0000000002', 'F17 Store B', 'plan-starter');
   perform public.zz_f17_back();
 
   perform public.zz_f17_as(v_admin);
