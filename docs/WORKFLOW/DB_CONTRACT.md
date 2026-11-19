@@ -297,3 +297,5 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Follow-up migration `20261119030905_inventory_movement_reference_and_legacy_stock_audit` adds references to variant movement records and audits legacy `products.stock` initial/adjustment changes as well. Test 038 now validates both stock models and reference preservation.
 
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
+
+- Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
