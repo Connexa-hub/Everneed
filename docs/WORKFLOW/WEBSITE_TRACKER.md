@@ -445,3 +445,5 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Handoff: `docs/WORKFLOW/SELLER_PRODUCT_CATALOG_BACKEND_HANDOFF.md`. Variant checkout integration is a blocker before variants can be sold; bulk/import/export, promotions, analytics, teams, media storage and multi-location inventory remain future phases. Production untouched; PR #31 remains open/unmerged.
 
 - Added `admin_store_workspace_context(p_store)` to allow Admin-only store switching with metadata, plan/capability override, operational counts and backend readiness markers. Regression test 038 verifies official-store context and seller denial.
+
+- Follow-up migration `20261119030905_inventory_movement_reference_and_legacy_stock_audit` records references on variant stock adjustments and audits legacy product stock updates, so old checkout stock reductions also enter the inventory movement ledger.
