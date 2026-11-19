@@ -154,3 +154,10 @@ This section is deliberately explicit so other AI systems can safely continue th
 ## FIN-01 discovery correction — 19 Nov 2026
 
 The existing branch already contains `supabase/migrations/033_double_entry_finance_journal.sql` and `supabase/tests/033_double_entry_finance_journal_checks.sql`. Staging migration history confirms version 033 is applied. The three private journal tables exist, with 96 seeded account rows and zero posted journal headers/lines. Test 033 was executed against staging in a transaction and completed without an SQL error; its test postings were rolled back. Therefore FIN-01 is not an unstarted schema task: its foundation is implemented and staged, while hardening and integration with payment/refund/seller settlement remain outstanding. See finance architecture sections 25–26. The seeded currency accounts are not a declaration that all six currencies are enabled for payment or settlement.
+
+
+
+
+## FIN-01 hardening update — 19 Nov 2026
+
+Migration `034_finance_journal_input_hardening.sql` now bounds journal source identifiers, idempotency keys, descriptions, metadata size, line payload size, line object keys, references and BIGINT amount inputs. Dedicated regression test `034_finance_journal_input_hardening_checks.sql` and the CI workflow step have been added. This is committed to the draft feature branch; CI must pass before applying migration 034 to staging. The journal is still not connected to payment, refund, wallet or payout events.
