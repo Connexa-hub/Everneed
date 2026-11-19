@@ -537,3 +537,10 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Service role has SELECT-only access to private journal tables; posting/reversal are service-role-only RPCs. Anon/authenticated cannot read the tables.
 - FIN-01 foundation is therefore implemented/staged; remaining work is migration 033 hardening, expanded negative/security tests, and integration design. Do not create a duplicate journal migration or imply that wallets/payouts/refunds are fully implemented.
 - Full audit and remaining hardening checklist: finance architecture sections 25–26.
+
+
+
+
+## Finance journal input hardening — 19 Nov 2026
+
+Migration 034 and dedicated test 034 have been added on `feature/variant-checkout`. The posting RPC now enforces bounded source/idempotency fields, a 16 KiB metadata limit, a 512 KiB line-payload limit, strict line-key/type/length validation and BIGINT amount bounds. CI includes test 034 and migration replay order. Do not apply to staging until the full database workflow passes. Production is untouched.
