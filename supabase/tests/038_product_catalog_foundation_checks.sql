@@ -54,6 +54,19 @@ begin
     end if;
   end loop;
 
+  if has_function_privilege('anon','private.product_variant_guard()','EXECUTE')
+    or has_function_privilege('authenticated','private.product_variant_guard()','EXECUTE')
+    or has_function_privilege('anon','private.product_variant_inventory_audit()','EXECUTE')
+    or has_function_privilege('authenticated','private.product_variant_inventory_audit()','EXECUTE')
+    or has_function_privilege('anon','private.product_stock_inventory_audit()','EXECUTE')
+    or has_function_privilege('authenticated','private.product_stock_inventory_audit()','EXECUTE')
+    or has_function_privilege('anon','private.validate_product_category_attributes()','EXECUTE')
+    or has_function_privilege('authenticated','private.validate_product_category_attributes()','EXECUTE')
+    or has_function_privilege('anon','private.collections_taxonomy_guard()','EXECUTE')
+    or has_function_privilege('authenticated','private.collections_taxonomy_guard()','EXECUTE') then
+    raise exception 'FAIL: catalogue SECURITY DEFINER trigger helpers are executable by API roles';
+  end if;
+
   if not exists(select 1 from pg_policies where schemaname='public' and tablename='product_variants' and policyname='product_variants_owner_admin') then
     raise exception 'FAIL: product variants owner/admin policy missing';
   end if;
