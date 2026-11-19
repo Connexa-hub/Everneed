@@ -631,3 +631,10 @@ The staging audit found existing order/payment/payout/refund/offer records and a
 The current engineering checkpoint supersedes earlier in-progress notes above where they conflict: PR #32 head `2e0b9554f9b27352d2b16f8ff597786b37d8815c` has passed the Migration files workflow (44543116567) and Android build workflow (44543116525). PR #32 remains draft/open/unmerged. The six checkout/security migrations and reviewed Paystack function version 13 are recorded as applied/deployed to staging only in the PR validation record; sandbox end-to-end payment/webhook/reconciliation acceptance remains pending.
 
 The FIN-00 function-level audit is complete. Cancellation, delivery, recovery, trigger and ACL findings are in `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` sections 22–24. FIN-01 journal design is documented in section 25 but has not been migrated. Do not interpret seller-order release or delivery as a seller payout, or an approved refund as a provider-confirmed refund. Production remains untouched.
+
+
+
+
+## 19 Nov 2026 — FIN-01 migration discovery correction
+
+The branch already includes `033_double_entry_finance_journal.sql` and its regression test. Staging migration history confirms version 033 is applied; the private journal tables exist with 96 seeded accounts and zero posted journals/lines. The staging test ran successfully inside a rollback transaction. FIN-01's journal foundation is therefore implemented and staged, but it is not integrated with checkout, refunds, seller release or payout execution. The current work is to harden migration 033 and expand negative/security tests before business-event integration. See `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` sections 25–26.
