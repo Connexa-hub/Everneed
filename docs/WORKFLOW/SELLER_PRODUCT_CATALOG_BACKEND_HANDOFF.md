@@ -223,3 +223,8 @@ A draft migration `20261119042700_variant_checkout_inventory.sql` is committed t
 ## Variant checkout validation update
 
 Migration `20261119042700_variant_checkout_inventory.sql`, test 039 and CI wiring are drafted on `feature/variant-checkout`. Migration replay passed on the earlier CI run, but the full database job stopped at two public-read Phase 2 failures before the variant test. The likely official-store visibility root cause was fixed by `20261119042710_official_store_live_entitlement_bypass.sql`; a temporary draft validation PR is running the latest branch. Staging remains unchanged, and variants remain disabled until test/CI and staging verification are green.
+
+
+## CI test placement correction
+
+Tests 034 and 036–038 were previously attached to the APK job, which does not start a local Supabase stack. They are moved to the database job before anonymous-read smoke tests. Variant test 039 is run before Phase 2 so failures are isolated. The updated workflow is on `feature/variant-checkout`; CI rerun pending.
