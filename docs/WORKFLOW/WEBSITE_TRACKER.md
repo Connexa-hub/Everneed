@@ -423,9 +423,9 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Existing: seller entitlement/catalogue RPCs, seller orders and transition RPC, chat start/send/read/set/escalate, participant unread counters, conversation preview/SLA/triage, notifications table and owner-read RLS.
 - Gaps confirmed: generic message notifications lack the seller-app message kinds and /inbox/<conversation> deep-link; notifications is not published to Realtime. Push subscriptions/preferences, awaiting/last-sender and urgent contract, conversation identity/order-context RPCs, attachments, quick replies/search, variants/bulk tools and plan-gated analytics remain missing or unconfirmed.
 - Started the highest-priority inbox contract: migration 20261119024723_seller_message_notification_contract.sql adds a post-triage notification normalization trigger and publishes notifications; regression test 036_seller_message_notification_contract_checks.sql validates typed kinds, deep-link keys, trigger order, publication and RLS/grants.
-- Staging rollout and test execution are pending. Production untouched; PR #31 remains open/unmerged.
+- Applied to staging and validated. Structural tests 036/037 passed; a transaction-wrapped trigger smoke test produced all three notification types and deep-link payloads, then rolled back all fixtures. CI steps for 036/037 were added; CI is not yet confirmed. Production untouched; PR #31 remains open/unmerged.
 
-- Follow-up hardening migration and test 037 restrict direct EXECUTE on the trigger-only SECURITY DEFINER helper to database owner context; staging rollout pending.
+- Follow-up hardening migration and test 037 restrict direct EXECUTE on the trigger-only SECURITY DEFINER helper to API roles; this was applied and validated on staging.
 
 
 ## Staging notification contract rollout — 19 Nov 2026
