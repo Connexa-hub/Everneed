@@ -277,3 +277,6 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Payload now includes url: /inbox/<conversation UUID>, conversation_id, and backward-compatible conversation plus conversation kind.
 - The notifications table is added to supabase_realtime; notifications RLS remains enabled and owner/admin SELECT policy remains in force. API roles cannot INSERT notifications directly.
 - Regression assertions are in supabase/tests/036_seller_message_notification_contract_checks.sql. Staging application and execution evidence will be recorded after rollout. Push delivery and seller notification preferences remain unimplemented.
+
+
+- Follow-up migration `chat_notification_trigger_acl` revokes EXECUTE from PUBLIC, anon and authenticated on the trigger-only SECURITY DEFINER helper; regression test 037 asserts API roles cannot call it directly.
