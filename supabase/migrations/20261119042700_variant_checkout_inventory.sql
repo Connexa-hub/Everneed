@@ -28,6 +28,7 @@ begin
   return found;
 end $$;
 revoke execute on function private.restore_variant_order_item(text) from public,anon,authenticated;
+grant execute on function private.restore_variant_order_item(text) to service_role;
 
 create or replace function public.create_order(p_user uuid, p_items jsonb, p_country text, p_pm text, p_cust jsonb, p_k numeric, p_cur text,
   p_discount_base numeric, p_offer jsonb, p_fee numeric, p_card_id text default null)
