@@ -54,6 +54,7 @@ declare
   v_chat_order_id text;
   v_so_b text;
   v_duplicate jsonb;
+  v_hub_item_count integer;
   v_result text;
   v_customer jsonb := '{"name":"F17 Test Buyer","phone":"08000000000","street":"1 Test Road","city":"Ikeja","state":"Lagos","email":"f17@test.local"}';
 begin
@@ -195,6 +196,13 @@ begin
   perform public.zz_f17_back();
 
   -- Duplicate item results must not satisfy a hub check.
+  select count(*) into v_hub_item_count
+  from public.order_items
+  where seller_order_id = v_so_b;
+  if v_hub_item_count <> 1 then
+    raise exception 'F17 hub duplicate fixture expected exactly one item, found %', v_hub_item_count;
+  end if;
+
   select jsonb_build_array(
     jsonb_build_object('item_id', i.id, 'status', 'received'),
     jsonb_build_object('item_id', i.id, 'status', 'received')
@@ -202,6 +210,18 @@ begin
   from public.order_items i
   where i.seller_order_id = v_so_b
   limit 1;
+
+  if jsonb_array_length(v_duplicate) <> 2
+     or (select count(distinct c->>'item_id') from jsonb_array_elements(v_duplicate) c) <> 1 then
+    raise exception 'F17 duplicate fixture is not two entries for the same item: %', v_duplicate;
+  end if;
+
+  if pg_get_functiondef('public.hub_receive(text,jsonb)'::regprocedure)
+     not ilike '%Send exactly one check result per item.%'
+     or pg_get_functiondef('public.hub_receive(text,jsonb)'::regprocedure)
+     not ilike '%jsonb_array_length(p_check)%' then
+    raise exception 'F17 hardened hub_receive implementation is missing from replayed schema';
+  end if;
 
   perform public.zz_f17_as(v_admin);
   v_result := public.zz_f17_try(format(
