@@ -607,3 +607,11 @@ Do not promote these statuses based on source-code presence. Require CI output, 
 - Reviewed Paystack Edge Function from `feature/variant-checkout` deployed to staging as version 13. End-to-end sandbox transaction/webhook/reconciliation tests remain outstanding; no live payment has been made.
 - Prembly capability categories are known, but endpoint discovery returned no concrete operation IDs or payload schemas. No Prembly request has been sent; no wallet spend was made.
 - Production remains untouched; PR #32 remains draft/open/unmerged.
+
+
+## 19 Nov 2026 — Android build and Prembly discovery update
+
+- Android APK job in CI run 44540581382 completed successfully. Build 1219 was uploaded as artifact `everneed-apk` (9.48 MB ZIP); use the run's Artifacts section to download it.
+- Prembly endpoint registry is now visible in Sandbox and lists BVN Basic/with face/phone, NIN Basic/with face, phone, CAC Basic/Advanced, TIN and other checks. Read-only wallet lookup confirms ₦0.00 NGN, active and unlocked. No identity/business verification request was sent.
+- Nigeria BGC check-type fallback lists Identity, Education, Employment and Criminal. The sandbox system package catalogue includes an Entry Package with Identity and NIN items; catalogue prices are indicative sandbox data only, not an approved production pricing commitment. The attempted package-detail lookup returned 404; no package was created.
+- Next Prembly work: confirm exact API request schemas and whether plan-based seller verification should use direct identity endpoints or BGC package/candidate flows. Keep non-CAC/manual review path. No wallet funding or verification spend without owner approval.
