@@ -34,7 +34,7 @@ The staging project currently has:
 - `payouts` records completed/recorded store payouts; it is not a full withdrawal-request and provider-transfer state machine.
 - `refunds` supports requested/approved/processed/rejected records, but the complete gateway refund lifecycle and accounting reversals need review.
 - `offers` supports one code or automatic offer, percent/fixed values, minimum total, country, date range and total-use cap. It does not yet model per-user limits, seller/platform funding shares, coupon stacking policy, targeted segments, cashback liability, promo budgets or redemption reservations.
-- `cards` currently has a `code` field containing the provider authorization token. Treat this as sensitive credential material: it must not be returned to clients or exposed through general table reads. Encrypt/token-vault it or replace with a provider-managed token reference and strict server-only access.
+- `cards` currently has a `code` field containing the provider authorization token. Staging RLS has an owner-read policy, an owner-delete policy and no owner insert/update policy; the edge function accesses it with service role. Table grants and policies must be reviewed together. The token must never be included in client payloads, logs, exports or generic profile queries; add encryption/token-vaulting or provider-managed references before enabling reusable-card charging broadly.
 - There are no buyer-wallet or store-wallet account tables in staging. Do not present the current system as already having functioning wallets.
 - Existing Paystack function supports card initialize/charge/verify, signed webhook verification, saved-card charging, coupon lookup, order create and some admin/order actions. It is not yet the full payments platform described here.
 - Existing Paystack price logic fetches FX and applies offer plus a country setting fee, but a complete delivery quote, multi-seller allocation, promotion funding, wallet debit/credit, seller reserve, payout and reconciliation lifecycle are not yet proven end-to-end.
@@ -594,3 +594,15 @@ This is an engineering/product architecture, not legal, tax or regulatory advice
 - Paystack Multi-split Payments: https://paystack.com/docs/payments/multi-split-payments/
 - Paystack Subaccounts API: https://paystack.com/docs/api/subaccount/
 - Paystack Refund guidance: https://support.paystack.com/en/articles/2127106
+
+
+## 22. Additional staging audit observations (19 Nov 2026)
+
+- RLS is enabled on the existing `cards`, `ledger_entries`, `offers`, `orders`, `payouts`, `refunds`, `seller_orders` and `store_payments` tables.
+- `cards` has owner-read and owner-delete policies; no owner insert/update policy was found. Current Paystack Edge Function uses service-role access to read and upsert card authorization tokens. The owner-read policy must be considered together with the actual SQL table grants; the token column should be separated from user-visible card metadata or protected by a server-only table/view boundary.
+- `offers` has public SELECT only for active automatic offers where `code IS NULL`, and admin management policy. Coupon lookup by code is performed server-side in the Paystack function.
+- `orders` has authenticated owner/admin read and admin update policies; `payouts` are owner-store/admin readable; `refunds` are readable by buyer, relevant seller and admin; `ledger_entries` are owner-store/admin readable; `store_payments` are owner-store/admin readable.
+- The current Paystack Edge Function's `create` path supports order creation for card, bank, WhatsApp and pay-on-delivery labels, but the actual `init/charge` path is restricted to snapshot-backed card orders. A full bank-transfer/USSD initiation and verification lifecycle is therefore not yet proven by this function.
+- Existing coupon pricing selects the single highest-saving offer; campaign funding, seller-level allocation, per-customer caps, redemption reservation and cashback are not represented in the current `offers` contract.
+- Existing currency mapping uses Paystack currency codes for selected countries, while the FX display/settlement model is not yet a fully approved country-provider capability matrix. No new international currency should be enabled based solely on a client display currency.
+- No schema migration for wallets or journal was applied as part of this architecture document. The next code change should be FIN-00 audit and FIN-01 journal design/migration after full definitions, trigger effects, existing ledger semantics and migration replay have been reviewed.
