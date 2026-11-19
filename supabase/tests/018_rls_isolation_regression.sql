@@ -121,14 +121,12 @@ begin
   perform public.submit_store(v_store_a);
   perform public.zz_q01_back();
 
-  -- The current approval contract requires the applicant's selected plan.
-  -- Seed the lowest-cost plan for these CI-only stores as the service fixture.
+  -- The approval contract reads the seller-selected plan from store_applications.
+  -- Seed the lowest-cost active plan as the service fixture, matching choose_plan().
   perform public.zz_q01_svc();
-  insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
-  select st.id, (select id from public.store_plans where active order by price asc limit 1),
-         'trialing', now(), now()+interval '30 days'
-  from public.stores st where st.id in (v_store_a,v_store_b)
-  on conflict (store_id) do update set plan_id=excluded.plan_id;
+  update public.store_applications
+  set plan_id=(select id from public.store_plans where active order by price asc limit 1)
+  where store_id in (v_store_a,v_store_b);
   perform public.zz_q01_back();
 
   perform public.zz_q01_as(v_admin);
