@@ -447,3 +447,5 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Added `admin_store_workspace_context(p_store)` to allow Admin-only store switching with metadata, plan/capability override, operational counts and backend readiness markers. Regression test 038 verifies official-store context and seller denial.
 
 - Follow-up migration `20261119030905_inventory_movement_reference_and_legacy_stock_audit` records references on variant stock adjustments and audits legacy product stock updates, so old checkout stock reductions also enter the inventory movement ledger.
+
+- Added explicit `advanced_product_editor=true` for every plan and `product_editor_mode`: Free/Starter `guided`, Growth/Pro `full`. Basic plans retain the full backend field set and only receive a simplified guided UI. Test 038 confirms the Free seller capability RPC.
