@@ -10,6 +10,10 @@ declare
   missing_message text;
   schema_result jsonb;
   movement_count integer;
+  root_id text:=gen_random_uuid()::text;
+  child_id text:=gen_random_uuid()::text;
+  leaf_id text:=gen_random_uuid()::text;
+  fourth_id text:=gen_random_uuid()::text;
 begin
   select id into category_id from public.collections where lower(name)='phones and tablets' limit 1;
   if category_id is null then raise exception 'FAIL: seeded Phones and Tablets category missing'; end if;
@@ -61,6 +65,30 @@ begin
   if not exists(select 1 from public.seller_plan_entitlements where plan_id='plan-pro' and team_seats=5 and bulk_tools_enabled) then
     raise exception 'FAIL: Pro capabilities missing';
   end if;
+
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='products' and policyname='products_public_read' and qual like '%publish_at%') then
+    raise exception 'FAIL: scheduled products must remain hidden until publish_at';
+  end if;
+
+  insert into public.collections(id,name,slug,parent_id,grp,sort_order)
+  values(root_id,'CI taxonomy root '||root_id,root_id,null,'CI',90001);
+  insert into public.collections(id,name,slug,parent_id,grp,sort_order)
+  values(child_id,'CI taxonomy child '||child_id,child_id,root_id,'CI',90002);
+  insert into public.collections(id,name,slug,parent_id,grp,sort_order)
+  values(leaf_id,'CI taxonomy leaf '||leaf_id,leaf_id,child_id,'CI',90003);
+  begin
+    insert into public.collections(id,name,slug,parent_id,grp,sort_order)
+    values(fourth_id,'CI taxonomy too deep '||fourth_id,fourth_id,leaf_id,'CI',90004);
+    raise exception 'FAIL: fourth taxonomy level was accepted';
+  exception when others then
+    if sqlerrm not like 'Category nesting is limited to three levels.%' then raise; end if;
+  end;
+  begin
+    update public.collections set parent_id=leaf_id where id=root_id;
+    raise exception 'FAIL: category cycle was accepted';
+  exception when others then
+    if sqlerrm not like 'Category hierarchy cannot contain a cycle.%' then raise; end if;
+  end;
 
   insert into public.category_attributes(collection_id,attribute_key,label,input_type,required,sort_order)
   values(category_id,'__test_required','Test required attribute','text',true,9999);
