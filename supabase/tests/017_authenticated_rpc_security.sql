@@ -255,7 +255,7 @@ begin
   perform public.zz_f17_back();
 
   -- Every authenticated-callable public SECURITY DEFINER function must have an empty path
-  -- and no implicit PUBLIC EXECUTE. Anonymous access is limited to the six intended public RPCs.
+  -- and no implicit PUBLIC EXECUTE. Anonymous access is limited to the explicitly allow-listed public RPCs, including the seller-safe plan catalogue.
   if exists (
     select 1
     from pg_proc p
@@ -295,10 +295,11 @@ begin
         'support_guest_ping',
         'support_guest_close',
         'store_reply_stats',
-        'support_sla_public'
+        'support_sla_public',
+        'seller_plan_catalog'
       )
   ) then
-    raise exception 'Unexpected anonymous SECURITY DEFINER RPC(s): %', (select string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') ACL=' || coalesce(p.proacl::text,'<default>'), '; ' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef and has_function_privilege('anon',p.oid,'EXECUTE') and p.proname not in ('join_waitlist','support_guest_open','support_guest_ping','support_guest_close','store_reply_stats','support_sla_public'));
+    raise exception 'Unexpected anonymous SECURITY DEFINER RPC(s): %', (select string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') ACL=' || coalesce(p.proacl::text,'<default>'), '; ' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef and has_function_privilege('anon',p.oid,'EXECUTE') and p.proname not in ('join_waitlist','support_guest_open','support_guest_ping','support_guest_close','store_reply_stats','support_sla_public','seller_plan_catalog'));
   end if;
 end
 $test$;
