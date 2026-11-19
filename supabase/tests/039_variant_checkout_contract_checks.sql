@@ -62,7 +62,6 @@ declare
   prod text:=gen_random_uuid()::text;
   other_prod text:=gen_random_uuid()::text;
   variant uuid;
-  bad_variant uuid:=gen_random_uuid();
   checkout jsonb;
   v_order_id text;
   seller_order_id text;
@@ -142,7 +141,7 @@ begin
 
   -- Snapshot-backed card checkout retains variant identity and options.
   checkout:=public.create_order_with_snapshot(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',1)),'NG','card',cust,1,'NGN',0,null,0,null,pricing);
-  order_id:=checkout->>'id';
+  v_order_id:=checkout->>'id';
   select checkout_snapshot into snapshot from public.orders where id=v_order_id;
   if snapshot->'items'->0->>'variant_id'<>variant::text
      or snapshot->'items'->0->>'variant_sku'<>'VAR-CI-SKU'
