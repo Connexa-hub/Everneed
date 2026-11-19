@@ -433,3 +433,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Applied staging migration `20261119024723_seller_message_notification_contract` and `20261119024825_chat_notification_trigger_acl`. The migration filenames in web-portal and CI replay manifest are aligned to the staging ledger versions.
 - Regression SQL tests 036 and 037 both executed against Everneed-staging successfully (no raised assertions). Catalog verification confirms the typed-notification trigger is ordered after chat triage, notifications is in supabase_realtime, and the trigger helper's EXECUTE privilege is revoked from anon/authenticated.
 - Existing notifications RLS remains enabled and owner/admin SELECT policy is unchanged. No production schema/function changes.
+
+
+## 19 Nov 2026 — Rich product catalogue foundation (staging)
+
+- Added staging migrations `20261119030341_product_catalog_foundation` and `20261119030531_catalog_taxonomy_and_publish_schedule_hardening`.
+- Expanded canonical products fields without replacing legacy columns; added category attribute schema, variants, private variant cost data, media metadata, quantity price tiers, product relations and inventory movement audit.
+- Added 3-level category taxonomy guard, category schema RPC, required-attribute validation, seller capability RPC and stock adjustment RPC. Admin has full capability override for store context, including official Everneed store; RLS retains owner/admin boundaries.
+- Seeded 47 optional category attributes; plan capability flags mapped without changing plan prices or existing product limits.
+- Regression test 038 passed on staging (rollback). CI test and migration replay manifest updated.
+- Handoff: `docs/WORKFLOW/SELLER_PRODUCT_CATALOG_BACKEND_HANDOFF.md`. Variant checkout integration is a blocker before variants can be sold; bulk/import/export, promotions, analytics, teams, media storage and multi-location inventory remain future phases. Production untouched; PR #31 remains open/unmerged.
