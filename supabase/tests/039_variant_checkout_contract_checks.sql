@@ -84,7 +84,7 @@ begin
   values(v_store_id,'plan-starter','trialing',now(),now()+interval '30 days');
   insert into public.products(id,name,col,price,store_id,status,slug,stock)
   values(prod,'Variant checkout CI product',(select id from public.collections order by id limit 1),1000,v_store_id,'published',prod,99),
-        (other_prod,'Variant mismatch CI product',(select id from public.collections order by id limit 1),1000,store_id,'published',other_prod,99);
+        (other_prod,'Variant mismatch CI product',(select id from public.collections order by id limit 1),1000,v_store_id,'published',other_prod,99);
   insert into public.product_variants(product_id,store_id,sku,option_values,price,sale_price,sale_starts_at,sale_ends_at,stock,track_stock,allow_backorder,active)
   values(prod,v_store_id,'VAR-CI-SKU',jsonb_build_object('Colour','Blue','Size','M'),1200,900,now()-interval '1 hour',now()+interval '1 day',5,true,false,true)
   returning id into variant;
