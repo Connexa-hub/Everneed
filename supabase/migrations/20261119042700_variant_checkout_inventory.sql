@@ -3,7 +3,7 @@
 begin;
 
 alter table public.order_items
-  add column if not exists variant_id uuid references public.product_variants(id) on delete set null,
+  add column if not exists variant_id uuid,
   add column if not exists variant_sku text,
   add column if not exists variant_options jsonb not null default '{}'::jsonb check(jsonb_typeof(variant_options)='object'),
   add column if not exists inventory_reserved boolean not null default false,
@@ -16,7 +16,9 @@ as $$
 declare i public.order_items; n integer;
 begin
   select * into i from public.order_items where id=p_item for update;
-  if not found or i.variant_id is null or not i.inventory_reserved or i.inventory_restored then return false; end if;
+  if not found then return false; end if;
+  if not i.inventory_reserved or i.inventory_restored then return false; end if;
+  if i.variant_id is null then raise exception 'Reserved variant identity is missing for order item %.',p_item; end if;
   perform set_config('everneed.inventory_reason','cancellation_restoration',true);
   perform set_config('everneed.inventory_reference',coalesce(i.seller_order_id,i.order_id),true);
   update public.product_variants set stock=coalesce(stock,0)+i.qty where id=i.variant_id;
@@ -73,7 +75,7 @@ begin
       end if;
     elsif active_variant_count>0 then
       raise exception 'Choose an option for % before checkout.',p.name;
-    elsif nullif(it->>'size','') is not null and p.stocks ? (it->>'size') then
+    elsif p.track_stock and nullif(it->>'size','') is not null and p.stocks ? (it->>'size') then
       update public.products set stocks=jsonb_set(stocks,array[it->>'size'],to_jsonb((stocks->>(it->>'size'))::int-(it->>'qty')::int))
         where id=p.id and (stocks->>(it->>'size'))::int >= (it->>'qty')::int;
       get diagnostics n=row_count; if n=0 then raise exception 'Not enough % (%) left.',p.name,it->>'size'; end if;
