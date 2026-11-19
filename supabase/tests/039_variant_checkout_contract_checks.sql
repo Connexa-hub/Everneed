@@ -51,17 +51,17 @@ begin
   end if;
 end $$;
 -- End-to-end smoke tests run as the local database owner/service caller and roll back all fixture rows.
-do $
+do $$
 declare
   buyer uuid:=gen_random_uuid();
   seller uuid:=gen_random_uuid();
-  store_id text:=gen_random_uuid()::text;
+  v_store_id text:=gen_random_uuid()::text;
   prod text:=gen_random_uuid()::text;
   other_prod text:=gen_random_uuid()::text;
   variant uuid;
   bad_variant uuid:=gen_random_uuid();
   checkout jsonb;
-  order_id text;
+  v_order_id text;
   seller_order_id text;
   stock_after integer;
   restored boolean;
@@ -76,14 +76,14 @@ begin
   insert into public.profiles(id,name,email,role) values(buyer,'Variant CI Buyer','variant-ci-buyer-'||buyer||'@example.test','customer'),
     (seller,'Variant CI Seller','variant-ci-seller-'||seller||'@example.test','merchant');
   insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
-  values(store_id,seller,'variant-ci-'||seller,'Variant CI Store','approved','live','NG','Africa/Lagos');
+  values(v_store_id,seller,'variant-ci-'||seller,'Variant CI Store','approved','live','NG','Africa/Lagos');
   insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
-  values(store_id,'plan-free','trialing',now(),now()+interval '30 days');
+  values(v_store_id,'plan-free','trialing',now(),now()+interval '30 days');
   insert into public.products(id,name,col,price,store_id,status,slug,stock)
-  values(prod,'Variant checkout CI product',(select id from public.collections order by id limit 1),1000,store_id,'published',prod,99),
+  values(prod,'Variant checkout CI product',(select id from public.collections order by id limit 1),1000,v_store_id,'published',prod,99),
         (other_prod,'Variant mismatch CI product',(select id from public.collections order by id limit 1),1000,store_id,'published',other_prod,99);
   insert into public.product_variants(product_id,store_id,sku,option_values,price,sale_price,sale_starts_at,sale_ends_at,stock,track_stock,allow_backorder,active)
-  values(prod,store_id,'VAR-CI-SKU',jsonb_build_object('Colour','Blue','Size','M'),1200,900,now()-interval '1 hour',now()+interval '1 day',5,true,false,true)
+  values(prod,v_store_id,'VAR-CI-SKU',jsonb_build_object('Colour','Blue','Size','M'),1200,900,now()-interval '1 hour',now()+interval '1 day',5,true,false,true)
   returning id into variant;
 
   -- A product with active variants cannot be checked out without a selection.
@@ -105,15 +105,15 @@ begin
 
   -- Variant sale price is server-resolved, and stock is reserved/audited atomically.
   checkout:=public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',2)),'NG','bank',cust,1,'NGN',0,null,0,null);
-  order_id:=checkout->>'id';
-  select so.id into seller_order_id from public.seller_orders so where so.order_id=order_id and so.store_id=store_id;
+  v_order_id:=checkout->>'id';
+  select so.id into seller_order_id from public.seller_orders so where so.order_id=v_order_id and so.store_id=v_store_id;
   select stock into stock_after from public.product_variants where id=variant;
   if stock_after<>3 then raise exception 'FAIL: variant stock was not reserved (expected 3, got %)',stock_after; end if;
-  if not exists(select 1 from public.order_items where order_id=order_id and variant_id=variant and variant_sku='VAR-CI-SKU'
+  if not exists(select 1 from public.order_items oi where oi.order_id=v_order_id and oi.variant_id=variant and variant_sku='VAR-CI-SKU'
       and variant_options=jsonb_build_object('Colour','Blue','Size','M') and unit_price=900 and line_total=1800 and inventory_reserved and not inventory_restored) then
     raise exception 'FAIL: order item did not preserve authoritative variant price/SKU/options/reservation';
   end if;
-  if not exists(select 1 from public.product_inventory_movements where variant_id=variant and reason='checkout_reservation' and delta=-2 and reference=order_id) then
+  if not exists(select 1 from public.product_inventory_movements where variant_id=variant and reason='checkout_reservation' and delta=-2 and reference=v_order_id) then
     raise exception 'FAIL: checkout reservation movement was not audited with order reference';
   end if;
 
@@ -130,7 +130,7 @@ begin
   -- Snapshot-backed card checkout retains variant identity and options.
   checkout:=public.create_order_with_snapshot(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',1)),'NG','card',cust,1,'NGN',0,null,0,null,pricing);
   order_id:=checkout->>'id';
-  select checkout_snapshot into snapshot from public.orders where id=order_id;
+  select checkout_snapshot into snapshot from public.orders where id=v_order_id;
   if snapshot->'items'->0->>'variant_id'<>variant::text
      or snapshot->'items'->0->>'variant_sku'<>'VAR-CI-SKU'
      or snapshot->'items'->0->'variant_options'<>jsonb_build_object('Colour','Blue','Size','M') then
@@ -138,6 +138,30 @@ begin
   end if;
   select stock into stock_after from public.product_variants where id=variant;
   if stock_after<>4 then raise exception 'FAIL: snapshot checkout did not reserve one unit'; end if;
-end $;
+
+  -- Backorders may reserve below zero only when enabled; cancellation restores the prior quantity.
+  update public.product_variants set stock=0,allow_backorder=true,track_stock=true where id=variant;
+  checkout:=public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',1)),'NG','bank',cust,1,'NGN',0,null,0,null);
+  v_order_id:=checkout->>'id';
+  select so.id into seller_order_id from public.seller_orders so where so.order_id=v_order_id and so.store_id=v_store_id;
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>-1 then raise exception 'FAIL: permitted backorder was not recorded as -1'; end if;
+  perform private.cancel_so(seller_order_id,'CI backorder cancellation',seller,'cancelled');
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>0 then raise exception 'FAIL: backorder cancellation did not restore stock to zero'; end if;
+
+  -- Untracked variants do not decrement or restore stock.
+  update public.product_variants set stock=3,allow_backorder=false,track_stock=false where id=variant;
+  checkout:=public.create_order(buyer,jsonb_build_array(jsonb_build_object('id',prod,'variant_id',variant,'qty',1)),'NG','bank',cust,1,'NGN',0,null,0,null);
+  v_order_id:=checkout->>'id';
+  select so.id into seller_order_id from public.seller_orders so where so.order_id=v_order_id and so.store_id=v_store_id;
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>3 or exists(select 1 from public.order_items oi where oi.order_id=v_order_id and oi.variant_id=variant and inventory_reserved) then
+    raise exception 'FAIL: untracked variant stock was decremented or marked reserved';
+  end if;
+  perform private.cancel_so(seller_order_id,'CI untracked cancellation',seller,'cancelled');
+  select stock into stock_after from public.product_variants where id=variant;
+  if stock_after<>3 then raise exception 'FAIL: cancellation changed untracked stock'; end if;
+end $$;
 
 rollback;
