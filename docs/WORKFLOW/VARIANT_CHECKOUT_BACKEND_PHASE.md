@@ -1,6 +1,6 @@
 # Variant-aware checkout and inventory reservation — backend phase
 
-**Status:** design contract / implementation pending.  
+**Status:** implementation drafted on `feature/variant-checkout`; migration/test committed, review and CI/staging validation pending.  
 **Target branch:** `feature/variant-checkout` based on `web-portal`.  
 **Environment:** staging only. Do not deploy or merge to `main`.
 
@@ -65,3 +65,14 @@ The current public checkout wrapper `create_order_with_snapshot` calls `create_o
 6. Update `DB_CONTRACT.md`, `WEBSITE_TRACKER.md`, and this handoff with actual tested status.
 
 Do not enable the frontend variant purchase path until the backend and test matrix are green.
+
+
+## Implementation status
+
+- Draft migration: `supabase/migrations/20261119042700_variant_checkout_inventory.sql`.
+- Adds `order_items.variant_id`, `variant_sku`, `variant_options`, `inventory_reserved`, and `inventory_restored`.
+- Updates `create_order` to resolve server-side variant prices and sale windows, require a selected active variant when the product has active variants, enforce quantity bounds, reserve tracked stock atomically, and persist item snapshots.
+- Updates `create_order_with_snapshot` to preserve variant identity, SKU/options and reservation state in the immutable quote.
+- Adds internal `private.restore_variant_order_item` and updates cancellation to restore reserved variant stock once while retaining legacy restoration.
+- Test 039 and CI invocation are added; migration replay manifest updated on this branch.
+- **Not staging-applied.** SQL replay/tests are not yet confirmed. Keep variant purchasing disabled until validation.
