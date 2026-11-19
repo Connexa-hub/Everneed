@@ -147,3 +147,10 @@ This section is deliberately explicit so other AI systems can safely continue th
 - Key distinction: the legacy `seller_orders.released` flag is set at payment confirmation, but it is not a payout or proof of seller funds being withdrawable. Delivery confirmation also does not trigger a seller bank transfer. An approved refund is not proof that the provider returned funds.
 - FIN-01 double-entry journal contract is documented in section 25. It remains a design contract; no journal/wallet migration has been applied as part of this step. The next implementation must add database-enforced per-currency balancing, immutable posted entries, idempotency and least-privilege posting, with regression tests before staging rollout.
 - Staging only; production remains untouched. Do not merge, deploy production, initiate live payments/transfers or fund verification without explicit owner approval.
+
+
+
+
+## FIN-01 discovery correction — 19 Nov 2026
+
+The existing branch already contains `supabase/migrations/033_double_entry_finance_journal.sql` and `supabase/tests/033_double_entry_finance_journal_checks.sql`. Staging migration history confirms version 033 is applied. The three private journal tables exist, with 96 seeded account rows and zero posted journal headers/lines. Test 033 was executed against staging in a transaction and completed without an SQL error; its test postings were rolled back. Therefore FIN-01 is not an unstarted schema task: its foundation is implemented and staged, while hardening and integration with payment/refund/seller settlement remain outstanding. See finance architecture sections 25–26. The seeded currency accounts are not a declaration that all six currencies are enabled for payment or settlement.
