@@ -102,3 +102,8 @@ The CI database job is running against a fresh local Supabase replay; the test i
 ## CI regression found outside the variant test
 
 Test 039 passed, and Phase 2 checks plus public RPC security checks passed in the current local Supabase CI run. The run then failed at legacy test 017 because its seller application fixtures did not provide the required selected `plan_id` after the plan-selection approval gate was added. The fixture now explicitly selects `plan-starter` for both stores. CI needs a fresh rerun to confirm the fix and continue the remaining security/payment/catalogue suite.
+
+
+## Migration override audit and security regression fix
+
+The variant migration had unintentionally copied/redefined `hub_receive()` twice from the older 007 implementation, overriding the hardened 017 implementation and reintroducing acceptance of duplicate/missing hub item checks. Both copies were replaced with the hardened 017 definition, preserving the empty search path, exact item-count check, duplicate/missing/extra item validation, and safe status transition. Test 017 now asserts the replayed definition contains the hardened contract and that its fixture really consists of two duplicate entries for exactly one item. CI replay and regression validation pending for commit `ebf1cf8`.
