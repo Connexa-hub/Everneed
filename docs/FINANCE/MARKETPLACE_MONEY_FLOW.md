@@ -606,3 +606,40 @@ This is an engineering/product architecture, not legal, tax or regulatory advice
 - Existing coupon pricing selects the single highest-saving offer; campaign funding, seller-level allocation, per-customer caps, redemption reservation and cashback are not represented in the current `offers` contract.
 - Existing currency mapping uses Paystack currency codes for selected countries, while the FX display/settlement model is not yet a fully approved country-provider capability matrix. No new international currency should be enabled based solely on a client display currency.
 - No schema migration for wallets or journal was applied as part of this architecture document. The next code change should be FIN-00 audit and FIN-01 journal design/migration after full definitions, trigger effects, existing ledger semantics and migration replay have been reviewed.
+
+
+## 23. FIN-00 function-level audit — verified gaps requiring replacement or wrapping
+
+The following staging function definitions were inspected on 19 November 2026. These are legacy contracts; do not treat them as the final finance implementation.
+
+### Payment confirmation
+- `private.confirm_payment_core(order, reference, actor)` locks the order, marks it paid, releases eligible seller orders, inserts a legacy `sale` and `commission` ledger entry for each seller order, sends notifications and syncs order status.
+- It does not post a balanced double-entry journal, provider settlement receivable, gateway fee, seller reserve, shipping/courier allocation, promotion funding or cashback award.
+- New payment-attempt settlement validates provider reference, transaction ID, immutable checkout snapshot hash, order/user ownership, amount, currency and exponent; it quarantines mismatches as `reconciliation_required`. Preserve these controls when extending the payment flow.
+
+### Payout
+- `public.record_payout(store, amount, reference, period)` is an admin-only manual record operation. It checks the legacy `store_balance`, inserts a `payouts` row and a negative legacy ledger entry. It does not initiate a provider transfer or prove bank settlement. Do not label it an automated withdrawal system.
+- Replace this with a request/approval/provider-transfer/reconciliation lifecycle. The old function may remain for controlled historical corrections only after permissions and audit are reviewed.
+
+### Refund
+- `public.refund(order, seller_order, amount, reason)` currently inserts a refund as `processed` immediately and posts legacy seller/commission ledger reversals. It does not call Paystack's refund API or await provider confirmation. This is not proof that the buyer received money.
+- Separate refund decision from provider refund execution. Use requested/approved -> provider_pending -> succeeded/failed/reversed states, idempotency and provider verification. Only then mark the buyer-facing refund completed.
+
+### Coupon redemption
+- `public.redeem_offer(id)` atomically increments a campaign's global `used` counter if active and under its global limit. It does not by itself enforce per-buyer caps, budget reservations, seller/platform funding splits, expiry by lot or rollback/reversal policy. Couple redemption to order payment state and campaign budget in a transaction.
+
+### Checkout and quote
+- The immutable card checkout snapshot captures items, variants, pricing provenance, merchandise allocations, delivery fee and total. It currently records discount allocation proportionally across items; the new promotion engine must replace that generic allocation with funding-aware seller/platform allocation while preserving deterministic rounding.
+- Current edge function creates orders for several payment labels, but its payment attempt `init/charge` route only permits `pm='card'`. Do not present bank transfer/USSD as enabled until their provider intent, reference matching, pending/expiry and reconciliation lifecycle is implemented.
+- Current order creation accepts a single coupon and current offer selection chooses the best saving. It does not implement the complete campaign, multi-seller co-funding, per-user cap, cashback or shipping sponsorship model.
+
+### Staging security notes
+- RLS is enabled for the inspected financial tables. Owner/admin read policies exist for seller ledger, payouts and store payment records; buyer/seller/admin refund read policy exists; offers expose only active automatic offers to public SELECT.
+- The `cards` table has an owner-read/delete policy while its provider token is consumed through service-role edge code. Verify the actual table/column grants and ensure card token material is never returned by a general card-list endpoint. The card authorization token is not a PAN/CVV, but is still a reusable credential and must be treated as secret.
+- No wallet/journal migration has been applied. Do not create a buyer/store balance by updating a mutable numeric field.
+
+### FIN-00 exit checklist
+- Capture the exact definitions, ACL, search_path, trigger effects and caller expectations for `store_balance`, `ledger_guard`, `confirm_payment`, `cancel_order_for`, `record_payout`, `refund`, `redeem_offer`, delivery confirmation and payment recovery.
+- Model legacy ledger entries and seller earnings without double-posting historical orders.
+- Add regression tests for manual payout misuse, false-positive refund completion, coupon cap races and seller release timing.
+- Only then add FIN-01 journal migrations on the feature branch, run migration replay/CI, and apply to staging through the controlled migration workflow.
