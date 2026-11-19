@@ -66,6 +66,7 @@ RPCs:
 - `seller_adjust_variant_stock(p_variant, p_quantity, p_reason, p_reference)`: atomic stock adjustment with audit movement.
 
 Validation:
+- Internal SECURITY DEFINER catalogue trigger functions have EXECUTE revoked from PUBLIC, anon and authenticated; regression test 038 checks the ACL.
 - `private.validate_product_category_attributes()` checks required attributes and basic type when products are submitted for review/published. Required fields are configurable; the starter seed deliberately does not force incomplete requirements.
 - Public product RLS respects visibility and scheduled publish time; media, variants, tiers and links follow the same public eligibility.
 - RLS is enabled on every new table. Owner/admin management policies and public read policies are separate.
