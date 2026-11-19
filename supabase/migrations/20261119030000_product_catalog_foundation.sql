@@ -223,7 +223,7 @@ create policy product_links_owner_admin on public.product_links
 drop policy if exists product_links_public_read on public.product_links;
 create policy product_links_public_read on public.product_links
   for select to anon,authenticated using (exists(select 1 from public.products p
-    where p.id=product_id and p.status='published' and p.visibility='public' and private.store_live(p.store_id));
+    where p.id=product_id and p.status='published' and p.visibility='public' and private.store_live(p.store_id)));
 
 create table if not exists public.product_inventory_movements (
   id bigint generated always as identity primary key,
