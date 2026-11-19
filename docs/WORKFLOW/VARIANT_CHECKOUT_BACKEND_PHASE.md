@@ -76,3 +76,8 @@ Do not enable the frontend variant purchase path until the backend and test matr
 - Adds internal `private.restore_variant_order_item` and updates cancellation to restore reserved variant stock once while retaining legacy restoration.
 - Test 039 and CI invocation are added; migration replay manifest updated on this branch.
 - **Not staging-applied.** SQL replay/tests are not yet confirmed. Keep variant purchasing disabled until validation.
+
+
+## CI-discovered official-store visibility fix
+
+A full local migration replay uncovered a pre-existing public visibility regression in the newer seller entitlement `private.store_live()`: its subscription/entitlement JOIN unintentionally required the official Everneed store to have a seller subscription. Migration `20261119042710_official_store_live_entitlement_bypass.sql` preserves the official-store exception while leaving all non-official seller activation, verification and subscription gates intact. Regression assertion was added to test 039. CI is being rerun on a temporary validation PR because the original CI run stopped in Phase 2 before test 039.
