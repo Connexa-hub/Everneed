@@ -28,6 +28,7 @@ All changes are developed on `web-portal`, tested against the staging environmen
 
 - [Public roadmap (human- and AI-readable)](ROADMAP.md) — milestone register, current status, acceptance criteria, blockers and safe continuation rules.
 - [Detailed master strategy roadmap](docs/STRATEGY/MASTER_ROADMAP.md)
+- [Marketplace money-flow and payments architecture](docs/FINANCE/MARKETPLACE_MONEY_FLOW.md) — buyer/seller balances, double-entry journal, Paystack, coupons, cashback, shipping, refunds, withdrawals, reconciliation and compliance gates.
 
 Read these before making changes:
 1. [AI protocol](docs/WORKFLOW/AI_PROTOCOL.md)
