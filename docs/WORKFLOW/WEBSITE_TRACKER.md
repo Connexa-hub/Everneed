@@ -457,3 +457,10 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Added explicit `advanced_product_editor=true` for every plan and `product_editor_mode`: Free/Starter `guided`, Growth/Pro `full`. Basic plans retain the full backend field set and only receive a simplified guided UI. Test 038 confirms the Free seller capability RPC.
 
 - Added catalogue trigger ACL hardening migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 verifies API roles cannot directly execute internal trigger helpers while the actual trigger paths still function.
+
+
+## Variant-aware checkout — feature branch implementation draft
+
+- Draft migration `20261119042700_variant_checkout_inventory.sql` committed on `feature/variant-checkout`: variant validation, database-resolved price/sale windows, atomic tracked-stock reservation, SKU/options item snapshots, immutable checkout snapshot extension, movement reference and one-time cancellation restoration.
+- Regression test 039 and CI invocation added; migration replay manifest updated on this branch.
+- **Not staging-applied or CI-validated yet.** Keep variant purchase UI disabled until full SQL replay, regression suite and staging verification pass. Production untouched.
