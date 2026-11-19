@@ -985,3 +985,11 @@ For new schema-v2 orders, calculate the commission in the order currency from th
 ### Implementation boundary
 
 FIN-02A must be implemented as a forward-only, explicitly versioned allocation path with regression coverage for the existing v1 checkout behavior. Do not silently retrofit v1 snapshots, rewrite historical seller-order amounts, or change the current create_order commission policy globally. Before migration, inspect all checkout callers, triggers, snapshot immutability constraints and function grants; preserve payment-attempt verification and the current mismatch quarantine. No production change is authorized.
+
+
+### Staging immutability and privilege observations
+
+- The staging `orders_checkout_snapshot_immutable` trigger calls `private.guard_order_checkout_snapshot()` before updates to snapshot, version or hash. Preserve this immutability contract for v2; create a snapshot once and never mutate it after checkout.
+- Staging also has `orders_guard` and `seller_orders_guard` triggers. Their current definitions must be reviewed before changing order or seller-order write paths.
+- The inspected staging grants show `create_order` and `create_order_with_snapshot` EXECUTE granted to `service_role` and `postgres`; no anon/authenticated EXECUTE grant appeared. Preserve the server-only boundary and re-verify exact ACLs after any forward migration.
+- The function-definition search found no other public SQL function body invoking `create_order_with_snapshot`; application/Edge Function RPC callers still need a repository-wide source search before replacing or routing the checkout call.
