@@ -1083,7 +1083,7 @@ begin
       and p.prosecdef
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')
   loop
-    execute format('alter function %s set search_path = ''''''', f.signature);
+    execute format('alter function %s set search_path = ''''', f.signature);
   end loop;
 end $$;
 commit;
