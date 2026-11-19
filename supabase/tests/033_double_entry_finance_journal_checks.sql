@@ -13,6 +13,7 @@ declare
   v_line_count integer;
   v_debits numeric;
   v_credits numeric;
+  v_many_lines jsonb;
 begin
   v_fn := to_regprocedure('public.post_finance_journal(text,text,text,text,text,jsonb,jsonb)');
   if v_fn is null then
@@ -107,6 +108,100 @@ begin
     raise exception 'Idempotency key reuse with different content was accepted.';
   end if;
 
+  -- Reject malformed or unsupported journal requests.
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-bad-currency','ci-bad-currency','EUR','Unsupported currency',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Unsupported currency was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-unknown-account','ci-unknown-account','NGN','Unknown account',
+      '[{"account_code":"asset.not_configured","direction":"debit","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Unknown account code was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-zero-amount','ci-zero-amount','NGN','Zero amount',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"0"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"0"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Zero amount was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-negative-amount','ci-negative-amount','NGN','Negative amount',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"-1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"-1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Negative amount was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-invalid-direction','ci-invalid-direction','NGN','Invalid direction',
+      '[{"account_code":"asset.paystack_clearing","direction":"sideways","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Invalid line direction was accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-invalid-lines-shape','ci-invalid-lines-shape','NGN','Invalid lines shape',
+      '{}'::jsonb,'{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Non-array journal lines were accepted.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-invalid-metadata','ci-invalid-metadata','NGN','Invalid metadata',
+      '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"1"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"1"}]'::jsonb,
+      '[]'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Non-object metadata was accepted.'; end if;
+
+  select jsonb_agg(jsonb_build_object(
+    'account_code', case when g=1 then 'asset.paystack_clearing' else 'liability.seller_payable' end,
+    'direction', case when g=1 then 'debit' else 'credit' end,
+    'amount_minor','1'
+  ))
+  into v_many_lines
+  from generate_series(1,1001) g;
+  v_failed := false;
+  begin
+    perform public.post_finance_journal(
+      'ci_test','phase3-too-many-lines','ci-too-many-lines','NGN','Too many lines',
+      v_many_lines,'{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'More than 1000 journal lines were accepted.'; end if;
+
   v_reversal_id := public.reverse_finance_journal(
     v_journal_id,'ci-phase3-reversal','CI reversal test','{"test":true}'::jsonb
   );
@@ -156,6 +251,45 @@ begin
   if not v_failed then
     raise exception 'A second conflicting reversal was accepted.';
   end if;
+
+  v_failed := false;
+  begin
+    perform public.reverse_finance_journal(
+      v_reversal_id,'ci-phase3-reversal-of-reversal','Reverse a reversal','{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'A reversal journal was allowed to be reversed.'; end if;
+
+  v_failed := false;
+  begin
+    update private.finance_journal_lines set amount_minor=1 where journal_id=v_journal_id;
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'A posted finance journal line was mutable.'; end if;
+
+  v_failed := false;
+  begin
+    delete from private.finance_journal_lines where journal_id=v_journal_id;
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'A posted finance journal line was deletable.'; end if;
+
+  v_failed := false;
+  begin
+    delete from private.finance_journals where id=v_journal_id;
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'A posted finance journal header was deletable.'; end if;
+
+  v_failed := false;
+  begin
+    perform public.reverse_finance_journal(
+      gen_random_uuid(),'ci-phase3-missing-original','Missing original','{"test":true}'::jsonb
+    );
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'A missing journal was reversed.'; end if;
 end
 $$;
 
