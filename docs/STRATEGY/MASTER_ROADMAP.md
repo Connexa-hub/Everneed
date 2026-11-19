@@ -598,3 +598,12 @@ Current engineering priorities are payment/order integrity first, followed by se
 - **Release safety:** PR #32 remains draft. Production database and production Edge Functions are unchanged by this work.
 
 Do not promote these statuses based on source-code presence. Require CI output, staging migration ledger/catalogue checks, deployed function version and recorded end-to-end sandbox evidence. See ROADMAP.md for milestone IDs, acceptance criteria and AI-agent continuation rules.
+
+
+## 19 Nov 2026 — Variant checkout CI and staging rollout checkpoint
+
+- Draft PR #32 head `4d65c8191b8f5b74c804a9e6bc9bf83361f2d140` passed web/install and database CI, including variant checkout, authenticated/public RPC boundaries, RLS isolation, payment recovery and finance-journal regressions. The APK build job is still running.
+- Six missing checkout/security migrations were applied to Everneed staging only. Schema and ACL checks confirmed the variant snapshot columns, public seller-safe plan catalogue, authenticated-only seller category schema, and private trigger helper boundary.
+- Reviewed Paystack Edge Function from `feature/variant-checkout` deployed to staging as version 13. End-to-end sandbox transaction/webhook/reconciliation tests remain outstanding; no live payment has been made.
+- Prembly capability categories are known, but endpoint discovery returned no concrete operation IDs or payload schemas. No Prembly request has been sent; no wallet spend was made.
+- Production remains untouched; PR #32 remains draft/open/unmerged.
