@@ -132,7 +132,7 @@ begin
     jsonb_build_object('length',10,'width',5,'height',3,'unit','cm'),'hidden');
 
   insert into public.products(id,name,col,price,store_id,status,slug)
-  values(product_b,'Catalogue regression related product',category_id,1500,'everneed-official','draft',product_b);
+  values(product_b,'Catalogue regression related product',category_id,1500,'everneed-official','draft',product_b,4);
 
   insert into public.product_variants(product_id,sku,option_values,price,stock,weight_g,dimensions,position)
   values(product_a,'CAT-TEST-'||product_a,jsonb_build_object('Storage','128GB','Colour','Blue'),1000,10,250,
@@ -140,11 +140,16 @@ begin
   returning id into v_variant_id;
 
   perform set_config('everneed.inventory_reason','CI stock adjustment',true);
+  perform set_config('everneed.inventory_reference','CI-REF-038',true);
   update public.product_variants set stock=7 where id=v_variant_id;
   select count(*) into movement_count from public.product_inventory_movements where product_inventory_movements.variant_id=v_variant_id;
   if movement_count<>2 then raise exception 'FAIL: expected initial and adjustment inventory movements, got %',movement_count; end if;
-  if not exists(select 1 from public.product_inventory_movements where product_inventory_movements.variant_id=v_variant_id and reason='CI stock adjustment' and delta=-3) then
-    raise exception 'FAIL: stock adjustment movement record missing';
+  if not exists(select 1 from public.product_inventory_movements where product_inventory_movements.variant_id=v_variant_id and reason='CI stock adjustment' and delta=-3 and reference='CI-REF-038') then
+    raise exception 'FAIL: stock adjustment movement record/reference missing';
+  end if;
+  update public.products set stock=2 where id=product_b;
+  if not exists(select 1 from public.product_inventory_movements where product_id=product_b and variant_id is null and reason='product_stock_change' and delta=-2) then
+    raise exception 'FAIL: legacy product stock movement audit missing';
   end if;
 
   insert into public.product_media(product_id,store_id,media_type,url,alt_text,sort_order,is_primary)
