@@ -218,3 +218,8 @@ Everneed's benchmark should be feature breadth and backend correctness, not copy
 ## Variant-aware checkout phase — implementation draft
 
 A draft migration `20261119042700_variant_checkout_inventory.sql` is committed to `feature/variant-checkout`. It adds variant ID/SKU/options and reservation/restoration markers to order items, server-side variant/sale-price resolution, atomic tracked inventory reservation, immutable checkout snapshot fields, and one-time cancellation restoration. Regression test 039 and CI wiring are added. Migration replay-name CI has passed for the draft branch; database replay and full CI are still pending. **Not staging-applied; variant purchases must remain disabled.**
+
+
+## Variant checkout validation update
+
+Migration `20261119042700_variant_checkout_inventory.sql`, test 039 and CI wiring are drafted on `feature/variant-checkout`. Migration replay passed on the earlier CI run, but the full database job stopped at two public-read Phase 2 failures before the variant test. The likely official-store visibility root cause was fixed by `20261119042710_official_store_live_entitlement_bypass.sql`; a temporary draft validation PR is running the latest branch. Staging remains unchanged, and variants remain disabled until test/CI and staging verification are green.
