@@ -332,3 +332,8 @@ The SECURITY DEFINER quota guard must use the original JWT role, not PostgreSQL 
 ## Seller plan catalogue RPC grant restoration
 
 CI test 034 found that the seller-safe `public.seller_plan_catalog()` RPC had lost its explicit read grants to `anon` and `authenticated`. Additive migration `20261119125500_restore_seller_plan_catalog_read_grants.sql` revokes PUBLIC and explicitly grants those two API roles execute. The RPC exposes only plan/entitlement comparison fields; private entitlement table RLS remains admin-only. Included in migration replay manifest; CI rerun pending, no staging/production change.
+
+
+## Seller category schema RPC anonymous-access correction
+
+The authenticated RPC boundary test found that `seller_product_category_schema(text)` retained default PUBLIC EXECUTE, exposing seller editor taxonomy metadata to anonymous callers. Additive migration `20261119130500_revoke_anonymous_category_schema_rpc.sql` revokes PUBLIC/anon and grants the seller-facing RPC only to authenticated and service_role. This does not affect public category browsing or the anonymous storefront. Regression coverage remains in test 017.
