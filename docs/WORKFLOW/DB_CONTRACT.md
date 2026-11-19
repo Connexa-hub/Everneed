@@ -270,7 +270,7 @@ The Free/Entry tier and its free trial are active with 5 active products and 2 n
 For new migrations, use the exact timestamp version assigned by the staging migration tool and keep the repository filename, staging ledger and `.github/workflows/migrations-check.yml` replay list identical. After applying a staging migration, commit its SQL file and update the replay list and relevant contracts/tracker. Do not invent a different timestamp for the same applied migration.
 
 
-## Seller message notification contract — staging migration 20261119112000
+## Seller message notification contract — staging migration 20261119024723
 
 - Existing chat_triage_ai already writes a generic notification for each non-muted conversation participant except the sender. The new zzz_chat_notification_contract AFTER INSERT trigger runs after it and upgrades that row without creating duplicates.
 - Notification kinds: store conversations message_customer; seller-to-Everneed/admin conversations message_everneed; support conversations message_support.
