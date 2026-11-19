@@ -615,3 +615,10 @@ Do not promote these statuses based on source-code presence. Require CI output, 
 - Prembly endpoint registry is now visible in Sandbox and lists BVN Basic/with face/phone, NIN Basic/with face, phone, CAC Basic/Advanced, TIN and other checks. Read-only wallet lookup confirms ₦0.00 NGN, active and unlocked. No identity/business verification request was sent.
 - Nigeria BGC check-type fallback lists Identity, Education, Employment and Criminal. The sandbox system package catalogue includes an Entry Package with Identity and NIN items; catalogue prices are indicative sandbox data only, not an approved production pricing commitment. The attempted package-detail lookup returned 404; no package was created.
 - Next Prembly work: confirm exact API request schemas and whether plan-based seller verification should use direct identity endpoints or BGC package/candidate flows. Keep non-CAC/manual review path. No wallet funding or verification spend without owner approval.
+
+
+## 19 November 2026 — Marketplace financial operating system
+
+A detailed engineering and product specification is now maintained in [MARKETPLACE_MONEY_FLOW.md](../FINANCE/MARKETPLACE_MONEY_FLOW.md). It covers payment orchestration, double-entry accounting, seller settlement, buyer credit, promotions/cashback, shipping/hub pricing, refunds, disputes, reconciliation, buyer activation and payout risk controls.
+
+The staging audit found existing order/payment/payout/refund/offer records and a legacy single-entry ledger, but no buyer/store wallet accounts or complete double-entry journal. This is a design and implementation workstream, not a claim that wallets or withdrawals are already available. The implementation sequence is FIN-00 through FIN-11. A general-purpose buyer cash wallet, P2P transfers and cash withdrawals remain gated on Nigeria-specific legal review and a regulated partner. The initial marketplace should not custody or issue stored value without approval.
