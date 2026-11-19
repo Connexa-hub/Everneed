@@ -449,3 +449,5 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Follow-up migration `20261119030905_inventory_movement_reference_and_legacy_stock_audit` records references on variant stock adjustments and audits legacy product stock updates, so old checkout stock reductions also enter the inventory movement ledger.
 
 - Added explicit `advanced_product_editor=true` for every plan and `product_editor_mode`: Free/Starter `guided`, Growth/Pro `full`. Basic plans retain the full backend field set and only receive a simplified guided UI. Test 038 confirms the Free seller capability RPC.
+
+- Added catalogue trigger ACL hardening migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 verifies API roles cannot directly execute internal trigger helpers while the actual trigger paths still function.
