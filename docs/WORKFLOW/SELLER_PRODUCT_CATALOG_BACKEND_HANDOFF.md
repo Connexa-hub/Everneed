@@ -79,7 +79,7 @@ Plan capability flags seeded (price and product quota unchanged):
 | Pro | Yes | Yes | Yes | Advanced | Yes | Yes | 5 |
 | Everneed Admin / official-store context | Full override | Full override | Full override | Advanced | Full override | Full override | Admin-managed |
 
-These are backend capability flags, **not a claim that bulk, CSV, promotions, analytics or team-seat workflows are already implemented**. They remain future backend contracts. Plan prices and existing catalogue quotas were not changed.
+All plans have `advanced_product_editor=true`; Free/Starter use `product_editor_mode=guided` and Growth/Pro use `full`. Basic sellers still have access to all rich product fields through advanced details—the guided mode only simplifies the workflow. These are backend capability flags, **not a claim that bulk, CSV, promotions, analytics or team-seat workflows are already implemented**. They remain future backend contracts. Plan prices and existing catalogue quotas were not changed.
 
 ## Frontend product editor — implement the full capability set
 
