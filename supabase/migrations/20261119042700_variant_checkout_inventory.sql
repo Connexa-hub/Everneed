@@ -1069,4 +1069,21 @@ language sql stable security definer set search_path = public as $$
   order by so.created_at desc
 $$;
 
+
+-- Variant checkout redefines several legacy RPC wrappers after migration 017.
+-- Re-apply the authenticated SECURITY DEFINER boundary after all definitions in this migration.
+do $$
+declare f record;
+begin
+  for f in
+    select p.oid::regprocedure as signature
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prosecdef
+      and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+  loop
+    execute format('alter function %s set search_path = ''''''', f.signature);
+  end loop;
+end $$;
 commit;
