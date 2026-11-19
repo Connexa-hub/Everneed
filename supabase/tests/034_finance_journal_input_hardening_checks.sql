@@ -66,6 +66,16 @@ begin
 
   v_failed := false;
   begin
+    perform public.post_finance_journal('ci_test','source','idem','NGN','Oversized line payload',
+      jsonb_build_array(
+        jsonb_build_object('account_code','asset.paystack_clearing','direction','debit','amount_minor','1','description',repeat('x',600000)),
+        jsonb_build_object('account_code','liability.seller_payable','direction','credit','amount_minor','1')
+      ), '{}');
+  exception when others then v_failed := true; end;
+  if not v_failed then raise exception 'Oversized line payload accepted.'; end if;
+
+  v_failed := false;
+  begin
     perform public.post_finance_journal('ci_test','source','idem','NGN','Overflow',
       '[{"account_code":"asset.paystack_clearing","direction":"debit","amount_minor":"9999999999999999999"},{"account_code":"liability.seller_payable","direction":"credit","amount_minor":"9999999999999999999"}]',
       '{}');
