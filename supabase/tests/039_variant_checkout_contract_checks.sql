@@ -9,8 +9,8 @@ declare
   restore_def text;
 begin
   foreach col in array array['variant_id','variant_sku','variant_options','inventory_reserved','inventory_restored'] loop
-    if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='order_items' and information_schema.columns.column_name=col) then
-      raise exception 'FAIL: order_items.% missing',column_name;
+    if not exists(select 1 from information_schema.columns c where table_schema='public' and table_name='order_items' and c.column_name=col) then
+      raise exception 'FAIL: order_items.% missing',col;
     end if;
   end loop;
 
