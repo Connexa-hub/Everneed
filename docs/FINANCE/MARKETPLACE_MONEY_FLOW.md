@@ -804,3 +804,60 @@ Test file `supabase/tests/034_finance_journal_input_hardening_checks.sql` adds n
 
 
 The same limits now cover `reverse_finance_journal`: 1–160 character idempotency key, 1–240 character reason, no control characters, object metadata capped at 16 KiB, with the original-journal existence and no-reversal-of-reversal rules preserved. Test 034 includes negative and positive reversal cases.
+
+
+## 28. FIN-01 staging rollout and FIN-02 accounting integration gate — 19 Nov 2026
+
+### FIN-01 current verified state
+
+- Latest PR head `01ee1c0811f07f3243e88c767f176f25b8b4c917` passed the full build workflow `44546455256`: database tests, app checks/token validation and Android APK build all succeeded.
+- Migration `034_finance_journal_input_hardening.sql` was applied to the Everneed **staging** project only. The staging migration ledger records it as `20261119145018 / finance_journal_input_hardening`.
+- The exact staging function signatures are `public.post_finance_journal(text,text,text,text,text,jsonb,jsonb)` and `public.reverse_finance_journal(uuid,text,text,jsonb)`.
+- Both functions are SECURITY DEFINER with an empty search path. Staging privilege checks confirm EXECUTE is denied to `anon` and `authenticated`, and granted to `service_role`.
+- `supabase/tests/034_finance_journal_input_hardening_checks.sql` was executed against staging and completed successfully. Its test transaction rolled back; no test postings were retained.
+- Production remains untouched. PR #32 remains draft/open/unmerged.
+
+### Schema naming correction
+
+The implemented staging schema is `private.finance_accounts`, `private.finance_journals` and `private.finance_journal_lines`, with account identity keyed by `account_code + currency`. Earlier design text in section 25 that refers to `private.financial_accounts`, `private.journal_transactions` and `private.journal_lines` describes a conceptual model, not the deployed object names. The migration and staging schema are authoritative for implementation.
+
+### FIN-02 — payment-event accounting integration contract
+
+Do not wire accounting by simply adding a journal call to the existing payment-confirmation function. First implement a separately tested, idempotent event-to-journal mapper behind the trusted service boundary. The mapper must consume only verified persisted business state and must not accept client-supplied totals or arbitrary account codes.
+
+| Event | Required accounting intent | Release restriction |
+|---|---|---|
+| Paystack payment verified | Debit provider clearing for gross collected; credit seller payable pending, platform commission revenue, delivery/handling liabilities or revenue, and any other explicitly allocated components so the journal balances to the verified gross | Never make seller payable available at collection |
+| Provider fee confirmed/estimated under an approved fee policy | Debit payment-processing expense; credit provider clearing/fee payable according to the provider settlement statement | Do not invent a fee from a generic percentage; use provider-confirmed fee or a versioned, explicitly labelled estimate |
+| Delivery milestone and reserve expiry | Reclassify eligible seller payable pending to seller payable available; separately allocate delivery partner payable and platform delivery revenue only from the immutable checkout/shipping allocation | Delivery confirmation alone is not a bank transfer; hold return/dispute reserve |
+| Refund requested/approved | Record operational state only; no cash-out or completed-refund journal merely because an admin approved it | Await provider acceptance/confirmation or documented credit-to-account policy |
+| Provider refund confirmed | Debit the correct original seller/platform/fee liability or approved refund expense allocation; credit provider clearing/refund payable as appropriate, linked to original payment and seller allocations | Partial refunds require line-level allocation; do not use full-journal reversal for partial amounts |
+| Chargeback opened / won / lost | Record dispute exposure and later confirmed debit/credit with source references | Never duplicate the original refund or payment reversal |
+| Seller payout requested | Move available seller payable to payout-in-transit only when an actual transfer is initiated and the provider returns a durable transfer reference | A request or admin approval is not a paid payout |
+| Seller payout confirmed | Debit payout-in-transit/seller payable and credit bank/provider cash clearing based on confirmed transfer | Failed/reversed transfer must restore the correct seller payable |
+| Reconciliation adjustment | Post only a reviewed, reason-coded, evidence-linked adjustment with dual approval above configured thresholds | No direct edits to posted journals or balances |
+
+### Required source-of-truth and idempotency rules
+
+1. Every event must reference a persisted payment attempt/provider event, order, seller order, refund or transfer record. Store the immutable source ID, event type, provider reference/transaction ID, currency, amount minor units and snapshot/version reference.
+2. Reuse the payment-attempt settlement safeguards: verify provider reference, provider transaction ID, checkout snapshot hash, order/user ownership, amount, currency and currency exponent. A mismatch remains quarantined as `reconciliation_required`; it must not post money.
+3. Use a stable event identity and deterministic idempotency key. A replay with identical payload returns the original journal; a changed payload under the same identity is an error and goes to reconciliation.
+4. Build allocations from the immutable checkout snapshot and persisted seller-order amounts. Reconcile line totals to the provider-verified gross exactly in integer minor units. Deterministic rounding residuals must be assigned by a documented rule and tested.
+5. Separate provider collection from provider settlement. A successful customer charge creates a provider-clearing asset/receivable; bank settlement is a separate confirmed event.
+6. Keep legacy `ledger_entries` and the new journal in a controlled dual-write/compare period only after an explicit mapping and rollback plan. Do not backfill historical orders or silently post both legacy and new entries as independent revenue.
+7. Do not create buyer cash-wallet liabilities, buyer top-ups, transfers, or cash-out in FIN-02. Those remain legally gated. Promotional credits/refund credits require their own approved liability and expiry/reversal policy.
+8. Add tests for duplicate webhook delivery, recovery-worker replay, amount/currency mismatch quarantine, multi-seller split allocation, discount allocation, provider fee, zero delivery fee, hub/direct delivery, partial/full refund, chargeback, reserve release, payout pending/success/failure and concurrent event processing.
+9. Add a reconciliation report that compares provider transaction gross, provider fees, net settlement, journal clearing balance, refunds, chargebacks and bank settlement. Differences must remain visible as exceptions; never auto-plug suspense without approval.
+
+### FIN-02 exit criteria
+
+- A reviewed event/account mapping document exists, including all account directions and multi-seller examples.
+- A pure allocation function and SQL/RPC integration tests prove exact integer balance and deterministic rounding.
+- Provider events are durably recorded and replay-safe; quarantined events cannot post.
+- Journal entries reconcile to payment attempts and immutable checkout snapshots.
+- Seller pending/available/reserved/processing/paid amounts reconcile by store and currency without using mutable dashboard balances as authority.
+- Refund and payout statuses are tied to provider-confirmed state, not admin labels.
+- Staging sandbox success, decline, pending, duplicate webhook, refund and transfer simulations pass before any customer-facing rollout.
+- Finance/admin visibility and audit logs are in place before enabling operational payouts.
+
+**Current FIN-02 status:** design contract only. No payment-confirmation, refund, seller-release or payout function has been modified to post to the journal. No Paystack refund/transfer request or live money movement has been performed.
