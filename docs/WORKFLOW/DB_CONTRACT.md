@@ -304,3 +304,8 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 ## Variant-aware checkout phase (design pending implementation)
 
 Catalogue variants are currently database-managed only. Existing `create_order` checkout reads `products.price` and legacy `products.stock` / `products.stocks`; it does not validate a `product_variants` selection or snapshot variant SKU/options. Existing cancellation path restores legacy stock via `private.stock_add`. Until the variant-aware checkout phase is implemented and tested, clients must not offer variant selection as a purchasable checkout feature. See `VARIANT_CHECKOUT_BACKEND_PHASE.md` for contract and acceptance tests.
+
+
+## Variant-aware checkout draft
+
+Migration `20261119042700_variant_checkout_inventory.sql` and test 039 are on `feature/variant-checkout`, not applied to staging. It adds order-item variant identity/options/SKU and reservation/restoration markers, server-side variant price resolution, atomic stock decrement, snapshot integration and cancellation restoration. CI/staging validation pending; variant buying remains disabled. Other catalog workflow gaps (price tiers, media storage, bulk tools, promotions, analytics, team seats, multi-location inventory) remain open.
