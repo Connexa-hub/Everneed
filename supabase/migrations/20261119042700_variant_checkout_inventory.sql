@@ -1085,6 +1085,9 @@ begin
   loop
     execute format('alter function %s set search_path = ''''', f.signature);
     execute format('revoke execute on function %s from public', f.signature);
+    if f.signature::text not like 'support_guest_open%' and f.signature::text not like 'support_guest_ping%' and f.signature::text not like 'support_guest_close%' and f.signature::text not like 'join_waitlist%' and f.signature::text not like 'store_reply_stats%' and f.signature::text not like 'support_sla_public%' then
+      execute format('revoke execute on function %s from anon', f.signature);
+    end if;
   end loop;
 end $$;
 commit;
