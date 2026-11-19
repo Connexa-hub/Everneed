@@ -1010,3 +1010,14 @@ Contract:
 - The function is private and execution is revoked from PUBLIC, anon, authenticated and service_role. It is callable only by trusted database-owner/SECURITY DEFINER code in a later checkout integration.
 
 Important boundary: this is the tested arithmetic primitive only. It is not yet called by `create_order_with_snapshot`, it does not yet persist a schema-v2 allocation snapshot, reserve campaign budgets, or alter payment/settlement behaviour. FIN-02A integration must first add authenticated seller funding consent, management-approved platform budgets, currency-specific reservations, immutable snapshot persistence and refund/cancellation release rules. Existing v1 orders remain untouched. Do not treat this migration as authorization to settle v2 orders or post finance journals.
+
+
+## 34. FIN-02A allocation primitive staging verification — 19 Nov 2026
+
+Migration `035_fin02a_allocation_math.sql` was applied to the Everneed staging Supabase project only using migration name `fin02a_allocation_math`. The complete `035_fin02a_allocation_math_checks.sql` contract test was then executed against staging successfully; its transaction rolled back all test work.
+
+Post-application catalog checks confirm the function exists and EXECUTE is denied to `anon`, `authenticated` and `service_role`. It remains a private pure calculation primitive callable by trusted database-owner/SECURITY DEFINER code only. No order, offer, budget, payment, journal, seller balance or payout rows were changed. Production remains untouched.
+
+The GitHub migration-file workflow passed for branch head `ffb6b6f5029d9950249935bf78458e5a52169831`. The Android/database build workflow was queued behind an earlier in-progress build at the time of this verification; do not mark the latest head CI-green until its own run completes.
+
+Next FIN-02A tasks remain: explicit seller funding consent, management-approved currency-specific platform campaign budgets, atomic budget reservations and release, immutable financial allocation snapshot persistence, and wiring into the card checkout wrapper only after regression tests. The arithmetic helper alone does not make a discounted order settlement-ready.
