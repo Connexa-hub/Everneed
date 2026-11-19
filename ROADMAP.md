@@ -1,0 +1,126 @@
+# Everneed public roadmap
+
+**Audience:** founders, contributors, sellers, partners, reviewers and AI coding agents  
+**Status date:** 2026-11-19  
+**Canonical product:** Nigeria-first multivendor digital commerce platform  
+**Current integration branch:** `feature/variant-checkout` (draft PR #32 against `web-portal`)  
+**Development/staging Supabase:** `vjiadqygpyebpisxslbx`  
+**Production Supabase:** `zpgasfweaixwsktlueje` — protected; no changes authorised by this roadmap.
+
+This is the public, concise milestone register. It separates verified work from work in progress and planned work. A file, screen, migration or passing unit test is not proof that a complete customer-facing workflow is operational. Status changes require evidence linked in the repository or a recorded test/deployment result.
+
+## How to read and update this roadmap
+
+- **DONE** means the stated scope has evidence and its acceptance criteria are met.
+- **IN PROGRESS** means implementation or validation is underway; do not advertise it as complete.
+- **BLOCKED** means a dependency or failing check prevents safe progression.
+- **PLANNED** means approved direction, not implemented work.
+- **PROPOSED** means an idea requiring product/owner approval.
+- Dates are omitted unless a committed delivery date is approved. Milestones are ordered by dependency, not promised calendar dates.
+- Update this file, the detailed [master strategy roadmap](docs/STRATEGY/MASTER_ROADMAP.md), the [project tracker](docs/WORKFLOW/WEBSITE_TRACKER.md), and relevant technical contract in the same change when status materially changes.
+- Never add secrets, personal identity data, payment credentials, private seller data or internal production access details here.
+
+## Product mission and operating model
+
+Everneed begins as a shared marketplace where independent sellers manage their own stores and products while shoppers discover and purchase through Everneed. The platform owns the shared customer experience, marketplace rules, payment/order orchestration and admin controls. Multi-seller orders are intended to be split into seller-specific fulfilment units while preserving a coherent customer order. Delivery and seller settlement promises must match the implemented and tested operating model.
+
+**Priority rule:** trustworthy marketplace transactions first; expansion into advertising, advanced logistics, analytics and additional countries only after core workflows are stable and demand is validated.
+
+## Milestone register
+
+| ID | Milestone | Status | Exit evidence / acceptance criteria | Main dependencies |
+|---|---|---|---|---|
+| EV-00 | Company, governance and project controls | IN PROGRESS | Accurate company/legal status, decision log, branch/environment rules, public roadmap and product status maintained | Founder decisions; legal advice where needed |
+| EV-01 | Customer marketplace and web portal | IN PROGRESS | Customer discovery, account, product detail, cart, checkout, order tracking; seller onboarding/store/product/order tools; admin review and audit flows pass end-to-end | Auth, catalogue, backend policies |
+| EV-02 | Rich seller product catalogue and seller plans | IN PROGRESS | Complete structured product editor, category-specific attributes, variants, media, pricing, stock, product status and plan entitlements; seller cannot exceed plan or access another store | Catalogue schema, storage, plan enforcement, mobile QA |
+| EV-03 | Payment and order integrity | BLOCKED | Server-side price/variant validation; successful, failed, pending and duplicate webhook paths; immutable payment/order snapshots; reconciliation and refund paths proven in sandbox; no false paid orders | Checkout migrations, security CI, staging rollout, Paystack sandbox |
+| EV-04 | Seller identity and store verification | PLANNED | Prembly sandbox integration for supported checks; secure evidence handling; status transitions, idempotency, audit trail and manual review; non-CAC sellers have a documented alternative path where legally appropriate | EV-03 payment baseline; Prembly endpoint/payload validation; sandbox wallet/API access |
+| EV-05 | Security, reliability and recovery | IN PROGRESS | RLS/RPC boundary tests, role isolation, secret hygiene, webhook signature verification, backup/restore exercise, monitoring and incident process | EV-01 to EV-04 |
+| EV-06 | Seller operations, settlement and admin control plane | IN PROGRESS | Seller order queues and transitions; auditable commission/ledger; prompt settlement eligibility rules; actual provider transfer/reconciliation; admin can manage Everneed's own official store with controlled privileges | Payment integrity, finance ledger and payout provider support |
+| EV-07 | Controlled seller/customer validation | PLANNED | Invited cohort completes meaningful listings, paid orders, fulfilment and support; measurable feedback and operational evidence | EV-01 to EV-06 |
+| EV-08 | Controlled beta launch | PLANNED | Limited market/category rollout with support coverage, customer/seller policies, monitoring and rollback/pause process | EV-07; launch readiness approval |
+| EV-09 | Repeatable growth and monetisation | PLANNED | Seller activation/retention, customer repeat rate, GMV, net revenue, contribution margin and acquisition channels measured | Beta evidence |
+| EV-10 | Funding and strategic partnerships | PLANNED | Evidence-backed investor materials, financial assumptions, use of funds and accurately represented partnership status | Product and market evidence |
+| EV-11 | Ecosystem and geographic expansion | PROPOSED | Each new service/market has validated demand, operating owner, compliance, localisation and unit economics | Stable core marketplace |
+
+## Active engineering checkpoint — 19 November 2026
+
+### Payment and variant checkout (EV-03)
+
+**Current state**
+- Variant-aware Paystack checkout changes are in draft PR [#32](https://github.com/Connexa-hub/Everneed/pull/32), branch `feature/variant-checkout`, based on `web-portal`.
+- Server-side variant ownership/activity and price resolution, sale-window handling, variant ID preservation and inventory reservation/restoration contract have been implemented in the draft branch.
+- Paystack Deno type-check passed.
+- Variant checkout contract test 039 passed in the reported CI run; Phase 2 checks reported 93/93 passing.
+- A later authenticated-RPC security regression test still found an anonymous-accessible SECURITY DEFINER RPC. A diagnostic was committed to identify the exact routine and ACL. The newest diagnostic run has not yet returned results.
+
+**Not yet proven / do not claim**
+- The draft checkout migrations have not been applied to staging.
+- The updated Paystack Edge Function has not been deployed to staging.
+- No end-to-end Paystack sandbox payment and webhook reconciliation has been confirmed.
+- Variant purchasing must remain disabled until CI and staging acceptance checks pass.
+- Production has not been changed.
+
+**Next acceptance sequence**
+1. Resolve the exact anonymous RPC grant regression and obtain green full CI.
+2. Review and apply the missing migrations to staging in strict dependency order; verify schema and ACLs.
+3. Deploy the reviewed Paystack Edge Function to staging only, with required secrets already configured server-side.
+4. Run sandbox checkout tests for success, decline/failure, pending, duplicate webhook, wrong amount/currency, invalid/inactive variant, stock race and cancellation restoration.
+5. Verify payment attempts, order snapshots, seller orders, inventory movements and finance journal reconcile exactly.
+6. Record evidence in the tracker and keep PR #32 draft until owner-approved review.
+
+### Prembly verification (EV-04)
+
+**Current state**
+- Prembly connection is confirmed in Sandbox environment.
+- Targeted endpoint discovery returned Nigeria identity and business-check endpoint definitions, including BVN, NIN, phone and CAC categories.
+- Sandbox wallet was reported as ₦0.00.
+- No Prembly verification request has been confirmed and no Prembly integration is currently considered live.
+
+**Next acceptance sequence**
+1. Inspect the current store verification schema, RPCs, Edge Functions and secret names without exposing secret values.
+2. Confirm exact sandbox endpoint IDs, required payloads, response fields, pricing and wallet requirements from Prembly's current endpoint definitions.
+3. Implement provider calls server-side only; add request idempotency, rate limiting, audit events, safe redaction and controlled status transitions.
+4. Support manual review and an appropriate individual/non-CAC seller path; never treat BVN/NIN as proof of CAC incorporation.
+5. Test approved, rejected, pending, provider-error, duplicate and retry outcomes in sandbox.
+6. Document wallet funding requirements and obtain explicit approval before any live verification spend.
+
+## Cross-cutting product quality requirements
+
+- Mobile-first: support 360–412 px screens, low-mid Android hardware, older WebViews, low bandwidth and bright outdoor conditions.
+- Use strong contrast, lightweight assets and clear loading, empty, error and retry states.
+- Touch targets should be at least 44 px where practical.
+- Keep seller identity visible on product listings and product detail pages.
+- Preserve existing detailed product fields; do not simplify the product editor into a name/price-only form.
+- Enforce permissions and plan entitlements on the server, not only by hiding UI controls.
+- Treat admin capabilities as privileged, auditable operations.
+- Keep secrets server-side and never commit credentials.
+
+## Rules for AI agents and contributors
+
+This section is deliberately explicit so other AI systems can safely continue the project.
+
+1. Read this file, [AI protocol](docs/WORKFLOW/AI_PROTOCOL.md), [environment guide](docs/WORKFLOW/ENVIRONMENTS.md), [database contract](docs/WORKFLOW/DB_CONTRACT.md) and [project tracker](docs/WORKFLOW/WEBSITE_TRACKER.md) before editing.
+2. Verify the current branch, commit SHA, PR state, CI status, staging migration ledger and deployed Edge Function version before making assumptions.
+3. Treat repository code, migration files, tests and documentation as separate evidence types. Do not infer a deployed feature from code presence.
+4. Make additive, reviewed database changes. Keep migration filenames, replay manifest and staging migration history aligned.
+5. Use staging for integration tests. Do not reset, seed test fixtures into, deploy functions to or apply development migrations to production.
+6. Never merge PRs, deploy production, enable live payments, send real transfers or spend on live identity checks without explicit owner approval.
+7. Never print, copy into docs, or request credentials in chat. Inspect secret names/configuration only; keep values in the secret manager.
+8. Report exact test names and results. Distinguish passed, failed, skipped, pending and not run.
+9. Do not bypass failing security tests by weakening assertions or broadening anonymous grants. Diagnose the exact function and least-privilege fix.
+10. When a task is blocked, state the blocker and the smallest safe next action. Do not claim success without tool-confirmed evidence.
+
+## Source-of-truth documents
+
+- [Detailed business strategy and stage roadmap](docs/STRATEGY/MASTER_ROADMAP.md)
+- [Project tracker and current engineering status](docs/WORKFLOW/WEBSITE_TRACKER.md)
+- [AI collaboration and repository protocol](docs/WORKFLOW/AI_PROTOCOL.md)
+- [Environment separation and release controls](docs/WORKFLOW/ENVIRONMENTS.md)
+- [Database schema/security contract](docs/WORKFLOW/DB_CONTRACT.md)
+- [Variant checkout backend contract](docs/WORKFLOW/VARIANT_CHECKOUT_BACKEND_PHASE.md)
+- [Seller product catalogue backend handoff](docs/WORKFLOW/SELLER_PRODUCT_CATALOG_BACKEND_HANDOFF.md)
+
+---
+
+**Roadmap integrity statement:** this document describes the intended sequence and the evidence currently available as of its status date. It is not a launch announcement, service guarantee, funding claim or certification of security/compliance.
