@@ -512,3 +512,16 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Cash buyer wallet top-up, peer transfers and bank cash-out are not authorised for launch without Nigeria-specific legal review and a licensed issuing/custody partner. Seller wallet is initially a settlement ledger, not an e-money account.
 
 - FIN-00 function-level staging audit completed and documented. Important legacy gaps: `record_payout` only records a manual payout (no provider transfer); `refund` marks refund processed and posts legacy seller/commission reversals without calling Paystack; `confirm_payment_core` posts single-entry sale/commission rows and does not create balanced journal allocations; `redeem_offer` increments only a global usage counter. Payment attempt settlement has strong snapshot/amount/currency/reference checks and must be preserved. Full details in `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` sections 22–23.
+
+
+
+
+## Finance audit continuation checkpoint — 19 Nov 2026
+
+- FIN-00 function-level staging audit is complete; details are in `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` sections 22–24.
+- Cancellation of a paid seller order currently creates an `approved` refund and reverses legacy ledger rows, but does not execute a Paystack refund. Do not show this as a completed customer refund.
+- `mark_delivered` verifies delivery and updates order/seller-order/delivery records; it does not initiate a seller transfer. `seller_orders.released` is an operational acceptance/release flag, not withdrawable cash.
+- Payment recovery uses bounded leases, idempotency and strict immutable-snapshot/amount/currency/reference validation; preserve these controls.
+- Existing triggers protect checkout snapshots and legacy ledger core fields. Privileged RPCs are role-restricted; new finance SECURITY DEFINER functions must use an empty search path and schema-qualified references.
+- FIN-01 posting contract is documented but not migrated. No wallet/journal schema was added in this checkpoint.
+- Current PR #32 head at checkpoint: `2e0b9554f9b27352d2b16f8ff597786b37d8815c`. Migration validation and Android build workflows passed (runs 44543116567 and 44543116525). PR remains draft/open/unmerged; production untouched.
