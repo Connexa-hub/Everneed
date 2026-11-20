@@ -42,12 +42,16 @@ begin
   if v_order_id is null or v_snapshot->>'schema_version'<>'2' then
     raise exception 'Atomic wrapper did not return the v2 snapshot.';
   end if;
+  select commission_rate into v_rate from public.order_item_fees f
+    join public.order_items i on i.id=f.order_item_id where i.order_id=v_order_id;
+  v_commission:=(v_snapshot->'amounts'->>'commission_minor')::bigint;
+  v_payable:=(v_snapshot->'amounts'->>'seller_payable_minor')::bigint;
   if (v_snapshot->'amounts'->>'gross_merchandise_minor')::bigint<>10000
      or (v_snapshot->'amounts'->>'net_merchandise_minor')::bigint<>8000
      or (v_snapshot->'amounts'->>'platform_funded_discount_minor')::bigint<>2000
-     or (v_snapshot->'amounts'->>'seller_payable_minor')::bigint<>9000
-     or (v_snapshot->'amounts'->>'commission_minor')::bigint<>1000 then
-    raise exception 'Atomic wrapper allocation values are incorrect.';
+     or v_commission<>round(10000*v_rate/100)::bigint
+     or v_payable<>10000-v_commission then
+    raise exception 'Atomic wrapper allocation values do not reconcile with persisted commission policy.';
   end if;
   if not exists(select 1 from private.order_financial_snapshots_v2 where order_id=v_order_id)
      or not exists(select 1 from public.orders where id=v_order_id and financial_offer_id=v_offer and checkout_snapshot_version=1) then
