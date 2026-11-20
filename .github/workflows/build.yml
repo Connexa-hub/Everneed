@@ -94,6 +94,8 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/042_fin02a_store_totals_validation_checks.sql
       - name: FIN-02A funding RPC least-privilege ACL tests (043)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/043_fin02a_rpc_acl_tightening_checks.sql
+      - name: FIN-02A consent audit actor attribution tests (044)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/044_fin02a_consent_audit_actor_checks.sql
       - name: Seller onboarding, plan entitlement and quota tests (034)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
 
