@@ -68,7 +68,7 @@ begin
      or jsonb_typeof(p_payload->'amounts') <> 'object'
      or jsonb_typeof(p_payload->'items') <> 'array'
      or jsonb_typeof(p_payload->'pricing') <> 'object'
-     or jsonb_typeof(p_payload->'policy') <> 'object' then
+     or jsonb_typeof(p_payload->'policy') <> 'object'\n     or jsonb_typeof(p_payload->'store_allocations') <> 'array' then
     raise exception 'Snapshot v2 structure is incomplete.';
   end if;
   v_items := p_payload->'items';
