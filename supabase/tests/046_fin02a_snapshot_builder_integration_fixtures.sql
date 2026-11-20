@@ -16,8 +16,10 @@ declare
   v_res uuid;
   v_amount bigint;
 begin
-  select id into v_uid from auth.users limit 1;
-  if v_uid is null then raise exception 'Test requires an auth user fixture.'; end if;
+  v_uid:=gen_random_uuid();
+  insert into auth.users(id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
+  values(v_uid,'authenticated','authenticated','fin02a-fixture-'||v_uid::text||'@example.test','',
+    '{}'::jsonb,'{}'::jsonb,now(),now());
 
   insert into public.offers(id,name,kind,value,scope,code,active)
   values(v_offer,'Snapshot test promotion','fixed',20,'all','FIN02A_TEST_'||substr(v_offer,1,8),true);
