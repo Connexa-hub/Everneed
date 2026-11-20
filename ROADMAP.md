@@ -237,3 +237,8 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 - Staging ACL review found service_role EXECUTE on seller consent and admin campaign-budget RPCs. Although auth.uid checks would reject calls without user identity, permissions were broader than intended.
 - Migration 040 explicitly removes service_role EXECUTE from those three human-facing RPCs. Test 043 passed on staging. Authenticated role retains intended access; snapshot persistence remains service-role-only. Production untouched.
 - See finance architecture section 38.
+
+
+## 20 Nov 2026 — FIN-02A consent audit actor fix
+- Migration 041 corrected the seller-consent audit trigger to record the current actor (auth.uid()) rather than only the original consent owner. Test 044 passed against staging.
+- No campaign consent/offer state changed; production untouched. See finance architecture section 39.
