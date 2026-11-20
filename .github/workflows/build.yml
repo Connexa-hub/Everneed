@@ -98,6 +98,8 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/044_fin02a_consent_audit_actor_checks.sql
       - name: FIN-02A v2 checkout builder integration tests (045)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/045_fin02a_checkout_snapshot_builder_checks.sql
+      - name: FIN-02A platform and seller-funded snapshot builder fixtures (046)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/046_fin02a_snapshot_builder_integration_fixtures.sql
       - name: Seller onboarding, plan entitlement and quota tests (034)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
 
