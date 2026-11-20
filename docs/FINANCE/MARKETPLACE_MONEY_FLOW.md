@@ -1080,3 +1080,27 @@ Migration `040_fin02a_rpc_acl_tightening.sql` explicitly revokes EXECUTE from `s
 ## 39. FIN-02A consent audit actor correction — 20 Nov 2026
 
 A further audit review found the consent-history trigger was attributing a revoke/change event to the original consent owner instead of the current actor. Migration `041_fin02a_consent_audit_actor.sql` corrects attribution to `auth.uid()` when available, with the recorded consent owner as a system-context fallback. Test 044 passed on staging after migration. This closes an audit-identity defect; no business funding settings or offers were changed. Production untouched.
+
+
+## 40. FIN-02A deterministic builder and card-checkout integration — 20 Nov 2026
+
+Migration `042_fin02a_snapshot_builder_checkout_integration.sql` adds `orders.financial_offer_id` and the private deterministic builder `private.build_order_financial_snapshot_v2`. It reads the immutable v1 quote, persisted order items and frozen `order_item_fees.commission_rate`, and active seller funding consent. Missing seller consent means the platform-funded share is 100%; any non-zero platform share requires an explicit approved offer/currency budget. Seller-funded discounts reduce seller consideration before commission; platform-funded discount does not. The builder uses migration 035's minor-unit allocator, creates exact budget reservations, builds per-item and per-store totals, and persists v2.
+
+The new service-only `public.create_order_with_financial_snapshot_v2` wrapper calls the existing `create_order_with_snapshot` (which remains the authority for stock, order, seller-order and offer redemption), saves the selected offer identity, and builds v2 in the same transaction. Any failure rolls back all of these. The Paystack Edge Function's card-create path now calls this v2 wrapper in the source branch; manual transfer/other legacy paths remain unchanged. The branch is not deployed.
+
+### Atomic checkout fixture
+- Test 048 creates a rollback fixture with a real merchant product, offer, quote, order and v2 allocation through the actual wrapper.
+- Staging test passed: gross NGN 10,000 minor, buyer net 8,000, platform discount 2,000, commission 1,000, seller payable 9,000; campaign reservation exactly 2,000.
+- The fixture confirms quote v1 and offer identity are stored, v2 is created and the budget reservation is attached. All fixture rows rolled back.
+
+## 41. FIN-02A campaign reservation lifecycle and quote identity hardening — 20 Nov 2026
+
+Migration `043_fin02a_campaign_reservation_lifecycle.sql` adds an order transition trigger: when payment becomes paid, active campaign reservations are consumed atomically; when an unpaid order is cancelled, active reservations are released. Duplicate transitions are safe because the reservation functions are state-idempotent. A failed payment attempt alone does not release a hold, because retry may remain available; holds are released on cancellation/expiry only when the order actually transitions to cancelled. Automatic order-expiry policy/scheduler wiring remains pending.
+
+Migration `044_fin02a_snapshot_quote_identity_guard.sql` strengthens the snapshot INSERT guard to match the v2 order/offer identity, currency/exponent, v1 quote gross/net, delivery, total and discount, plus reservation-ID references. It rejects any v2 snapshot whose parent quote or funding reservation references diverge.
+
+- Tests 046–049 passed against staging: platform-funded and seller-funded builder cases; consume-on-paid and release-on-cancel lifecycle; actual atomic checkout wrapper; snapshot quote identity and ACL contract.
+- Migrations 042–044 applied to staging only. CI migration manifest passes on head `6f9b34d42dcfb1607ab5e6516a5d2fb0867a36ed`; Android/database workflow pending.
+- No production deployment, real checkout, order, payment, budget spend, journal posting or seller payout occurred. Staging fixtures were rolled back.
+
+**Remaining gates:** test multi-item/multi-store rounding and foreign-currency FX; campaign redemption concurrency and insufficient-budget rollback; inventory/variant integration; cancel/expiry automation; verified Paystack success + duplicate webhook + refund/reconciliation; then a finance-approved migration plan for existing promotions. Do not activate seller settlement/journal posting from v2 until those gates pass.
