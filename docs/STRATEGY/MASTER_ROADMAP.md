@@ -696,3 +696,9 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 - Catalog confirms private allocation helper exists; EXECUTE denied to anon, authenticated and service_role. No order/payment/journal/payout data changed; production untouched.
 - Migration-file workflow passed at head ffb6b6f. Android/database CI was queued behind an earlier build; verify the latest head before claiming CI-green.
 - Next: seller consent, approved currency budgets, atomic reservations/release, immutable financial allocation snapshot and checkout integration.
+
+
+## 20 Nov 2026 — FIN-02A funding controls checkpoint
+- Added migrations 036/037: seller per-offer/store funding consent (owner-verified RPC), admin-approved currency-specific campaign budget, idempotent order-keyed atomic reservation/consume/release, and append-only consent/reservation event audits.
+- Added contract test 040 and CI invocation; staging migrations applied and test ran successfully with rollback fixtures. Existing checkout, payments, journals and balances untouched; production untouched.
+- Controls are not connected to offers/checkout yet. Next: immutable v2 allocation snapshot persistence and a separately tested checkout integration path. See finance architecture section 35.
