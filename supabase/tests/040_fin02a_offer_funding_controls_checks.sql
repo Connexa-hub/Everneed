@@ -50,6 +50,11 @@ begin
     where offer_id=v_offer and currency='NGN' and reserved_minor=0 and consumed_minor=4000) then
     raise exception 'Release did not restore reserved budget';
   end if;
+  if (select count(*) from private.offer_budget_reservation_events e
+      join private.offer_budget_reservations r on r.id=e.reservation_id
+      where r.offer_id=v_offer) < 4 then
+    raise exception 'Reservation event audit is incomplete';
+  end if;
 
   v_failed := false;
   begin
