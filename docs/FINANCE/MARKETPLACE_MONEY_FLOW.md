@@ -1042,3 +1042,20 @@ Migration `037_fin02a_funding_audit_events.sql` adds append-only audit event tab
 - CI replay manifest and database workflow now include migrations 036/037 and test 040. Confirm current branch-head CI before declaring this checkpoint green.
 
 **Remaining gate:** the controls are infrastructure only. Next implement immutable schema-v2 item/store financial allocation snapshot persistence with funding-source provenance and budget reservation IDs, then add checkout integration in a separate forward-only path. Do not enable promotion spend, settle schema-v2 orders or post journal entries until end-to-end tests prove funding, FX, rounding, budget reservation, cancellation and verified payment reconciliation.
+
+
+## 36. FIN-02A immutable financial snapshot v2 persistence boundary — 20 Nov 2026
+
+Migration `038_fin02a_snapshot_v2_storage.sql` adds a private immutable table for schema-v2 allocations and a service-role-only persistence RPC. The v2 record is separate from and does not overwrite checkout snapshot v1.
+
+The persistence boundary validates schema/order identity, currency and exponent, policy provenance fields, per-item numeric shape and arithmetic (discount split, seller consideration, commission and seller payable), unique item IDs, aggregate totals and the balanced merchandise allocation invariant. It verifies the order is awaiting payment and has a v1 quote, that v2 currency/total/delivery/discount match the persisted quote, and that each item ID/store/gross/commission rate matches the stored order item and fee record. If platform-funded discounts exist, supplied campaign reservation IDs must belong to that order/currency, remain reserved, and sum exactly to the platform-funded discount. The snapshot is hashed on persistence and updates/deletes are blocked by a trigger.
+
+This is a persistence/validation boundary—not a builder or checkout integration. The caller must still construct complete item and store allocation records from trusted persisted values, seller consent, versioned commission rules and quote FX provenance. The RPC is service-role-only; the private table is not API-readable. The current migration does not release/consume reservations or post journals. Schema-v1 orders/payment flows remain unchanged.
+
+### Staging validation
+- Migration 038 applied to staging only.
+- Contract test 041 passed against staging with rolled-back fixtures, verifying table/trigger existence, API table/RPC privilege boundaries and rejection of malformed snapshot structure.
+- Migration replay workflow passed on current head `9feb28032894dab680171a33d78ca6d520c1ad7d`; Android/database workflow was still queued at this checkpoint.
+- Production untouched. No actual v2 snapshot, checkout, payment, journal or payout was created.
+
+**Next:** implement a deterministic snapshot builder that calculates and cross-checks per-store aggregates, then a new checkout wrapper that creates order + v1 quote + v2 allocation + campaign reservations atomically. Run variant, promotion, concurrent budget, FX, rounding, payment retry/verification, cancellation/release and refund suites before enabling any v2 settlement path.
