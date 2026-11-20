@@ -1021,3 +1021,24 @@ Post-application catalog checks confirm the function exists and EXECUTE is denie
 The GitHub migration-file workflow passed for branch head `ffb6b6f5029d9950249935bf78458e5a52169831`. The Android/database build workflow was queued behind an earlier in-progress build at the time of this verification; do not mark the latest head CI-green until its own run completes.
 
 Next FIN-02A tasks remain: explicit seller funding consent, management-approved currency-specific platform campaign budgets, atomic budget reservations and release, immutable financial allocation snapshot persistence, and wiring into the card checkout wrapper only after regression tests. The arithmetic helper alone does not make a discounted order settlement-ready.
+
+
+## 35. FIN-02A seller funding consent and campaign budget controls — 20 Nov 2026
+
+Migration `036_fin02a_offer_funding_controls.sql` adds isolated private records for per-offer/per-store seller funding consent, approved campaign budgets by offer and currency, and order-keyed budget reservations.
+
+- Seller consent RPCs verify the authenticated user owns the store. Seller funding is stored in basis points (0–10,000); the remaining share is explicitly platform-funded. Consent can be revoked. Checkout integration must require current consent for the seller-funded share and an approved budget for any platform-funded share; no default or legacy offer funding is inferred.
+- Admin budget approval RPC checks the authenticated profile role and requires a currency, amount in integer minor units and approval note. Budget is not allowed to fall below existing reserved + consumed amounts (table check constraint).
+- Private reservation/consume/release functions are idempotent by order/offer/currency. They lock the budget row, reserve only within the approved ceiling, move held amounts to consumed after the payment-confirmation integration, and release holds only for pre-consumption cancellation/failure/expiry. Consumed campaign spend is not automatically reversed by a refund.
+- Tables have no API-role grants; seller/admin changes use authenticated RPCs, while reservation lifecycle functions are private to trusted SECURITY DEFINER code. This migration is not wired into checkout or offer redemption.
+
+Migration `037_fin02a_funding_audit_events.sql` adds append-only audit event tables and triggers for consent create/change/revoke and budget reservation hold/consume/release transitions. These records retain previous/new funding shares and lifecycle status changes. Audit tables are private and not API-readable.
+
+### Staging validation
+
+- Applied migrations 036 and 037 to Everneed staging only.
+- Executed contract test `040_fin02a_offer_funding_controls_checks.sql` successfully; fixtures were rolled back. It covers idempotent reservation, budget ceiling rejection, consume/release transitions, event audit rows and API privilege boundaries.
+- Existing orders, checkout, payment attempts, journals and seller balances were not changed. No campaign or seller consent was activated on a real offer. Production remains untouched.
+- CI replay manifest and database workflow now include migrations 036/037 and test 040. Confirm current branch-head CI before declaring this checkpoint green.
+
+**Remaining gate:** the controls are infrastructure only. Next implement immutable schema-v2 item/store financial allocation snapshot persistence with funding-source provenance and budget reservation IDs, then add checkout integration in a separate forward-only path. Do not enable promotion spend, settle schema-v2 orders or post journal entries until end-to-end tests prove funding, FX, rounding, budget reservation, cancellation and verified payment reconciliation.
