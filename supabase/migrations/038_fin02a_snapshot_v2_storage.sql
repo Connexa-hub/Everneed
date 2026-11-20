@@ -1,5 +1,5 @@
 -- FIN-02A: immutable schema-v2 financial allocation snapshot persistence.
--- This is a storage/validation boundary only; checkout does not call it yet.
+-- Storage/validation boundary only; checkout does not call this yet.
 begin;
 
 create table if not exists private.order_financial_snapshots_v2 (
@@ -11,7 +11,6 @@ create table if not exists private.order_financial_snapshots_v2 (
   budget_reservation_ids uuid[] not null default '{}',
   created_at timestamptz not null default now()
 );
-
 revoke all on private.order_financial_snapshots_v2 from public, anon, authenticated, service_role;
 
 create or replace function private.guard_order_financial_snapshot_v2()
@@ -28,13 +27,9 @@ before update or delete on private.order_financial_snapshots_v2
 for each row execute function private.guard_order_financial_snapshot_v2();
 
 create or replace function public.persist_order_financial_snapshot_v2(
-  p_order_id text,
-  p_payload jsonb,
-  p_budget_reservation_ids uuid[] default '{}'
+  p_order_id text, p_payload jsonb, p_budget_reservation_ids uuid[] default '{}'
 ) returns jsonb
-language plpgsql
-security definer
-set search_path = ''
+language plpgsql security definer set search_path = ''
 as $$
 declare
   v_order public.orders%rowtype;
@@ -53,7 +48,6 @@ declare
   v_total numeric;
   v_reserved numeric;
   v_hash text;
-  v_item record;
 begin
   if coalesce(auth.role(),'') <> 'service_role' then
     raise exception 'Service role required.';
@@ -63,21 +57,26 @@ begin
      or p_budget_reservation_ids is null then
     raise exception 'Invalid financial snapshot input.';
   end if;
-  if p_payload->>'schema_version' <> '2'
+  if p_payload->>'schema_version' is distinct from '2'
      or p_payload->>'order_id' is distinct from p_order_id
      or jsonb_typeof(p_payload->'amounts') <> 'object'
      or jsonb_typeof(p_payload->'items') <> 'array'
      or jsonb_typeof(p_payload->'pricing') <> 'object'
-     or jsonb_typeof(p_payload->'policy') <> 'object'\n     or jsonb_typeof(p_payload->'store_allocations') <> 'array' then
+     or jsonb_typeof(p_payload->'policy') <> 'object'
+     or jsonb_typeof(p_payload->'store_allocations') <> 'array' then
     raise exception 'Snapshot v2 structure is incomplete.';
   end if;
+
   v_items := p_payload->'items';
   v_item_count := jsonb_array_length(v_items);
   if v_item_count not between 1 and 50 then raise exception 'Snapshot v2 item count is invalid.'; end if;
   v_currency := upper(p_payload->>'currency');
   v_exponent := (p_payload->>'currency_exponent')::smallint;
-  if v_currency !~ '^[A-Z]{3}$' or v_exponent not between 0 and 6 then
-    raise exception 'Snapshot currency or exponent is invalid.';
+  if v_currency !~ '^[A-Z]{3}$' or v_exponent not between 0 and 6
+     or coalesce(length(trim(p_payload->'pricing'->>'pricing_policy_version')),0) not between 1 and 80
+     or coalesce(length(trim(p_payload->'policy'->>'commission_policy_version')),0) not between 1 and 80
+     or coalesce(length(trim(p_payload->'policy'->>'discount_funding_policy_version')),0) not between 1 and 80 then
+    raise exception 'Snapshot currency, exponent or policy provenance is invalid.';
   end if;
 
   if exists (
@@ -142,7 +141,7 @@ begin
   v_delivery := (p_payload->'amounts'->>'delivery_fee_minor')::numeric;
   v_total := (p_payload->'amounts'->>'total_minor')::numeric;
   if v_delivery is null or v_delivery < 0 or v_delivery <> trunc(v_delivery)
-     or v_total is null or v_total <> trunc(v_total)
+     or v_total is null or v_total < 0 or v_total <> trunc(v_total)
      or v_gross > 9223372036854775807 or v_total > 9223372036854775807
      or v_discount <> v_gross-v_net
      or v_payable+v_commission <> v_net+v_platform_discount
@@ -159,9 +158,13 @@ begin
   select * into strict v_order from public.orders where id=p_order_id for update;
   if v_order.checkout_snapshot is null or v_order.checkout_snapshot_version <> 1
      or upper(v_order.currency) <> v_currency
-     or v_order.payment_status not in ('awaiting_payment','awaiting_transfer') then
-    raise exception 'Order is not eligible for a financial snapshot v2.';
+     or v_order.payment_status not in ('awaiting_payment','awaiting_transfer')
+     or v_total <> round(v_order.total*100)::numeric
+     or v_delivery <> round(v_order.delivery_fee*100)::numeric
+     or v_discount <> round(coalesce(v_order.discount,0)*100)::numeric then
+    raise exception 'Order is not eligible or snapshot amounts differ from immutable checkout quote.';
   end if;
+
   if exists (
     select 1 from jsonb_to_recordset(v_items) as x(
       order_item_id text,store_id text,gross_minor bigint,commission_rate numeric
@@ -173,7 +176,10 @@ begin
       or f.commission_rate is distinct from x.commission_rate
   ) then raise exception 'Snapshot v2 items do not match persisted checkout lines or commission policy.'; end if;
 
-  if cardinality(p_budget_reservation_ids) > 20 then raise exception 'Too many campaign reservations.'; end if;
+  if cardinality(p_budget_reservation_ids) > 20
+     or cardinality(p_budget_reservation_ids) <> cardinality(array(select distinct x from unnest(p_budget_reservation_ids) x)) then
+    raise exception 'Campaign reservation identifiers must be unique and bounded.';
+  end if;
   select coalesce(sum(r.amount_minor),0) into v_reserved
     from private.offer_budget_reservations r
    where r.id = any(p_budget_reservation_ids)
@@ -182,7 +188,7 @@ begin
     raise exception 'Campaign reservation amount must exactly match platform-funded discount.';
   end if;
   if v_platform_discount=0 and cardinality(p_budget_reservation_ids)<>0 then
-    raise exception 'Unexpected campaign reservations for a zero platform subsidy.';
+    raise exception 'Unexpected campaign reservations for zero platform subsidy.';
   end if;
 
   v_hash := encode(extensions.digest(convert_to(p_payload::text,'UTF8'),'sha256'),'hex');
@@ -198,6 +204,6 @@ grant execute on function public.persist_order_financial_snapshot_v2(text,jsonb,
 comment on table private.order_financial_snapshots_v2 is
   'Immutable, validated per-item/store financial allocation snapshot. No checkout/payment/settlement integration is enabled yet.';
 comment on function public.persist_order_financial_snapshot_v2(text,jsonb,uuid[]) is
-  'Service-role-only validated persistence boundary for FIN-02A schema-v2 allocations; requires an existing immutable checkout snapshot v1 and campaign reservations matching platform-funded subsidy.';
+  'Service-role-only validated persistence boundary for FIN-02A schema-v2 allocations; requires v1 quote and campaign reservations matching platform-funded subsidy.';
 
 commit;
