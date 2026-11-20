@@ -1103,3 +1103,8 @@ Migration `044_fin02a_snapshot_quote_identity_guard.sql` strengthens the snapsho
 - No production deployment, real checkout, order, payment, budget spend, journal posting or seller payout occurred. Staging fixtures were rolled back.
 
 **Remaining gates:** test multi-item/multi-store rounding and foreign-currency FX; campaign redemption concurrency and insufficient-budget rollback; inventory/variant integration; cancel/expiry automation; verified Paystack success + duplicate webhook + refund/reconciliation; then a finance-approved migration plan for existing promotions. Do not activate seller settlement/journal posting from v2 until those gates pass.
+
+
+## 42. FIN-02A card-only wrapper scope — 20 Nov 2026
+
+Migration `045_fin02a_card_checkout_wrapper_scope.sql` adds an explicit `p_pm='card'` guard to the v2 atomic wrapper. This prevents service-role callers from accidentally using the new funding snapshot path for transfer, WhatsApp or other legacy payment methods while those flows remain unintegrated. Test 050 passed against staging; test 048 still passed through the actual card wrapper. Migration 045 is staging-only. Production untouched.
