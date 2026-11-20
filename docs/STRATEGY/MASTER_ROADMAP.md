@@ -702,3 +702,10 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 - Added migrations 036/037: seller per-offer/store funding consent (owner-verified RPC), admin-approved currency-specific campaign budget, idempotent order-keyed atomic reservation/consume/release, and append-only consent/reservation event audits.
 - Added contract test 040 and CI invocation; staging migrations applied and test ran successfully with rollback fixtures. Existing checkout, payments, journals and balances untouched; production untouched.
 - Controls are not connected to offers/checkout yet. Next: immutable v2 allocation snapshot persistence and a separately tested checkout integration path. See finance architecture section 35.
+
+
+## 20 Nov 2026 — FIN-02A snapshot-v2 persistence boundary
+- Added migration 038: immutable private v2 financial snapshot storage and service-role-only validation/persistence RPC. Checks per-item arithmetic, aggregate reconciliation, persisted quote consistency, item/store identity and campaign reservation references; v1 snapshot remains separate.
+- Added SQL test 041 and CI invocation. Migration applied to staging; contract test passed with rollback fixtures. No checkout integration, v2 snapshots, payments, journals or payouts created; production untouched.
+- Current migration replay workflow passed on head 9feb280; Android/database workflow is still pending. See finance architecture section 36.
+- Next gate: deterministic v2 builder/store aggregation and atomic checkout wrapper integration with regression coverage.
