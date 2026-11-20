@@ -726,3 +726,11 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 ## 20 Nov 2026 — FIN-02A consent audit actor fix
 - Migration 041 corrected the seller-consent audit trigger to record the current actor (auth.uid()) rather than only the original consent owner. Test 044 passed against staging.
 - No campaign consent/offer state changed; production untouched. See finance architecture section 39.
+
+
+## 20 Nov 2026 — FIN-02A atomic card checkout builder milestone
+- Migrations 042–044: atomic card-checkout v2 builder/wrapper, reservation consumption on paid and release on unpaid cancellation, and strict v2 parent-quote/offer/reservation identity guard.
+- Edge Function source now routes card-create through the new wrapper; legacy transfer/manual paths remain unchanged. Not deployed.
+- Staging tests 046–049 passed: platform subsidy, seller-funded discounts, actual wrapper with rollback fixtures, payment-consume/cancellation-release lifecycle, and quote identity checks. Staging-only, fixtures rolled back, no production or real payment activity.
+- Migration workflow passed at head 6f9b34d; Android/database CI pending. Finance architecture sections 40–41.
+- Next: multi-store/FX rounding, concurrency and insufficient-budget rollback, failed/expired attempt handling, variants, verified Paystack duplicate/refund/reconciliation, before journal/settlement activation.
