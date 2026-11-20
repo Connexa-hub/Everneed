@@ -30,7 +30,7 @@ begin
   begin
     perform public.persist_order_financial_snapshot_v2(
       'no-such-order',
-      jsonb_build_object('schema_version',2,'order_id','no-such-order','currency','NGN',
+      jsonb_build_object('schema_version',1,'order_id','no-such-order','currency','NGN',
         'currency_exponent',2,'amounts',jsonb_build_object(),'items',jsonb_build_array(),
         'pricing',jsonb_build_object(),'policy',jsonb_build_object(),'store_allocations',jsonb_build_array()),
       '{}'
