@@ -22,7 +22,7 @@ begin
   values(v_offer,'NGN',3000,gen_random_uuid(),'Approved rollback fixture budget');
 
   insert into public.products(id,name,col,price,store_id,status,stock,track_stock)
-  values(v_product,'FIN02A Atomic Test Product','other',100,'everneed-official','published',null,false);
+  values(v_product,'FIN02A Atomic Test Product','other',100,'382b84b5-5bd9-4448-bd07-b0bada0121ca','published',null,false);
 
   v_order := public.create_order_with_financial_snapshot_v2(
     v_uid,
