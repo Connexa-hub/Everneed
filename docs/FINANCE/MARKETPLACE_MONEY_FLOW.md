@@ -1089,9 +1089,8 @@ Migration `042_fin02a_snapshot_builder_checkout_integration.sql` adds `orders.fi
 The new service-only `public.create_order_with_financial_snapshot_v2` wrapper calls the existing `create_order_with_snapshot` (which remains the authority for stock, order, seller-order and offer redemption), saves the selected offer identity, and builds v2 in the same transaction. Any failure rolls back all of these. The Paystack Edge Function's card-create path now calls this v2 wrapper in the source branch; manual transfer/other legacy paths remain unchanged. The branch is not deployed.
 
 ### Atomic checkout fixture
-- Test 048 creates a rollback fixture with a real merchant product, offer, quote, order and v2 allocation through the actual wrapper.
-- Staging test passed: gross NGN 10,000 minor, buyer net 8,000, platform discount 2,000, commission 1,000, seller payable 9,000; campaign reservation exactly 2,000.
-- The fixture confirms quote v1 and offer identity are stored, v2 is created and the budget reservation is attached. All fixture rows rolled back.
+- Test 046's deterministic builder fixtures validate both funding models with a 10% frozen commission: platform-funded case gross NGN 10,000 minor, buyer net 8,000, platform discount 2,000, commission 1,000, seller payable 9,000; seller-funded case seller discount 2,000, commission 800, seller payable 7,200.
+- Test 048 executes the actual checkout wrapper using the seeded official store (zero commission by official-store policy) and asserts commission matches the persisted fee rate, seller payable reconciles, quote v1 and offer identity are stored, v2 is created and campaign reservation exactly equals platform discount 2,000. All fixtures rolled back.
 
 ## 41. FIN-02A campaign reservation lifecycle and quote identity hardening — 20 Nov 2026
 
