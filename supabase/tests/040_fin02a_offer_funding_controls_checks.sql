@@ -39,7 +39,7 @@ begin
   if not exists(select 1 from private.offer_campaign_budgets
     where offer_id=v_offer and currency='NGN' and reserved_minor=0 and consumed_minor=4000) then
     raise exception 'Consumption or idempotent consume did not reconcile';
-  end;
+  end if;
 
   v_res := private.reserve_offer_campaign_budget(v_order || '-release',v_offer,'NGN',3000);
   perform private.release_offer_campaign_reservation(v_res,'test cancellation');
@@ -47,7 +47,7 @@ begin
   if not exists(select 1 from private.offer_campaign_budgets
     where offer_id=v_offer and currency='NGN' and reserved_minor=0 and consumed_minor=4000) then
     raise exception 'Release did not restore reserved budget';
-  end;
+  end if;
 
   v_failed := false;
   begin
