@@ -1075,3 +1075,8 @@ Migration `039_fin02a_store_totals_validation.sql` adds a private pure validator
 A staging ACL audit after migrations 036–039 found that the human-facing seller-consent and admin-budget RPCs still inherited service-role EXECUTE through role grants. Their own `auth.uid()` checks would reject service-role calls without a user identity, but this was broader than the intended permission model.
 
 Migration `040_fin02a_rpc_acl_tightening.sql` explicitly revokes EXECUTE from `service_role` on seller consent, consent revocation and campaign budget approval; these functions remain authenticated-only with ownership/admin checks. The service role retains EXECUTE only on the snapshot persistence RPC. Test 043 passed against staging after applying migration 040. This is a least-privilege hardening correction, not a checkout integration. Production untouched.
+
+
+## 39. FIN-02A consent audit actor correction — 20 Nov 2026
+
+A further audit review found the consent-history trigger was attributing a revoke/change event to the original consent owner instead of the current actor. Migration `041_fin02a_consent_audit_actor.sql` corrects attribution to `auth.uid()` when available, with the recorded consent owner as a system-context fallback. Test 044 passed on staging after migration. This closes an audit-identity defect; no business funding settings or offers were changed. Production untouched.
