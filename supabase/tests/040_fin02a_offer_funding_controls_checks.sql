@@ -32,7 +32,7 @@ begin
     perform private.reserve_offer_campaign_budget(v_order || '-over',v_offer,'NGN',7000);
   exception when others then v_failed := true;
   end;
-  if not v_failed then raise exception 'Budget overspend reservation was accepted'; end;
+  if not v_failed then raise exception 'Budget overspend reservation was accepted'; end if;
 
   perform private.consume_offer_campaign_reservation(v_res);
   perform private.consume_offer_campaign_reservation(v_res);
@@ -54,7 +54,7 @@ begin
     perform private.release_offer_campaign_reservation(v_res,'cannot release consumed');
   exception when others then v_failed := true;
   end;
-  if not v_failed then raise exception 'Terminal reservation transition was accepted'; end;
+  if not v_failed then raise exception 'Terminal reservation transition was accepted'; end if;
 
   if has_function_privilege('anon','public.set_offer_store_funding_consent(text,text,integer)','EXECUTE')
      or has_function_privilege('anon','public.revoke_offer_store_funding_consent(text,text,text)','EXECUTE')
