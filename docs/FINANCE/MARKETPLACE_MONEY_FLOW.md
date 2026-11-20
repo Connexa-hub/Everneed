@@ -1059,3 +1059,12 @@ This is a persistence/validation boundary—not a builder or checkout integratio
 - Production untouched. No actual v2 snapshot, checkout, payment, journal or payout was created.
 
 **Next:** implement a deterministic snapshot builder that calculates and cross-checks per-store aggregates, then a new checkout wrapper that creates order + v1 quote + v2 allocation + campaign reservations atomically. Run variant, promotion, concurrent budget, FX, rounding, payment retry/verification, cancellation/release and refund suites before enabling any v2 settlement path.
+
+
+## 37. FIN-02A store allocation reconciliation guard — 20 Nov 2026
+
+Migration `039_fin02a_store_totals_validation.sql` adds a private pure validator and an INSERT trigger on the v2 snapshot table. It compares every store's gross, seller/platform-funded discount, commission and seller payable totals against the item-level allocation JSON, rejects missing/duplicate store summaries and mismatched values, and blocks API-role execution of the validator.
+
+- Applied migration 039 to staging.
+- Contract test 042 passed in staging with rollback fixtures, covering correct multi-store totals, mismatch rejection, trigger presence and API-role privilege boundaries.
+- This validates summaries supplied to the v2 persistence boundary; the deterministic builder and checkout integration remain unimplemented. Production untouched.
