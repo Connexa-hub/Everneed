@@ -633,3 +633,7 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Staging tests 046–049 passed: platform subsidy, seller-funded discounts, actual wrapper with rollback fixtures, payment-consume/cancellation-release lifecycle, and quote identity checks. Staging-only, fixtures rolled back, no production or real payment activity.
 - Migration workflow passed at head 6f9b34d; Android/database CI pending. Finance architecture sections 40–41.
 - Next: multi-store/FX rounding, concurrency and insufficient-budget rollback, failed/expired attempt handling, variants, verified Paystack duplicate/refund/reconciliation, before journal/settlement activation.
+
+
+## FIN-02A fixture clarification
+- The full atomic wrapper test 048 uses the baseline seeded Everneed official store (official-store commission is 0 by policy), and asserts the commission matches the persisted fee rate and seller payable reconciles. The explicit 10% math scenarios are in builder test 046. Platform budget reservation remains 2,000 minor units. All fixture rows rolled back.
