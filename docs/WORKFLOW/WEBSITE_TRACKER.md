@@ -637,3 +637,8 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 
 ## FIN-02A fixture clarification
 - The full atomic wrapper test 048 uses the baseline seeded Everneed official store (official-store commission is 0 by policy), and asserts the commission matches the persisted fee rate and seller payable reconciles. The explicit 10% math scenarios are in builder test 046. Platform budget reservation remains 2,000 minor units. All fixture rows rolled back.
+
+
+## 20 Nov 2026 — FIN-02A card-only guard
+- Migration 045 restricts the atomic v2 wrapper to `p_pm='card'`, so legacy transfer/other checkout methods cannot enter the new funding path accidentally. Test 050 passed staging; actual card wrapper fixture 048 still passed.
+- Migration 045 applied staging-only. Production untouched. See finance architecture section 42.
