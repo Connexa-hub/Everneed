@@ -614,3 +614,9 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Migration 039 adds a private pure validator + insert trigger to verify each store allocation summary exactly matches item-level amounts in v2 snapshots. Missing/duplicate stores and mismatched totals reject.
 - Test 042 executed successfully against staging with rollback fixtures; migration applied. Checkout remains unconnected and production untouched.
 - See finance architecture section 37. Next remains deterministic v2 builder + atomic checkout integration and full payment/promotion regressions.
+
+
+## 20 Nov 2026 — FIN-02A ACL correction
+- Staging ACL review found service_role EXECUTE on seller consent and admin campaign-budget RPCs. Although auth.uid checks would reject calls without user identity, permissions were broader than intended.
+- Migration 040 explicitly removes service_role EXECUTE from those three human-facing RPCs. Test 043 passed on staging. Authenticated role retains intended access; snapshot persistence remains service-role-only. Production untouched.
+- See finance architecture section 38.
