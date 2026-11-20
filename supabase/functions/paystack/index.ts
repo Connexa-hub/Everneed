@@ -288,7 +288,7 @@ Deno.serve(async (req) => {
       // Card checkout uses the snapshot wrapper. Manual/WhatsApp/POD flows retain
       // their existing path until their separate payment lifecycle is implemented.
       const { data: order, error } = pm === "card"
-        ? await db.rpc("create_order_with_snapshot", { ...createArgs, p_pricing_context: pr.pricingContext })
+        ? await db.rpc("create_order_with_financial_snapshot_v2", { ...createArgs, p_pricing_context: pr.pricingContext })
         : await db.rpc("create_order", createArgs);
       if (error) return json({ error: error.message }, 400);
       return json({ order });
