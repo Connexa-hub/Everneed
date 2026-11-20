@@ -16,8 +16,10 @@ declare
   v_commission bigint;
   v_payable bigint;
 begin
-  select id into v_uid from auth.users limit 1;
-  if v_uid is null then raise exception 'Test requires auth fixture.'; end if;
+  v_uid:=gen_random_uuid();
+  insert into auth.users(id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
+  values(v_uid,'authenticated','authenticated','fin02a-fixture-'||v_uid::text||'@example.test','',
+    '{}'::jsonb,'{}'::jsonb,now(),now());
 
   insert into public.offers(id,name,kind,value,scope,active)
   values(v_offer,'Atomic wrapper fixture','fixed',20,'all',true);
