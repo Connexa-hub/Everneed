@@ -11,7 +11,10 @@ declare
   v_order jsonb;
   v_order_id text;
   v_snapshot jsonb;
-  v_reservation bigint;\n  v_rate numeric;\n  v_commission bigint;\n  v_payable bigint;
+  v_reservation bigint;
+  v_rate numeric;
+  v_commission bigint;
+  v_payable bigint;
 begin
   select id into v_uid from auth.users limit 1;
   if v_uid is null then raise exception 'Test requires auth fixture.'; end if;
