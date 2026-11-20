@@ -12,6 +12,7 @@ declare
   v_item text;
   v_so text;
   v_snapshot jsonb;
+  v_v1 jsonb;
   v_res uuid;
   v_amount bigint;
 begin
