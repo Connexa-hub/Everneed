@@ -225,3 +225,9 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 - Added SQL test 041 and CI invocation. Migration applied to staging; contract test passed with rollback fixtures. No checkout integration, v2 snapshots, payments, journals or payouts created; production untouched.
 - Current migration replay workflow passed on head 9feb280; Android/database workflow is still pending. See finance architecture section 36.
 - Next gate: deterministic v2 builder/store aggregation and atomic checkout wrapper integration with regression coverage.
+
+
+## 20 Nov 2026 — FIN-02A store totals reconciliation guard
+- Migration 039 adds a private pure validator + insert trigger to verify each store allocation summary exactly matches item-level amounts in v2 snapshots. Missing/duplicate stores and mismatched totals reject.
+- Test 042 executed successfully against staging with rollback fixtures; migration applied. Checkout remains unconnected and production untouched.
+- See finance architecture section 37. Next remains deterministic v2 builder + atomic checkout integration and full payment/promotion regressions.
