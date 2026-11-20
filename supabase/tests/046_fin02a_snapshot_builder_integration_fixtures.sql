@@ -28,23 +28,20 @@ begin
   v_order := gen_random_uuid()::text;
   v_so := gen_random_uuid()::text;
   v_item := gen_random_uuid()::text;
-  insert into public.orders(id,user_id,items,total,country,pm,cust,status,payment_status,at,currency,discount,offer,delivery_fee,financial_offer_id)
+  v_v1 := jsonb_build_object('schema_version',1,'order_id',v_order,'currency','NGN','currency_exponent',2,
+      'pricing',jsonb_build_object('fx_rate',1,'fx_source','test','fx_fetched_at',now(),'markup_percent',0,'effective_rate',1,'pricing_policy_version','test-pricing-v1'),
+      'amounts',jsonb_build_object('gross_merchandise_minor',10000,'net_merchandise_minor',8000,'allocated_discount_minor',2000,
+        'delivery_fee_minor',0,'total_minor',8000),
+      'items',jsonb_build_array(jsonb_build_object('order_item_id',v_item,'gross_minor',10000,'net_refundable_minor',8000)));
+  insert into public.orders(id,user_id,items,total,country,pm,cust,status,payment_status,at,currency,discount,offer,delivery_fee,financial_offer_id,checkout_snapshot_version,checkout_snapshot,checkout_snapshot_hash)
   values(v_order,v_uid,'[]'::jsonb,80,'NG','card','{}'::jsonb,'awaiting_payment','awaiting_payment',
-    (extract(epoch from now())*1000)::bigint,'NGN',20,jsonb_build_object('name','Snapshot test promotion','kind','fixed','value',20),0,v_offer);
+    (extract(epoch from now())*1000)::bigint,'NGN',20,jsonb_build_object('name','Snapshot test promotion','kind','fixed','value',20),0,v_offer,
+    1,v_v1,encode(extensions.digest(convert_to(v_v1::text,'UTF8'),'sha256'),'hex'));
   insert into public.seller_orders(id,order_id,store_id,subtotal)
   values(v_so,v_order,v_store,100);
   insert into public.order_items(id,order_id,seller_order_id,store_id,name,size,unit_price,qty,line_total)
   values(v_item,v_order,v_so,v_store,'Test allocation item',null,100,1,100);
   insert into public.order_item_fees(order_item_id,commission_rate,commission_amount) values(v_item,10,10);
-  update public.orders set checkout_snapshot_version=1,
-    checkout_snapshot=jsonb_build_object('schema_version',1,'order_id',v_order,'currency','NGN','currency_exponent',2,
-      'pricing',jsonb_build_object('fx_rate',1,'fx_source','test','fx_fetched_at',now(),'markup_percent',0,'effective_rate',1,'pricing_policy_version','test-pricing-v1'),
-      'amounts',jsonb_build_object('gross_merchandise_minor',10000,'net_merchandise_minor',8000,'allocated_discount_minor',2000,
-        'delivery_fee_minor',0,'total_minor',8000),
-      'items',jsonb_build_array(jsonb_build_object('order_item_id',v_item,'gross_minor',10000,'net_refundable_minor',8000)))
-  where id=v_order;
-  update public.orders set checkout_snapshot_hash=encode(extensions.digest(convert_to(checkout_snapshot::text,'UTF8'),'sha256'),'hex')
-  where id=v_order;
 
   v_snapshot := private.build_order_financial_snapshot_v2(v_order);
   if (v_snapshot->'amounts'->>'platform_funded_discount_minor')::bigint<>2000
@@ -65,9 +62,15 @@ begin
   v_order := gen_random_uuid()::text;
   v_so := gen_random_uuid()::text;
   v_item := gen_random_uuid()::text;
-  insert into public.orders(id,user_id,items,total,country,pm,cust,status,payment_status,at,currency,discount,offer,delivery_fee,financial_offer_id)
+  v_v1 := jsonb_build_object('schema_version',1,'order_id',v_order,'currency','NGN','currency_exponent',2,
+      'pricing',jsonb_build_object('fx_rate',1,'fx_source','test','fx_fetched_at',now(),'markup_percent',0,'effective_rate',1,'pricing_policy_version','test-pricing-v1'),
+      'amounts',jsonb_build_object('gross_merchandise_minor',10000,'net_merchandise_minor',8000,'allocated_discount_minor',2000,
+        'delivery_fee_minor',0,'total_minor',8000),
+      'items',jsonb_build_array(jsonb_build_object('order_item_id',v_item,'gross_minor',10000,'net_refundable_minor',8000)));
+  insert into public.orders(id,user_id,items,total,country,pm,cust,status,payment_status,at,currency,discount,offer,delivery_fee,financial_offer_id,checkout_snapshot_version,checkout_snapshot,checkout_snapshot_hash)
   values(v_order,v_uid,'[]'::jsonb,80,'NG','card','{}'::jsonb,'awaiting_payment','awaiting_payment',
-    (extract(epoch from now())*1000)::bigint,'NGN',20,jsonb_build_object('name','Snapshot test promotion','kind','fixed','value',20),0,v_offer);
+    (extract(epoch from now())*1000)::bigint,'NGN',20,jsonb_build_object('name','Snapshot test promotion','kind','fixed','value',20),0,v_offer,
+    1,v_v1,encode(extensions.digest(convert_to(v_v1::text,'UTF8'),'sha256'),'hex'));
   insert into public.seller_orders(id,order_id,store_id,subtotal) values(v_so,v_order,v_store,100);
   insert into public.order_items(id,order_id,seller_order_id,store_id,name,size,unit_price,qty,line_total)
   values(v_item,v_order,v_so,v_store,'Test allocation item',null,100,1,100);
