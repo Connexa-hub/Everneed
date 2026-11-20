@@ -6,6 +6,7 @@ declare
   v_offer text := 'fin02a-budget-test-' || gen_random_uuid()::text;
   v_order text := 'fin02a-order-' || gen_random_uuid()::text;
   v_res uuid;
+  v_consumed uuid;
   v_failed boolean := false;
   v_uid uuid := gen_random_uuid();
 begin
@@ -34,6 +35,7 @@ begin
   end;
   if not v_failed then raise exception 'Budget overspend reservation was accepted'; end if;
 
+  v_consumed := v_res;
   perform private.consume_offer_campaign_reservation(v_res);
   perform private.consume_offer_campaign_reservation(v_res);
   if not exists(select 1 from private.offer_campaign_budgets
@@ -51,10 +53,10 @@ begin
 
   v_failed := false;
   begin
-    perform private.release_offer_campaign_reservation(v_res,'cannot release consumed');
+    perform private.release_offer_campaign_reservation(v_consumed,'cannot release consumed');
   exception when others then v_failed := true;
   end;
-  if not v_failed then raise exception 'Terminal reservation transition was accepted'; end if;
+  if not v_failed then raise exception 'Consumed reservation was released'; end if;
 
   if has_function_privilege('anon','public.set_offer_store_funding_consent(text,text,integer)','EXECUTE')
      or has_function_privilege('anon','public.revoke_offer_store_funding_consent(text,text,text)','EXECUTE')
