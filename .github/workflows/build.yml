@@ -88,6 +88,8 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/035_fin02a_allocation_math_checks.sql
       - name: FIN-02A offer funding consent and campaign budget tests (040)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/040_fin02a_offer_funding_controls_checks.sql
+      - name: FIN-02A immutable financial snapshot v2 storage tests (041)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/041_fin02a_snapshot_v2_storage_checks.sql
       - name: Seller onboarding, plan entitlement and quota tests (034)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
 
