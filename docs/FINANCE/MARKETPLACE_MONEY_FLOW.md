@@ -1125,3 +1125,10 @@ Migration `045_fin02a_card_checkout_wrapper_scope.sql` adds an explicit `p_pm='c
 - It asserts the checkout fails specifically for budget exhaustion and that no order, reservation or reserved-budget balance survives. The test fixture is wrapped in a rollback.
 - Executed successfully against staging; no fixture rows persisted. CI now invokes test 052.
 - This verifies budget-fail closed behavior for a single checkout. Concurrent reservation stress testing and full FX/variant cases remain open. No production changes or live payment activity.
+
+
+## 45. FIN-02A aggregate campaign budget reservation guard — 21 Nov 2026
+
+- Added test `053_fin02a_campaign_budget_overreservation_guard.sql`: with 1,000 minor units approved, a 600 hold succeeds and a second 600 hold is rejected; the budget remains reserved=600 with exactly one active hold.
+- Staging test passed with rollback. An initial fixture used invalid zero-value offer input; corrected to a valid offer value and reran successfully.
+- This is a sequential boundary test for the row-lock/accounting guard, **not a true concurrent stress test**. CI includes test 053. True concurrent reservation testing remains required.
