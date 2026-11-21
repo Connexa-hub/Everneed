@@ -771,3 +771,8 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 ## Android build pause — web-first development
 - Android APK CI job is temporarily disabled (`if: false`) while Everneed development is web-only. Web app checks, database tests, and migration validation continue normally.
 - Re-enable APK builds only when the user explicitly resumes Android work. This is a temporary CI pause, not deletion of Android project assets or native functionality.
+
+
+## FIN-02A expiry-worker design gate — 21 Nov 2026
+- Campaign holds are already released on unpaid cancellation via trigger 043; test 047 covers this lifecycle. No automatic expiry worker exists yet.
+- Before building/activating one: approve a configurable expiry period; block cancellation for initializing/pending/processing/succeeded/reconciliation-required payment attempts; use bounded `SKIP LOCKED` batches; ensure cancellation and hold release are atomic/idempotent; test concurrent workers and race conditions.
