@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Everneed</title>
+  <desc id="desc">Everneed connects shoppers with independent stores.</desc>
+  <rect width="1200" height="630" fill="#0A1210"/>
+  <rect x="64" y="64" width="1072" height="502" rx="36" fill="#102D20" stroke="#28583E" stroke-width="2"/>
+  <rect x="156" y="208" width="176" height="176" rx="40" fill="#1b4d37"/>
+  <circle cx="244" cy="296" r="47" fill="none" stroke="#ffffff" stroke-width="15" stroke-dasharray="246 49" transform="rotate(48 244 296)"/>
+  <rect x="205" y="289" width="84" height="14" fill="#ffffff"/>
+  <circle cx="279" cy="327" r="11" fill="#c9a857"/>
+  <text x="382" y="302" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="96" font-weight="700" letter-spacing="-3">Everneed</text>
+  <text x="390" y="372" fill="#d9bd78" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700" letter-spacing="2">DISCOVER STORES. SHOP WITH CONFIDENCE.</text>
+  <text x="390" y="426" fill="#dce8e0" font-family="Arial, Helvetica, sans-serif" font-size="29">A marketplace connecting shoppers and independent stores.</text>
+  <rect x="156" y="500" width="888" height="3" rx="2" fill="#c9a857" opacity=".65"/>
+</svg>

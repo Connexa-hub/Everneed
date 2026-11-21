@@ -1,14 +1,15 @@
 name: Build Android app
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
-  contents: write
-# A newer push to the same branch replaces the older run, so only the latest APK is built.
+  contents: read
+# Queue builds for the same branch instead of cancelling an in-progress database test.
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   test:
     name: Install and test
@@ -27,23 +28,58 @@ jobs:
     name: Database tests
     runs-on: ubuntu-latest
     # Starts a local Supabase stack, applies every migration, then runs the SQL test suite.
-    # Non-blocking until it has been seen passing once on GitHub.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - uses: denoland/setup-deno@v2
         with:
-          version: latest
+          deno-version: v2.x
+      - name: Type-check payment recovery worker
+        run: deno check --config supabase/deno.json supabase/functions/payment-recovery/index.ts
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.1.0
       - run: test -f supabase/config.toml || supabase init
-      - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,inbucket,realtime,mailpit
+      - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
       - name: Run Phase 2 checks
+        shell: bash
         run: |
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt || true
-          grep -q "FAIL: 0" /tmp/p2.txt
+          set -o pipefail
+          set +e
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt
+          psql_status=${PIPESTATUS[0]}
+          set -e
+          # This test deliberately raises PHASE2 REPORT to roll back its fixtures.
+          # psql therefore exits 3 even when every assertion passes; validate both
+          # the expected rollback report and zero failures before accepting that exit.
+          grep -q "PHASE2 REPORT (rolled back)" /tmp/p2.txt
+          grep -Eq 'PASS: [0-9]+  FAIL: 0' /tmp/p2.txt
+          test "$psql_status" -eq 3
+      - name: Public RPC security regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/016_public_rpc_security_hardening.sql
+      - name: Authenticated RPC security regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/017_authenticated_rpc_security.sql
+      - name: Buyer, seller and admin RLS isolation regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/018_rls_isolation_regression.sql
+      - name: Turnstile public RPC ACL regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/019_turnstile_public_rpc_acl.sql
+      - name: Payment checkout snapshot structural tests (027)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/027_payment_checkout_snapshot_checks.sql
+      - name: Payment attempt RPC security tests (028)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/028_payment_attempt_rpc_checks.sql
+      - name: Payment recovery lease and settlement integrity tests (029)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/029_payment_recovery_worker_checks.sql
+      - name: Payment recovery worker context tests (030)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/030_payment_recovery_context_checks.sql
+      - name: Stale payment-attempt recovery tests (031)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/031_stale_payment_attempt_recovery_checks.sql
+      - name: Legacy payment RPC search-path tests (032)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/032_legacy_payment_rpc_search_path_checks.sql
+      - name: Double-entry finance journal tests (033)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/033_double_entry_finance_journal_checks.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
   apk:
-    needs: test
+    needs: [test, database]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -85,10 +121,14 @@ jobs:
           VC=$(( $(date +%s) / 60 ))
           sed -i "s/versionCode 1/versionCode $VC/; s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
           grep -n "versionCode\|versionName" android/app/build.gradle
-      - name: Use the fixed signing key
+      - name: Install the protected Android signing key
+        env:
+          ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
         run: |
+          test -n "$ANDROID_DEBUG_KEYSTORE_BASE64" || { echo "::error::Add ANDROID_DEBUG_KEYSTORE_BASE64 in GitHub Actions secrets before building APKs."; exit 1; }
           mkdir -p ~/.android
-          cp keystore/debug.keystore ~/.android/debug.keystore
+          printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 --decode > ~/.android/debug.keystore
+          chmod 600 ~/.android/debug.keystore
       - run: npx cap sync android
       - name: Build installable APK
         working-directory: android
@@ -99,18 +139,20 @@ jobs:
         with:
           name: everneed-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-      # Every push to any branch (not pull requests) publishes a test release you can open on your phone.
-      - name: Publish APK to Releases
-        if: github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk EverNeed.apk
-          gh release create "build-${{ github.run_number }}" EverNeed.apk --title "EverNeed build ${{ github.run_number }} ($BRANCH)" --notes "Debug APK for testing, built from branch $BRANCH (commit ${GITHUB_SHA::7}). Download EverNeed.apk and install it." --prerelease --target "${{ github.sha }}"
+      # The Actions artifact is the reliable APK download; no Release-write permission is needed.
       - name: Where to find the APK
         run: |
           echo "### APK ready" >> "$GITHUB_STEP_SUMMARY"
           echo "Branch: \`${{ github.ref_name }}\`, build ${{ github.run_number }}." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Releases tab: **EverNeed build ${{ github.run_number }}**, file EverNeed.apk (open it on your phone)." >> "$GITHUB_STEP_SUMMARY"
           echo "- Or this run's Artifacts section: **everneed-apk**." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Seller onboarding, plan entitlement and quota tests (034)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
+
+      - name: Seller message notification contract tests (036)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/036_seller_message_notification_contract_checks.sql
+      - name: Seller notification trigger ACL tests (037)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/037_chat_notification_trigger_acl_checks.sql
+
+      - name: Product catalogue foundation regression tests (038)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql

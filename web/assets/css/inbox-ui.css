@@ -1,0 +1,13 @@
+/* Inbox polish: smart-sort chips, section headings, urgency edge, squarer avatars and back button. Loaded after appshell.css. */
+.ibs{display:flex;gap:6px;overflow-x:auto;padding:8px 12px 0;scrollbar-width:none}
+.ibs:empty{display:none}
+.ibs button{flex:none;min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--text-2);font:inherit;font-weight:600;font-size:.85rem;cursor:pointer}
+.ibs button.on{background:var(--brand);border-color:var(--brand);color:var(--text-on-brand)}
+.ibs button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.ibs em{margin-left:6px;font-style:normal;opacity:.85}
+.sg{margin:14px 16px 4px;font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-2)}
+.sg em{margin-left:4px;font-style:normal}
+.cv.b-urgent{box-shadow:inset 3px 0 0 var(--danger)}
+.cv.b-reply{box-shadow:inset 3px 0 0 var(--brand)}
+.av2{border-radius:14px}
+.ibx2{border-radius:12px}

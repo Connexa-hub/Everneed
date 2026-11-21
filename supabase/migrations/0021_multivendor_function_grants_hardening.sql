@@ -1,0 +1,1 @@
+revoke all on function public.is_store_member(text) from anon; revoke all on function public.owns_store(text) from anon; grant execute on function public.is_store_member(text) to authenticated, service_role; grant execute on function public.owns_store(text) to authenticated, service_role;

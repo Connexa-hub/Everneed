@@ -1,70 +1,78 @@
-> **Everneed01**: marketplace rebuild of EverNeed. The build plan is in `docs/EVERNEED_MARKETPLACE_PROMPT.md` (paste Part A plus one Phase block per session).
-> Push to GitHub and get an APK: see `docs/GITHUB_SETUP.md`.
+# Everneed
 
-# EverNeed (Stage 1): Android app
+Everneed is a digital commerce platform whose first product is a multivendor marketplace for independent sellers and shoppers in Nigeria. Sellers operate their own storefronts and list their own products. Shoppers discover and purchase through the Everneed customer app; the website provides the public site, seller portal and admin console.
 
-Minimalist store app for groceries, electricals, accessories, skincare and more. Starts empty: no sample products.
+This repository contains the Android customer app, public website, seller/admin web portal, shared frontend modules, Supabase migrations and Edge Functions.
 
-## Get the app
-1. Push this folder's contents to a GitHub repo (the `.github` folder must be at the repo root).
-2. Open the **Actions** tab. The "Build Android app" run starts on every push (about 5-8 minutes).
-3. When it is green, open the repo's **Releases** page, tap the newest build and download **EverNeed.apk** (a plain APK, no zip). Install it and allow "install unknown apps" when asked. The zipped copy is still under the run's **Artifacts**.
+## Product surfaces
 
-## Set up (js/config.js)
-`adminEmail`, `whatsapp`, `bank`, `fee`, `freeFrom`, `collections`. Empty values hide that feature.
+- **Android customer app:** product discovery, store/product details, cart, checkout, account and order experience.
+- **Public website:** explains Everneed and directs prospective sellers and partners.
+- **Seller portal:** seller onboarding, store profile and product management.
+- **Admin console:** seller/store/product review and platform administration.
+- **Shared backend:** Supabase Auth, PostgreSQL, RLS, Storage, RPCs and Edge Functions.
+- **Payments:** Paystack integration path; live transaction and settlement readiness must be verified before public launch.
 
-## Products and banners
-- In the app: sign in with your admin email, then Me, then Manage store. Stage 1 saves these on that phone only.
-- For every customer now, commit items to `data/products.json` and `data/banners.json`.
-  Product: `{"id":"a1","name":"","col":"Skincare","price":0,"old":0,"stock":null,"img":"","desc":"","at":0}`
-  Banner: `{"id":"b1","title":"","text":"","type":"event|promo|announcement","scope":"all|<collection>","priority":1,"from":"YYYY-MM-DD","to":"YYYY-MM-DD","link":"","img":""}`
+The website is not a duplicate customer shopping website. Customer catalogue browsing, cart and checkout are app-first. Do not describe planned or unverified operational features as live services.
 
-## Banner logic (js/banners.js)
-Home: every live admin banner plus one generated banner per collection. Collection screen: only that collection's banners. Admin priority 1-5 outranks all; ties go event, promo, notice.
+## Branch and release workflow
 
-## Payments (js/payments.js)
-Bank transfer and WhatsApp work now. Card is a registered provider slot: Stage 3 adds Paystack (tokenized cards, automatic charging from the server).
+| Branch | Purpose |
+|---|---|
+| `web-portal` | Development and integration for the app and website |
+| `main` | Reviewed production release branch |
 
-## Roadmap
-2 Supabase accounts and shared data · 3 Paystack · 4 multi-merchant marketplace (see docs/EVERNEED_MARKETPLACE_PROMPT.md) · 5 admin dashboard · 6 signed release build for Google Play
+All changes are developed on `web-portal`, tested against the staging environment, and released through a reviewed pull request to `main`. Cloudflare Pages production deploys from `main`; previews from `web-portal` use staging.
 
-## Countries (Stage 1.1)
-`js/config.js` holds one block per country: currency, locale, delivery fee, bank and WhatsApp, sign-in options and Terms/Privacy links. The country is guessed from the device region and timezone, confirmed at sign-up, and changeable in Settings. Products and banners can be limited with `"cty":["NG","GH"]` (empty = everywhere). Phone-code, Google and NIN sign-in are listed per country and go live with Supabase and a verification provider in Stage 2.
+Read these before making changes:
+1. [AI protocol](docs/WORKFLOW/AI_PROTOCOL.md)
+2. [Project tracker](docs/WORKFLOW/WEBSITE_TRACKER.md)
+3. [Environment guide](docs/WORKFLOW/ENVIRONMENTS.md)
+4. [Database contract](docs/WORKFLOW/DB_CONTRACT.md)
+5. [Current repository/product audit](docs/WORKFLOW/REPOSITORY_AND_PRODUCT_AUDIT_2026-11-12.md)
+6. [Design system](docs/DESIGN_SYSTEM.md)
 
-## Stage 2: shared backend (Supabase)
-1. supabase.com, New project. In **SQL Editor**, run `supabase/schema.sql`.
-2. Project Settings, API: copy the **Project URL** and **anon public key** into `supabase:{url,key}` in `js/config.js`. (The anon key is meant to be public; the database rules protect your data.)
-3. Authentication, Providers, Email: for testing, turn off "Confirm email". For SMS sign-in, enable Phone and connect an SMS provider (e.g. Twilio).
-4. Open the app, create your account, then run in SQL Editor: `update public.profiles set role='admin' where email='YOU@EXAMPLE.COM';`
-5. Sign in again: Settings now shows Manage store, and products, banners and images you add are live for every customer. Orders are saved to the database and you see all of them.
+## Supabase environments
 
-Without keys the app still runs in local mode. Google and NIN sign-in are Stage 2b (they need a Google OAuth client and a verification provider account).
+| Environment | Project | Reference | Purpose |
+|---|---|---|---|
+| Production | Everneed01 | `zpgasfweaixwsktlueje` | Real users and live marketplace data |
+| Development/staging | Everneed-staging | `vjiadqygpyebpisxslbx` | Development against a production-compatible schema, with separate test users/data |
 
-## Stage 3: card payments (Paystack)
-The `paystack` function (supabase/functions/paystack) is already deployed. To switch it on:
-1. paystack.com, create an account. Copy your **Secret key** (test key `sk_test_...` first) from Settings, API Keys.
-2. Supabase, Edge Functions, Secrets: add `PAYSTACK_SECRET_KEY` with that key.
-3. Paystack, Settings, API Keys & Webhooks: set the webhook URL to `https://zpgasfweaixwsktlueje.supabase.co/functions/v1/paystack`.
-4. In the app: Manage store, Store setup, choose your country, turn **Cards (Paystack)** On, Save.
-Customers then see "Card, bank or USSD" at checkout. The server recomputes every amount from your product prices, saves reusable cards as tokens only, and marks the order paid from Paystack's signed webhook.
+Staging is a separate project, not the production database. It may carry unpromoted development migrations while they are being tested. Never reset or run development migrations against production. Production migrations require an owner-approved release plan.
 
-## Regions, currency and checkout
-- Prices are entered in the base currency (`baseCurrency` in js/config.js, NGN) and converted to each shopper's currency using daily rates from open.er-api.com. In Store setup you can add a markup % per country. If rates cannot be fetched, the app shows the base currency rather than a wrong price.
-- Switching country changes currency, delivery rules and the payment methods on offer (bank transfer needs bank details for that country, cards need Paystack turned on for it).
-- Checkout is two bottom sheets: confirm the delivery address (with the country), then review and pay. A saved address from another country is not reused.
-- Card payments open Paystack's secure pop-up inside the app. Local currencies are NGN, GHS, KES and ZAR; other countries are charged in USD, which Paystack must enable on your account. The server recomputes every amount from product prices, delivery settings and its own exchange rate.
+The website selects staging on localhost and `*.everneed.pages.dev` preview hosts; production hosts select live. The Android app still has a separate environment-configuration task tracked as APP-08. Do not assume Android test builds already use staging until that task is completed.
 
-## Regulated goods
-Before selling skincare or other regulated goods in Nigeria, check NAFDAC registration and import rules.
+## Website development
 
-## Updating the app from GitHub
-Every build is signed with the same key (keystore/debug.keystore) and gets a higher version number, so a new APK installs over the old one and keeps its data. Android will not update an app signed with a different key. If your phone still has an older EverNeed build, uninstall it once before installing this one.
+The website is a static vanilla-JavaScript application in `web/`. Shared modules and theme assets live in `shared/`, `css/` and `js/`; the Pages packaging workflow copies the required assets into the published web directory.
 
-## Home feed and ads
-The home screen is a mixed two-column product feed ranked on the device from what the shopper views, adds to the cart and searches, plus closeness (products made in or shipped from their country or region rank higher). A promo or sponsored slot appears after every 8 products. Nothing leaves the phone and no advertising ID is read.
-Google ads (AdMob): create an AdMob account, add the app, then set `ads` in js/config.js (appId, bannerId, enabled:true, test:false) and push. Until then the app uses Google's test ids and shows no ads. AdMob shows a small banner above the tab bar on Home and Shop only; AdMob cannot place ads inside the product grid in this kind of app, so the in-grid slots are your own promos.
+No framework or build-system change without owner approval. Keep theme colours token-driven and test all six palettes and Light, Dark and AMOLED modes. Target 360–412 px Android screens, older WebViews, low mobile data and 44 px touch targets.
 
-## Options, size guide and payment flow
-- Products can have colours and sizes. The shopper picks both; sizes that do not exist for the chosen colour (or are out of stock) are greyed out and disabled, and the same goes for colours. Cart lines can be edited from the cart (colour, size, quantity) and keep their options through sign-in and checkout. Stock is tracked per option for products you add yourself.
-- Size charts have a type (clothing, shoes, bracelet, necklace, utensils or other). The guide draws a matching diagram, updates its callouts when a size is tapped, switches cm and inches, and shows EU, US and UK sizes when the chart has EU, US or UK columns.
-- Card payments: the cart is only cleared once payment succeeds. Cancelling returns to the cart with a "Payment not finished" card (Continue payment or Cancel order). Cancelling an unpaid order puts its stock back. The postal code is optional; a default is filled in for carriers.
+## Authentication setup
+
+Supabase Auth owns account creation, passwords, email confirmation, OAuth and sessions. The website currently has email/password signup, six-digit confirmation and sign-in screens. Email delivery and OAuth are not ready merely because the UI exists.
+
+- [Founder setup guide: account creation, Resend SMTP and Google OAuth](docs/OWNER_GUIDES/ACCOUNT_SIGN_IN_EMAIL_AND_OAUTH.md)
+- [Technical authentication setup checklist](docs/WORKFLOW/AUTH_PRODUCTION_SETUP.md)
+
+Configure and test staging first. Production SMTP/OAuth settings are separate. Never commit SMTP passwords, OAuth client secrets, service-role keys, database passwords or signing keys.
+
+## Database changes
+
+- Add numbered SQL files under `supabase/migrations/`.
+- Update `docs/WORKFLOW/DB_CONTRACT.md` and the project tracker in the same change.
+- Push to `web-portal`; staging workflows and tests run there.
+- Test the relevant app/website flow and security boundaries.
+- Promote through a reviewed PR and owner-approved live migration procedure.
+- Never use `supabase db push` against the existing live project.
+
+## Quality checks
+
+Run the repository's configured checks before opening a PR. GitHub Actions currently checks website JavaScript syntax/references and migration-file naming. Database regression and Android build jobs are separate evidence; a green web check does not prove live authentication, payments, RLS, seller workflows or physical fulfilment.
+
+## Current owner-facing readiness
+
+The repository is under active development. See the project tracker and current audit for open work, including staging E2E, Turnstile verification, password recovery, SMTP/OAuth setup, app environment parity, scheduled jobs, seller order/payout operations and production migration approvals.
+
+**Never claim a feature is production-ready until its code, backend, configuration and real end-to-end behaviour have been verified.**

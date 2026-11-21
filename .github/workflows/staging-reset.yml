@@ -55,9 +55,9 @@ jobs:
           fi
           echo "Target verified: Everneed-staging ($STAGING_REF). Connection string is not printed."
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 3.1.0
 
       - name: Ensure Supabase CLI project config exists
         shell: bash

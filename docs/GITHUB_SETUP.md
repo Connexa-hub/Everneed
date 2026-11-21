@@ -1,7 +1,8 @@
 # Push to GitHub and get an APK
 
-The workflow `.github/workflows/build.yml` runs on **every push to any branch**. A push to your build branch
-installs, tests, and builds a debug APK. You do not need to merge anything to get an APK.
+The workflow `.github/workflows/build.yml` builds Android test APKs from development pushes. Production releases still follow the reviewed `web-portal` → `main` release workflow described in `docs/WORKFLOW/AI_PROTOCOL.md`.
+
+> **Security update:** the old instructions below that say the repository contains a committed debug keystore are obsolete. The tracked keystore was removed from `web-portal`; the workflow now expects the owner-managed GitHub Actions secret `ANDROID_DEBUG_KEYSTORE_BASE64`. Never commit a keystore or its contents.
 
 ## First time
 Zips unpack **flat** (no extra top-level folder), so unpack into the folder you want as the project:
@@ -15,7 +16,7 @@ git push -u origin main                 # baseline
 git checkout -b marketplace-build       # the branch you test from
 git push -u origin marketplace-build    # starts the Action
 ```
-Keep the repository **private**: it contains the debug signing key (`keystore/debug.keystore`).
+The old debug keystore has been removed from the development branch. Keep signing keys only in owner-managed local storage and the protected GitHub Actions secret; never commit them.
 If you push over HTTPS with a token, the token needs the `workflow` scope or GitHub rejects changes to `.github/workflows`.
 
 ## Every new zip (works in Termux on a phone, and on a computer)

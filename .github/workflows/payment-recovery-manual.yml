@@ -1,0 +1,54 @@
+name: Run payment recovery worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: Maximum events and stale attempts to process in this run
+        required: true
+        type: number
+        default: 20
+
+permissions:
+  contents: read
+
+concurrency:
+  group: everneed-payment-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    name: Invoke deployed payment recovery worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate required secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" || { echo "::error::Missing SUPABASE_URL repository secret."; exit 1; }
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo "::error::Missing SUPABASE_SERVICE_ROLE_KEY repository secret."; exit 1; }
+          case "$SUPABASE_URL" in https://*) ;; *) echo "::error::SUPABASE_URL must be an HTTPS project URL."; exit 1 ;; esac
+
+      - name: Invoke recovery worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+        run: |
+          set -euo pipefail
+          case "$BATCH_SIZE" in ''|*[!0-9]*) echo "::error::batch_size must be numeric."; exit 1 ;; esac
+          test "$BATCH_SIZE" -ge 1 && test "$BATCH_SIZE" -le 50 || { echo "::error::batch_size must be from 1 to 50."; exit 1; }
+          curl --silent --show-error --fail-with-body \
+            --max-time 240 \
+            --request POST \
+            "$SUPABASE_URL/functions/v1/payment-recovery" \
+            --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Content-Type: application/json" \
+            --data "{\"batch_size\":$BATCH_SIZE}" \
+            --output /tmp/recovery.json
+          cat /tmp/recovery.json
+          echo "Payment recovery result:" >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/recovery.json >> "$GITHUB_STEP_SUMMARY"

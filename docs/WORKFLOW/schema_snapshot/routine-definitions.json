@@ -1,0 +1,1098 @@
+{
+  "source": "Read-only snapshot from production Supabase project zpgasfweaixwsktlueje; captured 2026-11-12. Fresh-install reconstruction evidence only; not a migration and must not be applied directly.",
+  "routine_count": 84,
+  "routines": [
+    {
+      "schema_name": "private",
+      "function_name": "apply_rental_core",
+      "identity_arguments": "p_store text, p_plan text, p_amount numeric, p_method text, p_ref text, p_actor uuid",
+      "definition": "CREATE OR REPLACE FUNCTION private.apply_rental_core(p_store text, p_plan text, p_amount numeric, p_method text, p_ref text, p_actor uuid)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare sub record; base timestamptz; pid text;\nbegin\n  if p_amount is null or p_amount <= 0 then raise exception 'Enter the rental amount.'; end if;\n  if p_ref is not null and exists (select 1 from public.store_payments where reference = p_ref) then return; end if;\n  select * into sub from public.store_subscriptions where store_id = p_store for update;\n  base := case when found and sub.current_period_end > now() and sub.status in ('trialing', 'active') then sub.current_period_end else now() end;\n  insert into public.store_subscriptions(store_id, plan_id, status, current_period_start, current_period_end, grace_until)\n    values (p_store, p_plan, 'active', now(), base + interval '1 month', null)\n    on conflict (store_id) do update set plan_id = coalesce(excluded.plan_id, public.store_subscriptions.plan_id), status = 'active',\n      current_period_start = case when public.store_subscriptions.current_period_end > now() then public.store_subscriptions.current_period_start else now() end,\n      current_period_end = base + interval '1 month', grace_until = null\n    returning id into pid;\n  insert into public.store_payments(store_id, subscription_id, amount, method, reference, status, recorded_by) values (p_store, pid, p_amount, p_method, p_ref, 'paid', p_actor);\n  insert into public.ledger_entries(store_id, kind, amount, status, note) values (p_store, 'rental', p_amount, 'paid', 'Store rental');\n  perform private.audit(p_actor, 'rental_payment', 'store', p_store, null, jsonb_build_object('amount', p_amount, 'method', p_method, 'reference', p_ref));\n  perform private.notify((select owner_id from public.stores where id = p_store), 'rental_paid', 'Rental payment recorded', null, jsonb_build_object('store_id', p_store));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "audit",
+      "identity_arguments": "p_actor uuid, p_action text, p_ttype text, p_tid text, p_before jsonb, p_after jsonb",
+      "definition": "CREATE OR REPLACE FUNCTION private.audit(p_actor uuid, p_action text, p_ttype text, p_tid text, p_before jsonb, p_after jsonb)\n RETURNS void\n LANGUAGE sql\n SET search_path TO ''\nAS $function$ insert into public.audit_log(actor_id, action, target_type, target_id, before, after) values (p_actor, p_action, p_ttype, p_tid, p_before, p_after) $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "buys",
+      "identity_arguments": "p_order text",
+      "definition": "CREATE OR REPLACE FUNCTION private.buys(p_order text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select exists (select 1 from public.orders o where o.id = p_order and o.user_id = auth.uid())\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "=X/postgres\npostgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "cancel_order_core",
+      "identity_arguments": "p_order text, p_actor uuid, p_reason text, p_admin boolean",
+      "definition": "CREATE OR REPLACE FUNCTION private.cancel_order_core(p_order text, p_actor uuid, p_reason text, p_admin boolean)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare o record; so record;\nbegin\n  select * into o from public.orders where id = p_order for update;\n  if not found then raise exception 'Order not found.'; end if;\n  if not p_admin then\n    if o.user_id is distinct from p_actor then raise exception 'That is not your order.'; end if;\n    if exists (select 1 from public.seller_orders where order_id = p_order and status not in ('pending', 'cancelled', 'rejected')) then\n      raise exception 'A seller has already started this order. Contact support to cancel it.';\n    end if;\n  end if;\n  if o.status in ('delivered', 'cancelled') then raise exception 'This order can no longer be cancelled.'; end if;\n  for so in select id, status from public.seller_orders where order_id = p_order and status not in ('cancelled', 'rejected', 'delivered') loop\n    if so.status in ('at_hub', 'consolidated') then\n      perform set_config('app.order_bypass', '1', true); update public.seller_orders set status = 'issue' where id = so.id;\n    end if;\n    perform private.cancel_so(so.id, coalesce(nullif(left(p_reason, 300), ''), 'Cancelled'), p_actor, 'cancelled');\n  end loop;\n  perform set_config('app.order_bypass', '1', true);\n  update public.orders set status = 'cancelled' where id = p_order and status <> 'cancelled';\n  perform private.audit(p_actor, 'cancel_order', 'order', p_order, jsonb_build_object('status', o.status), jsonb_build_object('reason', p_reason));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "cancel_so",
+      "identity_arguments": "p_so text, p_reason text, p_actor uuid, p_to text",
+      "definition": "CREATE OR REPLACE FUNCTION private.cancel_so(p_so text, p_reason text, p_actor uuid, p_to text)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare so record; o record; it record; paid_share numeric; all_lines numeric; mine numeric; owner uuid;\nbegin\n  select * into so from public.seller_orders where id = p_so for update;\n  if not found or so.status in ('delivered', 'cancelled', 'rejected') then return; end if;\n  select * into o from public.orders where id = so.order_id;\n  perform set_config('app.order_bypass', '1', true);\n  update public.seller_orders set status = p_to, rejected_reason = p_reason where id = p_so;\n  for it in select product_id, size, qty from public.order_items where seller_order_id = p_so loop\n    perform private.stock_add(it.product_id, it.size, it.qty);\n  end loop;\n  if o.payment_status in ('paid', 'partially_refunded') and so.released then\n    select coalesce(sum(line_total), 0) into mine from public.order_items where seller_order_id = p_so;\n    select coalesce(sum(line_total), 0) into all_lines from public.order_items where order_id = o.id;\n    paid_share := case when all_lines > 0 then round(mine / all_lines * (o.total - o.delivery_fee), 2) else 0 end;\n    if paid_share > 0 then\n      insert into public.refunds(order_id, seller_order_id, opened_by, reason, amount, status, resolution)\n      values (o.id, p_so, p_actor, p_reason, paid_share, 'approved', 'Automatic refund: seller order ' || p_to);\n    end if;\n    update public.ledger_entries set status = 'reversed' where seller_order_id = p_so and kind in ('sale', 'commission') and status in ('pending', 'available');\n    update public.orders set payment_status = case when (select count(*) from public.seller_orders x where x.order_id = o.id and x.status not in ('cancelled', 'rejected')) = 0 then 'refunded' else 'partially_refunded' end where id = o.id;\n    perform private.notify(o.user_id, 'refund_approved', 'Part of your order was cancelled', 'A refund is on its way for the cancelled items.', jsonb_build_object('order_id', o.id));\n    perform private.notify_admins('refund_due', 'Refund to process', null, jsonb_build_object('order_id', o.id, 'seller_order_id', p_so, 'amount', paid_share));\n  else\n    perform private.notify(o.user_id, 'order_cancelled', 'Part of your order was cancelled', p_reason, jsonb_build_object('order_id', o.id));\n  end if;\n  select st.owner_id into owner from public.stores st where st.id = so.store_id;\n  perform private.audit(p_actor, 'seller_order_' || p_to, 'seller_order', p_so, jsonb_build_object('status', so.status), jsonb_build_object('reason', p_reason));\n  perform private.sync_order(o.id);\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "confirm_payment_core",
+      "identity_arguments": "p_order text, p_reference text, p_actor uuid",
+      "definition": "CREATE OR REPLACE FUNCTION private.confirm_payment_core(p_order text, p_reference text, p_actor uuid)\n RETURNS text\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare o record; so record; owner uuid;\nbegin\n  select * into o from public.orders where id = p_order for update;\n  if not found then raise exception 'Order not found.'; end if;\n  if o.payment_status = 'paid' then return 'already'; end if;\n  if o.status = 'cancelled' then raise exception 'This order was cancelled.'; end if;\n  perform set_config('app.order_bypass', '1', true);\n  update public.orders set status = case when o.status in ('shipped', 'out_for_delivery', 'delivered') then o.status else 'paid' end,\n         payment_status = 'paid', paid_at = (extract(epoch from now()) * 1000)::bigint, ref = coalesce(p_reference, ref) where id = p_order;\n  for so in select s.*, st.owner_id, st.is_official from public.seller_orders s join public.stores st on st.id = s.store_id where s.order_id = p_order and s.status not in ('cancelled', 'rejected') loop\n    update public.seller_orders set released = true, accept_by = now() + make_interval(hours => private.pol('accept_hours', 24)::int) where id = so.id;\n    insert into public.ledger_entries(store_id, order_id, seller_order_id, kind, amount, note) values (so.store_id, p_order, so.id, 'sale', so.subtotal, 'Sale') on conflict do nothing;\n    insert into public.ledger_entries(store_id, order_id, seller_order_id, kind, amount, note) values (so.store_id, p_order, so.id, 'commission', -so.commission, 'Commission') on conflict do nothing;\n    if so.owner_id is not null then perform private.notify(so.owner_id, 'new_order', 'New order to accept', 'Accept it within ' || private.pol('accept_hours', 24)::int || ' hours.', jsonb_build_object('seller_order_id', so.id));\n    else perform private.notify_admins('new_order', 'New EverNeed store order', null, jsonb_build_object('order_id', p_order)); end if;\n  end loop;\n  perform private.notify(o.user_id, 'payment_confirmed', 'Payment received', 'We have your payment and the sellers have been told.', jsonb_build_object('order_id', p_order));\n  perform private.audit(p_actor, 'confirm_payment', 'order', p_order, jsonb_build_object('status', o.status), jsonb_build_object('reference', p_reference));\n  perform private.sync_order(p_order);\n  return 'paid';\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "deliver",
+      "identity_arguments": "p_order text, p_proof text, p_actor uuid",
+      "definition": "CREATE OR REPLACE FUNCTION private.deliver(p_order text, p_proof text, p_actor uuid)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare o record;\nbegin\n  select * into o from public.orders where id = p_order for update;\n  if not found then raise exception 'Order not found.'; end if;\n  if o.status = 'delivered' then return; end if;\n  if o.status not in ('out_for_delivery', 'shipped') then raise exception 'This order is not out for delivery.'; end if;\n  perform set_config('app.order_bypass', '1', true);\n  update public.seller_orders set status = 'delivered', delivered_at = now() where order_id = p_order and status not in ('cancelled', 'rejected', 'delivered');\n  update public.orders set status = 'delivered', auto_confirm_at = null, received_at = coalesce(received_at, (extract(epoch from now()) * 1000)::bigint) where id = p_order;\n  insert into public.deliveries(order_id, mode, status, delivered_at, proof) values (p_order, coalesce(o.route, 'hub'), 'delivered', now(), p_proof)\n    on conflict (order_id) do update set status = 'delivered', delivered_at = now(), proof = p_proof;\n  perform private.notify(o.user_id, 'delivered', 'Delivered', 'Your order was delivered. Tell us how it went.', jsonb_build_object('order_id', p_order));\n  perform private.audit(p_actor, 'delivered', 'order', p_order, null, jsonb_build_object('proof', p_proof));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "is_privileged",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.is_privileged()\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO ''\nAS $function$\n  select current_user not in ('authenticated', 'anon') or coalesce(public.is_admin(), false)\n$function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "=X/postgres\npostgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "ledger_guard",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.ledger_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if tg_op = 'DELETE' then raise exception 'Ledger entries are never deleted.'; end if;\n  if new.amount is distinct from old.amount or new.kind is distinct from old.kind or new.store_id is distinct from old.store_id\n     or new.order_id is distinct from old.order_id or new.seller_order_id is distinct from old.seller_order_id or new.currency is distinct from old.currency then\n    raise exception 'Ledger amounts are never edited; add a reversing entry.';\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "my_store",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.my_store()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select id from public.stores where owner_id = auth.uid() limit 1\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "=X/postgres\npostgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "need_admin",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.need_admin()\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin if not coalesce(public.is_admin(), false) then raise exception 'Only the EverNeed team can do that.'; end if; end $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "notify",
+      "identity_arguments": "p_user uuid, p_kind text, p_title text, p_body text, p_data jsonb",
+      "definition": "CREATE OR REPLACE FUNCTION private.notify(p_user uuid, p_kind text, p_title text, p_body text DEFAULT NULL::text, p_data jsonb DEFAULT '{}'::jsonb)\n RETURNS void\n LANGUAGE sql\n SET search_path TO ''\nAS $function$ insert into public.notifications(user_id, kind, title, body, data) select p_user, p_kind, p_title, p_body, p_data where p_user is not null $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "notify_admins",
+      "identity_arguments": "p_kind text, p_title text, p_body text, p_data jsonb",
+      "definition": "CREATE OR REPLACE FUNCTION private.notify_admins(p_kind text, p_title text, p_body text DEFAULT NULL::text, p_data jsonb DEFAULT '{}'::jsonb)\n RETURNS void\n LANGUAGE sql\n SET search_path TO ''\nAS $function$ insert into public.notifications(user_id, kind, title, body, data) select id, p_kind, p_title, p_body, p_data from public.profiles where role = 'admin' $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "order_step_ok",
+      "identity_arguments": "o text, n text",
+      "definition": "CREATE OR REPLACE FUNCTION private.order_step_ok(o text, n text)\n RETURNS boolean\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO ''\nAS $function$\n  select o = n\n    or (o in ('new', 'awaiting_payment', 'awaiting_transfer', 'payment_reported', 'awaiting_delivery', 'sent', 'placed')\n        and n in ('paid', 'cancelled', 'payment_reported', 'shipped', 'delivered', 'disputed'))\n    or (o = 'paid' and n in ('confirmed', 'preparing', 'cancelled', 'disputed', 'shipped'))\n    or (o = 'confirmed' and n in ('preparing', 'cancelled', 'disputed'))\n    or (o = 'preparing' and n in ('ready_for_delivery', 'cancelled', 'disputed'))\n    or (o = 'ready_for_delivery' and n in ('out_for_delivery', 'cancelled', 'disputed'))\n    or (o in ('out_for_delivery', 'shipped') and n in ('delivered', 'disputed'))\n    or (o = 'delivered' and n = 'disputed')\n    or (o = 'disputed' and n in ('delivered', 'cancelled'))\n$function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "i",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "orders_guard",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.orders_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if new.status is not distinct from old.status then return new; end if;\n  if not private.order_step_ok(old.status, new.status) then\n    raise exception 'An order cannot move from % to %.', old.status, new.status;\n  end if;\n  if not (coalesce(current_setting('app.order_bypass', true), '') = '1' and current_user not in ('authenticated', 'anon')) then\n    if new.status = 'paid' and old.payment_status <> 'paid' then raise exception 'Payments are confirmed with confirm_payment().'; end if;\n    if new.status in ('shipped', 'out_for_delivery', 'delivered') and exists (\n      select 1 from public.seller_orders so join public.stores s on s.id = so.store_id where so.order_id = new.id and not s.is_official) then\n      raise exception 'Marketplace orders are dispatched and delivered through the delivery functions.';\n    end if;\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "owns_store",
+      "identity_arguments": "p_store text",
+      "definition": "CREATE OR REPLACE FUNCTION private.owns_store(p_store text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select exists (select 1 from public.stores s where s.id = p_store and s.owner_id = auth.uid())\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "=X/postgres\npostgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "pol",
+      "identity_arguments": "p_key text, p_def numeric",
+      "definition": "CREATE OR REPLACE FUNCTION private.pol(p_key text, p_def numeric)\n RETURNS numeric\n LANGUAGE sql\n STABLE\n SET search_path TO ''\nAS $function$ select coalesce((select (data->>p_key)::numeric from public.settings where id = 'policy'), p_def) $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "polb",
+      "identity_arguments": "p_key text, p_def boolean",
+      "definition": "CREATE OR REPLACE FUNCTION private.polb(p_key text, p_def boolean)\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO ''\nAS $function$ select coalesce((select (data->>p_key)::boolean from public.settings where id = 'policy'), p_def) $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "products_guard",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.products_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare st text; trusted boolean; lim int; used int;\nbegin\n  if new.store_id is null then new.store_id := (select id from public.stores where is_official limit 1); end if;\n  if private.is_privileged() then return new; end if;\n  select status into st from public.stores where id = new.store_id;\n  if tg_op = 'INSERT' then\n    if new.status not in ('draft', 'pending_review') then raise exception 'New products start as draft or pending review.'; end if;\n    select pl.product_limit into lim from public.store_subscriptions ss join public.store_plans pl on pl.id = ss.plan_id where ss.store_id = new.store_id;\n    if lim is not null then\n      select count(*) into used from public.products where store_id = new.store_id and status <> 'archived';\n      if used >= lim then raise exception 'Your plan allows % products. Archive some or upgrade your plan to add more.', lim; end if;\n    end if;\n  else\n    if new.store_id is distinct from old.store_id then raise exception 'A product cannot move to another store.'; end if;\n    if new.status = 'published' and old.status is distinct from 'published' then raise exception 'Only the EverNeed team publishes products.'; end if;\n    if new.status = 'rejected' and old.status is distinct from 'rejected' then raise exception 'Only the EverNeed team rejects products.'; end if;\n    if old.status = 'published' and new.status = 'published'\n       and (new.name is distinct from old.name or new.descr is distinct from old.descr or new.images is distinct from old.images or new.img is distinct from old.img) then\n      new.status := 'pending_review';\n    end if;\n    if old.status = 'archived' and new.status <> 'archived' then\n      select pl.product_limit into lim from public.store_subscriptions ss join public.store_plans pl on pl.id = ss.plan_id where ss.store_id = new.store_id;\n      if lim is not null then\n        select count(*) into used from public.products where store_id = new.store_id and status <> 'archived';\n        if used >= lim then raise exception 'Your plan allows % products. Archive some or upgrade your plan to restore this one.', lim; end if;\n      end if;\n    end if;\n  end if;\n  if new.status = 'pending_review' then\n    if st is distinct from 'approved' then raise exception 'Your store must be approved before products go for review.'; end if;\n    select sp.trusted into trusted from public.store_private sp where sp.store_id = new.store_id;\n    if coalesce(trusted, false) and coalesce((select (data->>'auto_approve_trusted')::boolean from public.settings where id = 'policy'), false) then\n      new.status := 'published';\n    end if;\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "profiles_guard",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.profiles_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if not private.is_privileged() and (new.role is distinct from old.role or new.email is distinct from old.email) then\n    raise exception 'Role and email cannot be changed from the app.';\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "seller_orders_guard",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.seller_orders_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if new.status is not distinct from old.status then return new; end if;\n  if coalesce(current_setting('app.order_bypass', true), '') = '1' and current_user not in ('authenticated', 'anon') then return new; end if;\n  if not private.so_step_ok(old.status, new.status, (select route from public.orders where id = new.order_id)) then\n    raise exception 'A seller order cannot move from % to %.', old.status, new.status;\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "sells",
+      "identity_arguments": "p_seller_order text",
+      "definition": "CREATE OR REPLACE FUNCTION private.sells(p_seller_order text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select exists (select 1 from public.seller_orders so where so.id = p_seller_order and private.owns_store(so.store_id))\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "=X/postgres\npostgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "slugify",
+      "identity_arguments": "t text",
+      "definition": "CREATE OR REPLACE FUNCTION private.slugify(t text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO ''\nAS $function$\n  select coalesce(nullif(trim(both '-' from regexp_replace(lower(coalesce(t, '')), '[^a-z0-9]+', '-', 'g')), ''), 'store')\n$function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "i",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "so_step_ok",
+      "identity_arguments": "o text, n text, route text",
+      "definition": "CREATE OR REPLACE FUNCTION private.so_step_ok(o text, n text, route text)\n RETURNS boolean\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO ''\nAS $function$\n  select o = n\n    or (o = 'pending' and n in ('accepted', 'rejected', 'cancelled'))\n    or (o = 'accepted' and n in ('preparing', 'cancelled'))\n    or (o = 'preparing' and n in ('ready', 'cancelled'))\n    or (o = 'ready' and (n = 'cancelled' or (route = 'direct' and n = 'out_for_delivery') or (route = 'hub' and n = 'handover_pending')))\n    or (o = 'handover_pending' and n in ('at_hub', 'cancelled'))\n    or (o = 'at_hub' and n = 'consolidated')\n    or (o in ('accepted', 'preparing', 'ready', 'handover_pending', 'at_hub', 'consolidated') and n = 'issue')\n    or (o = 'consolidated' and n = 'out_for_delivery')\n    or (o = 'out_for_delivery' and n = 'delivered')\n    or (o = 'issue' and n in ('ready', 'at_hub', 'cancelled'))\n$function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "i",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "stock_add",
+      "identity_arguments": "p_product text, p_size text, p_qty integer",
+      "definition": "CREATE OR REPLACE FUNCTION private.stock_add(p_product text, p_size text, p_qty integer)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare p record;\nbegin\n  select stock, stocks into p from public.products where id = p_product for update;\n  if not found then return; end if;\n  if p_size is not null and p_size <> '' and p.stocks ? p_size then\n    update public.products set stocks = jsonb_set(stocks, array[p_size], to_jsonb((stocks->>p_size)::int + p_qty)) where id = p_product;\n  elsif p.stock is not null then\n    update public.products set stock = stock + p_qty where id = p_product;\n  end if;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "store_live",
+      "identity_arguments": "p_store text",
+      "definition": "CREATE OR REPLACE FUNCTION private.store_live(p_store text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select exists (\n    select 1 from public.stores s\n    where s.id = p_store and s.status = 'approved'\n      and (s.is_official or exists (\n        select 1 from public.store_subscriptions ss\n        where ss.store_id = s.id\n          and ((ss.status in ('trialing', 'active') and ss.current_period_end > now()) or (ss.status = 'past_due' and ss.grace_until > now())))))\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "=X/postgres\npostgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "store_private_guard",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.store_private_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if not private.is_privileged() then\n    if tg_op = 'INSERT' then\n      if new.status_note is not null or new.commission_override is not null or new.trusted then raise exception 'Not allowed.'; end if;\n    elsif new.status_note is distinct from old.status_note or new.commission_override is distinct from old.commission_override or new.trusted is distinct from old.trusted then\n      raise exception 'That setting is managed by the EverNeed team.';\n    end if;\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "stores_guard",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION private.stores_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare base text; n int := 0;\nbegin\n  if tg_op = 'INSERT' then\n    base := private.slugify(coalesce(new.slug, new.name)); new.slug := base;\n    while exists (select 1 from public.stores where slug = new.slug) loop n := n + 1; new.slug := base || '-' || n; end loop;\n    if not private.is_privileged() then\n      if new.status not in ('draft', 'pending') then raise exception 'A new store starts as draft or pending.'; end if;\n      new.is_official := false; new.is_demo := false; new.approved_at := null;\n    end if;\n    return new;\n  end if;\n  if not private.is_privileged() then\n    if new.owner_id is distinct from old.owner_id or new.is_official is distinct from old.is_official or new.is_demo is distinct from old.is_demo\n       or new.approved_at is distinct from old.approved_at or new.slug is distinct from old.slug then\n      raise exception 'That store field cannot be changed from the app.';\n    end if;\n    if new.status is distinct from old.status and not (old.status in ('draft', 'rejected') and new.status = 'pending') then\n      raise exception 'Store status is changed by the EverNeed team.';\n    end if;\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": ""
+    },
+    {
+      "schema_name": "private",
+      "function_name": "sync_order",
+      "identity_arguments": "p_order text",
+      "definition": "CREATE OR REPLACE FUNCTION private.sync_order(p_order text)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare o record; a record; i int;\nbegin\n  for i in 1..4 loop\n    select * into o from public.orders where id = p_order for update;\n    if not found then return; end if;\n    select count(*) filter (where status not in ('cancelled', 'rejected')) n_active,\n           coalesce(bool_and(status in ('accepted', 'preparing', 'ready', 'handover_pending', 'at_hub', 'consolidated', 'out_for_delivery', 'delivered')) filter (where status not in ('cancelled', 'rejected')), false) all_accepted,\n           coalesce(bool_or(status in ('preparing', 'ready', 'handover_pending', 'at_hub', 'consolidated')), false) any_prep,\n           coalesce(bool_and(status in ('ready', 'out_for_delivery', 'delivered')) filter (where status not in ('cancelled', 'rejected')), false) all_ready,\n           coalesce(bool_and(status in ('consolidated', 'out_for_delivery', 'delivered')) filter (where status not in ('cancelled', 'rejected')), false) all_consolidated\n      into a from public.seller_orders where order_id = p_order;\n    if a.n_active = 0 and o.status not in ('cancelled', 'delivered') then\n      perform set_config('app.order_bypass', '1', true);\n      update public.orders set status = 'cancelled', payment_status = case when payment_status = 'paid' then 'refunded' else payment_status end where id = p_order;\n      return;\n    elsif o.status = 'paid' and a.all_accepted then update public.orders set status = 'confirmed' where id = p_order;\n    elsif o.status = 'confirmed' and a.any_prep then update public.orders set status = 'preparing' where id = p_order;\n    elsif o.status = 'preparing' and ((o.route = 'direct' and a.all_ready) or (o.route = 'hub' and a.all_consolidated)) then\n      update public.orders set status = 'ready_for_delivery' where id = p_order;\n    else return;\n    end if;\n  end loop;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "private",
+      "function_name": "throttle",
+      "identity_arguments": "p_action text, p_max integer, p_secs integer",
+      "definition": "CREATE OR REPLACE FUNCTION private.throttle(p_action text, p_max integer, p_secs integer)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if auth.uid() is not null and not public.rate_hit(auth.uid(), p_action, p_max, p_secs) then\n    raise exception 'Too many attempts. Please wait a moment and try again.';\n  end if;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "admin_confirm_payment",
+      "identity_arguments": "p_order text",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_confirm_payment(p_order text)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin perform private.need_admin(); perform private.throttle('admin_confirm', 60, 60); return private.confirm_payment_core(p_order, null, auth.uid()); end $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "apply_rental_payment",
+      "identity_arguments": "p_store text, p_plan text, p_amount numeric, p_method text, p_ref text",
+      "definition": "CREATE OR REPLACE FUNCTION public.apply_rental_payment(p_store text, p_plan text, p_amount numeric, p_method text, p_ref text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin perform private.need_admin(); perform private.throttle('rental', 60, 60); perform private.apply_rental_core(p_store, p_plan, p_amount, 'admin_recorded', p_ref, auth.uid()); end $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "apply_rental_payment_for",
+      "identity_arguments": "p_store text, p_plan text, p_amount numeric, p_ref text",
+      "definition": "CREATE OR REPLACE FUNCTION public.apply_rental_payment_for(p_store text, p_plan text, p_amount numeric, p_ref text)\n RETURNS void\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select private.apply_rental_core(p_store, p_plan, p_amount, 'paystack', p_ref, null) $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "approve_store",
+      "identity_arguments": "p_store text, p_note text",
+      "definition": "CREATE OR REPLACE FUNCTION public.approve_store(p_store text, p_note text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare s record;\nbegin\n  perform private.need_admin();\n  select * into s from public.stores where id = p_store for update;\n  if not found then raise exception 'Store not found.'; end if;\n  update public.stores set status = 'approved', approved_at = coalesce(approved_at, now()) where id = p_store;\n  insert into public.store_private(store_id, status_note) values (p_store, left(p_note, 300)) on conflict (store_id) do update set status_note = left(p_note, 300);\n  update public.store_applications set decision = 'approved', reviewed_by = auth.uid(), reviewed_at = now(), reason = left(p_note, 300) where store_id = p_store;\n  if s.owner_id is not null then update public.profiles set role = 'merchant' where id = s.owner_id and role = 'customer'; end if;\n  insert into public.store_subscriptions(store_id, plan_id, status, current_period_start, current_period_end)\n    values (p_store, (select plan_id from public.store_applications where store_id = p_store), 'trialing', now(), now() + make_interval(days => private.pol('trial_days', 30)::int))\n    on conflict (store_id) do nothing;\n  perform private.notify(s.owner_id, 'store_approved', 'Your store is approved', 'You can now submit products for review.', jsonb_build_object('store_id', p_store));\n  perform private.audit(auth.uid(), 'approve_store', 'store', p_store, jsonb_build_object('status', s.status), jsonb_build_object('status', 'approved', 'note', p_note));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cancel_order",
+      "identity_arguments": "p_order text, p_reason text",
+      "definition": "CREATE OR REPLACE FUNCTION public.cancel_order(p_order text, p_reason text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if auth.uid() is null then raise exception 'Please sign in.'; end if;\n  perform private.throttle('cancel_order', 10, 60);\n  perform private.cancel_order_core(p_order, auth.uid(), p_reason, coalesce(public.is_admin(), false));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cancel_order_for",
+      "identity_arguments": "p_order text, p_actor uuid, p_reason text, p_admin boolean",
+      "definition": "CREATE OR REPLACE FUNCTION public.cancel_order_for(p_order text, p_actor uuid, p_reason text DEFAULT NULL::text, p_admin boolean DEFAULT false)\n RETURNS void\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select private.cancel_order_core(p_order, p_actor, p_reason, p_admin) $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_escalate",
+      "identity_arguments": "p_conv uuid, p_reason text",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_escalate(p_conv uuid, p_reason text DEFAULT 'Requested by participant'::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if not (public.chat_member(p_conv) or public.is_admin()) then raise exception 'Not allowed'; end if;\n  perform public.chat_escalate_core(p_conv,left(coalesce(nullif(trim(p_reason),''),'Requested by participant'),120),1);\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_escalate_core",
+      "identity_arguments": "p_conv uuid, p_reason text, p_prio integer",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_escalate_core(p_conv uuid, p_reason text, p_prio integer)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare c public.conversations%rowtype; v_first boolean;\nbegin\n  select * into c from public.conversations where id=p_conv for update;\n  if not found then return; end if;\n  v_first := c.status<>'escalated';\n  update public.conversations set status='escalated', escalated_at=coalesce(escalated_at,now()), escalation_reason=coalesce(escalation_reason,p_reason),\n    priority=greatest(priority,p_prio), admin_unread=true where id=p_conv;\n  if v_first and c.kind='store' then\n    insert into public.messages(conversation_id,sender_role,kind,body,meta)\n    values(p_conv,'system','system','Everneed support has been alerted ('||p_reason||'). A person from Everneed will join this chat.',jsonb_build_object('reason',p_reason));\n  end if;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_guard",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public'\nAS $function$\nbegin\n  if new.kind='text' and new.body ~* '(code|otp|pin)' and new.body ~ '(^|\\D)\\d{4}(\\D|$)' then\n    new.body := regexp_replace(new.body,'(^|\\D)\\d{4}(\\D|$)','\\1••••\\2','g');\n    new.meta := new.meta || '{\"redacted\":true}'::jsonb;\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_member",
+      "identity_arguments": "p uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_member(p uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select exists(select 1 from public.conversation_members where conversation_id=p and user_id=auth.uid()) $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_read",
+      "identity_arguments": "p_conv uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_read(p_conv uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  update public.conversation_members set unread=0,last_read_at=now() where conversation_id=p_conv and user_id=auth.uid();\n  if public.is_admin() then update public.conversations set admin_unread=false where id=p_conv; end if;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_send",
+      "identity_arguments": "p_conv uuid, p_body text, p_note boolean",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_send(p_conv uuid, p_body text, p_note boolean DEFAULT false)\n RETURNS messages\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare uid uuid:=auth.uid(); c public.conversations%rowtype; m public.conversation_members%rowtype; v_member boolean; adm boolean:=public.is_admin(); v_role text; b text:=trim(coalesce(p_body,'')); msg public.messages;\nbegin\n  if uid is null then raise exception 'Sign in first'; end if;\n  if char_length(b)<1 or char_length(b)>2000 then raise exception 'Message must be 1 to 2000 characters'; end if;\n  select * into c from public.conversations where id=p_conv;\n  if not found then raise exception 'Chat not found'; end if;\n  select * into m from public.conversation_members where conversation_id=p_conv and user_id=uid;\n  v_member := found;\n  if not v_member and not adm then raise exception 'You are not part of this chat'; end if;\n  if p_note and not adm then raise exception 'Only Everneed staff can add notes'; end if;\n  if not public.rate_hit(uid,'chat_send',40,60) then raise exception 'Slow down a little'; end if;\n  if adm then\n    v_role:='admin';\n    if not v_member and not p_note then\n      insert into public.conversation_members(conversation_id,user_id,role) values(p_conv,uid,'admin') on conflict do nothing;\n      update public.conversations set assignee=coalesce(assignee,uid) where id=p_conv;\n    end if;\n  else\n    v_role := case m.role when 'buyer' then 'buyer' when 'seller' then 'seller' else 'user' end;\n  end if;\n  insert into public.messages(conversation_id,sender_id,sender_role,kind,body) values(p_conv,uid,v_role,case when p_note then 'note' else 'text' end,b) returning * into msg;\n  update public.conversation_members set unread=0,last_read_at=now() where conversation_id=p_conv and user_id=uid;\n  if adm then update public.conversations set admin_unread=false where id=p_conv; end if;\n  return msg;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_set",
+      "identity_arguments": "p_conv uuid, p_status text, p_assignee uuid, p_tags text[], p_priority integer",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_set(p_conv uuid, p_status text DEFAULT NULL::text, p_assignee uuid DEFAULT NULL::uuid, p_tags text[] DEFAULT NULL::text[], p_priority integer DEFAULT NULL::integer)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if p_status is not null and p_status not in ('open','escalated','resolved') then raise exception 'Bad status'; end if;\n  if public.is_admin() then\n    update public.conversations set status=coalesce(p_status,status), assignee=coalesce(p_assignee,assignee), tags=coalesce(p_tags,tags), priority=coalesce(p_priority,priority),\n      resolved_at=case when p_status='resolved' then now() when p_status in ('open','escalated') then null else resolved_at end,\n      sla_due_at=case when p_status='resolved' then null else sla_due_at end where id=p_conv;\n  elsif public.chat_member(p_conv) and p_status='resolved' then\n    update public.conversations set status='resolved',resolved_at=now(),sla_due_at=null where id=p_conv;\n  else\n    raise exception 'Not allowed';\n  end if;\n  if p_status='resolved' then\n    insert into public.messages(conversation_id,sender_role,kind,body) values(p_conv,'system','system','This chat was marked resolved. Send a message to reopen it.');\n  end if;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_start",
+      "identity_arguments": "p_kind text, p_store text, p_order text, p_subject text, p_first text, p_user uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_start(p_kind text, p_store text DEFAULT NULL::text, p_order text DEFAULT NULL::text, p_subject text DEFAULT NULL::text, p_first text DEFAULT NULL::text, p_user uuid DEFAULT NULL::uuid)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare uid uuid:=auth.uid(); cid uuid; st public.stores%rowtype; v_tier text;\nbegin\n  if uid is null then raise exception 'Sign in to start a chat'; end if;\n  if not public.rate_hit(uid,'chat_start',20,3600) then raise exception 'Too many new chats. Try again later.'; end if;\n  if p_kind='store' then\n    select * into st from public.stores where id=p_store and status='approved';\n    if not found then raise exception 'Store not found'; end if;\n    if st.owner_id is not distinct from uid then raise exception 'You cannot message your own store'; end if;\n    select id into cid from public.conversations where kind='store' and created_by=uid and store_id=p_store and coalesce(order_id,'')=coalesce(p_order,'') and status<>'resolved';\n    if cid is null then\n      if p_order is not null and not exists(select 1 from public.orders where id=p_order and user_id=uid) then raise exception 'Order not found'; end if;\n      insert into public.conversations(kind,subject,store_id,order_id,created_by,tier) values('store',coalesce(p_subject,st.name),p_store,p_order,uid,public.support_tier(p_store)) returning id into cid;\n      insert into public.conversation_members(conversation_id,user_id,role) values(cid,uid,'buyer');\n      if st.owner_id is not null then insert into public.conversation_members(conversation_id,user_id,role) values(cid,st.owner_id,'seller'); end if;\n    end if;\n  elsif p_kind in ('support','seller_admin') then\n    if p_kind='seller_admin' then\n      select * into st from public.stores where id=p_store and owner_id=uid;\n      if not found then raise exception 'Store not found'; end if;\n    end if;\n    select id into cid from public.conversations where kind=p_kind and created_by=uid and coalesce(store_id,'')=coalesce(case when p_kind='seller_admin' then p_store end,'') and status<>'resolved';\n    if cid is null then\n      v_tier := case when p_kind='seller_admin' then public.support_tier(p_store) else null end;\n      insert into public.conversations(kind,subject,store_id,created_by,tier,priority)\n      values(p_kind,coalesce(p_subject,case when p_kind='seller_admin' then st.name||' support' else 'Support' end),case when p_kind='seller_admin' then p_store end,uid,v_tier,case when v_tier='pro' then 1 else 0 end) returning id into cid;\n      insert into public.conversation_members(conversation_id,user_id,role) values(cid,uid,case when p_kind='seller_admin' then 'seller' else 'user' end);\n    end if;\n  elsif p_kind='admin_user' then\n    if not public.is_admin() then raise exception 'Admins only'; end if;\n    if p_user is null then raise exception 'Choose a person'; end if;\n    insert into public.conversations(kind,subject,order_id,created_by,assignee) values('admin_user',coalesce(p_subject,'Message from Everneed'),p_order,uid,uid) returning id into cid;\n    insert into public.conversation_members(conversation_id,user_id,role) values(cid,p_user,'user'),(cid,uid,'admin');\n  else\n    raise exception 'Unknown chat type';\n  end if;\n  if p_first is not null and length(trim(p_first))>0 then perform public.chat_send(cid,p_first,false); end if;\n  return cid;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "chat_triage",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.chat_triage()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare c public.conversations%rowtype; r public.support_rules%rowtype; v_tags text[]:='{}'; v_prio int:=0; v_esc text; v_mins int;\n        v_responder boolean; v_customer boolean; o public.orders%rowtype; v_so text; v_nm text;\nbegin\n  select * into c from public.conversations where id=new.conversation_id;\n  if not found then return new; end if;\n  if new.kind in ('text','system','order_card') then\n    update public.conversation_members set unread=unread+1 where conversation_id=new.conversation_id and user_id is distinct from new.sender_id;\n  end if;\n  if new.kind='note' then return new; end if;\n  update public.conversations set last_message_at=new.created_at,\n    last_preview=case when new.kind in ('text','order_card') then left(new.body,80) else last_preview end,\n    status=case when status='resolved' and new.kind='text' then 'open' else status end,\n    resolved_at=case when status='resolved' and new.kind='text' then null else resolved_at end,\n    admin_unread=case when new.kind='text' and new.sender_role not in ('admin','system') then true else admin_unread end\n  where id=new.conversation_id;\n  if new.kind<>'text' then return new; end if;\n\n  v_responder := new.sender_role='admin' or (c.kind='store' and new.sender_role='seller') or (c.kind='admin_user' and new.sender_role<>'admin');\n  v_customer := not v_responder and new.sender_role<>'system';\n  if v_responder then\n    update public.conversations set sla_due_at=null, first_reply_at=coalesce(first_reply_at,new.created_at) where id=c.id;\n  elsif v_customer then\n    v_mins := case when c.kind='store' then coalesce((select (value->>'seller_reply_minutes')::int from public.support_settings where key='sla'),30)\n                   when c.kind in ('support','seller_admin') then public.support_sla_minutes(c.tier) else null end;\n    if v_mins is not null then update public.conversations set sla_due_at=coalesce(sla_due_at, now()+make_interval(mins=>v_mins)) where id=c.id; end if;\n  end if;\n\n  if new.meta ? 'redacted' then\n    insert into public.messages(conversation_id,sender_role,kind,body,meta)\n    values(new.conversation_id,'system','shield','For your safety we hid a 4-digit number. Never share your delivery code in chat. Give it only when your items arrive.','{\"rule\":\"code\"}'::jsonb);\n    v_tags := array_append(v_tags,'code-shared'); v_prio := greatest(v_prio,1);\n  end if;\n\n  if new.sender_role not in ('admin','system') then\n    for r in select * from public.support_rules where active and c.kind=any(applies_to) and new.body ~* pattern order by priority desc, id loop\n      if r.tag is not null then v_tags := array_append(v_tags,r.tag); end if;\n      v_prio := greatest(v_prio,r.priority);\n      if r.action='escalate' and v_esc is null then v_esc := coalesce(r.reason,r.name); end if;\n      if r.action='shield' and r.reply is not null and not exists(select 1 from public.messages where conversation_id=c.id and kind='shield' and meta->>'rule'=r.id::text and created_at>now()-interval '10 minutes') then\n        insert into public.messages(conversation_id,sender_role,kind,body,meta) values(c.id,'system','shield',r.reply,jsonb_build_object('rule',r.id::text));\n      end if;\n    end loop;\n  end if;\n  if cardinality(v_tags)>0 or v_prio>0 then\n    update public.conversations set tags=(select coalesce(array_agg(distinct t),'{}') from unnest(v_tags||conversations.tags) t), priority=greatest(priority,v_prio) where id=c.id;\n  end if;\n  if v_esc is not null then perform public.chat_escalate_core(c.id,v_esc,greatest(v_prio,1)); end if;\n\n  if c.order_id is not null and new.sender_role in ('buyer','user') and new.body ~* '(where is|where.s my|track|order status|when will|how long|eta)' then\n    select * into o from public.orders where id=c.order_id;\n    if found then\n      select status into v_so from public.seller_orders where order_id=c.order_id and (c.store_id is null or store_id=c.store_id) limit 1;\n      insert into public.messages(conversation_id,sender_role,kind,body,meta)\n      values(c.id,'system','order_card','Order '||coalesce(o.ref,left(o.id,8))||': '||coalesce(o.status,'processing')||case when v_so is not null then ' (seller: '||v_so||')' else '' end,\n        jsonb_build_object('order_id',o.id,'status',o.status,'seller_status',v_so,'payment',o.payment_status));\n    end if;\n  end if;\n\n  v_nm := case new.sender_role when 'admin' then 'Everneed Support' else coalesce((select name from public.profiles where id=new.sender_id),'New message') end;\n  insert into public.notifications(id,user_id,kind,title,body,data)\n  select gen_random_uuid()::text, m.user_id,'message',v_nm,left(new.body,120),jsonb_build_object('conversation',new.conversation_id,'kind',c.kind)\n  from public.conversation_members m where m.conversation_id=new.conversation_id and m.user_id is distinct from new.sender_id and not m.muted;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "choose_plan",
+      "identity_arguments": "p_plan text",
+      "definition": "CREATE OR REPLACE FUNCTION public.choose_plan(p_plan text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare st record; sub record;\nbegin\n  if auth.uid() is null then raise exception 'Please sign in.'; end if;\n  perform private.throttle('choose_plan', 20, 60);\n  select * into st from public.stores where owner_id = auth.uid();\n  if not found then raise exception 'You do not have a store yet.'; end if;\n  if not exists (select 1 from public.store_plans where id = p_plan and active) then raise exception 'That plan is not available.'; end if;\n  select * into sub from public.store_subscriptions where store_id = st.id for update;\n  if not found then\n    update public.store_applications set plan_id = p_plan where store_id = st.id and decision is null;\n    return;\n  end if;\n  if sub.status <> 'trialing' then raise exception 'To change plan, pay for the new plan.'; end if;\n  update public.store_subscriptions set plan_id = p_plan where id = sub.id;\n  perform private.audit(auth.uid(), 'choose_plan', 'store', st.id, jsonb_build_object('plan', sub.plan_id), jsonb_build_object('plan', p_plan));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "confirm_payment",
+      "identity_arguments": "p_order text, p_reference text, p_actor uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.confirm_payment(p_order text, p_reference text DEFAULT NULL::text, p_actor uuid DEFAULT NULL::uuid)\n RETURNS text\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select private.confirm_payment_core(p_order, p_reference, p_actor) $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "confirm_received",
+      "identity_arguments": "p_order text",
+      "definition": "CREATE OR REPLACE FUNCTION public.confirm_received(p_order text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if auth.uid() is null then raise exception 'Please sign in.'; end if;\n  perform private.throttle('confirm_received', 10, 60);\n  if not exists (select 1 from public.orders where id = p_order and user_id = auth.uid()) then raise exception 'That is not your order.'; end if;\n  perform private.deliver(p_order, 'customer_confirmed', auth.uid());\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "confirm_received_for",
+      "identity_arguments": "p_order text, p_user uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.confirm_received_for(p_order text, p_user uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if not exists (select 1 from public.orders where id = p_order and user_id = p_user) then raise exception 'That is not your order.'; end if;\n  perform private.deliver(p_order, 'customer_confirmed', p_user);\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "create_order",
+      "identity_arguments": "p_user uuid, p_items jsonb, p_country text, p_pm text, p_cust jsonb, p_k numeric, p_cur text, p_discount_base numeric, p_offer jsonb, p_fee numeric, p_card_id text",
+      "definition": "CREATE OR REPLACE FUNCTION public.create_order(p_user uuid, p_items jsonb, p_country text, p_pm text, p_cust jsonb, p_k numeric, p_cur text, p_discount_base numeric, p_offer jsonb, p_fee numeric, p_card_id text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  it jsonb; p record; n int; sizes_ok boolean;\n  oid text := gen_random_uuid()::text; status_ text; route_ text; reason_ text;\n  stores_n int; only_store text; sub_base numeric := 0; disc numeric; total_ numeric; dg int := case when p_cur in ('NGN', 'KES') then 0 else 2 end;\n  lines jsonb := '[]'::jsonb; ord jsonb; so record; rate numeric; cat_rate jsonb; plan_disc numeric; zones jsonb; has_outside boolean := false;\n  line_base numeric; item_id text; code text;\nbegin\n  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) not between 1 and 50 then raise exception 'Your cart is empty or too large.'; end if;\n  if coalesce(p_k, 0) <= 0 or p_fee < 0 or p_discount_base < 0 then raise exception 'Invalid pricing.'; end if;\n  status_ := case p_pm when 'card' then 'awaiting_payment' when 'bank' then 'awaiting_transfer' when 'whatsapp' then 'sent' when 'card_later' then 'awaiting_delivery' end;\n  if status_ is null then raise exception 'Choose a payment method.'; end if;\n\n  create temp table if not exists _co(product_id text, store_id text, name text, size text, qty int, base numeric, col text, official boolean) on commit drop;\n  delete from _co;\n  for it in select * from jsonb_array_elements(p_items) loop\n    if (it->>'qty') !~ '^[0-9]+$' or (it->>'qty')::int not between 1 and 50 then raise exception 'Invalid quantity.'; end if;\n    select pr.*, s.is_official into p from public.products pr join public.stores s on s.id = pr.store_id where pr.id = it->>'id';\n    if not found or p.status <> 'published' or not private.store_live(p.store_id) then raise exception 'A product in your cart is no longer available.'; end if;\n    if cardinality(p.cty) > 0 and not (p_country = any (p.cty)) then raise exception '% is not sold in your country.', p.name; end if;\n    item_id := p.id;\n    if coalesce(it->>'size', '') <> '' and p.stocks ? (it->>'size') then\n      update public.products set stocks = jsonb_set(stocks, array[it->>'size'], to_jsonb((stocks->>(it->>'size'))::int - (it->>'qty')::int))\n       where id = p.id and (stocks->>(it->>'size'))::int >= (it->>'qty')::int;\n      get diagnostics n = row_count;\n      if n = 0 then raise exception 'Not enough % (%) left.', p.name, it->>'size'; end if;\n    elsif p.stock is not null then\n      update public.products set stock = stock - (it->>'qty')::int where id = p.id and stock >= (it->>'qty')::int;\n      get diagnostics n = row_count;\n      if n = 0 then raise exception 'Not enough % left.', p.name; end if;\n    end if;\n    insert into _co values (p.id, p.store_id, p.name, nullif(it->>'size', ''), (it->>'qty')::int, p.price * (it->>'qty')::int, p.col, p.is_official);\n    sub_base := sub_base + p.price * (it->>'qty')::int;\n  end loop;\n\n  if p_pm in ('whatsapp', 'card_later') and exists (select 1 from _co where not official) then\n    raise exception 'That payment method is not available for orders with seller products. Pay by card or bank transfer.';\n  end if;\n\n  select count(distinct store_id), min(store_id) into stores_n, only_store from _co;\n  if stores_n > 1 then route_ := 'hub'; reason_ := 'Items from several sellers are checked and delivered together by EverNeed.';\n  elsif not private.polb('direct_enabled', true) then route_ := 'hub'; reason_ := 'Direct delivery is switched off.';\n  else\n    select sp.delivery_zones into zones from public.store_private sp where sp.store_id = only_store and sp.direct_delivery_enabled;\n    if zones is not null and exists (select 1 from jsonb_array_elements_text(zones) z\n         where lower(z) in (lower(coalesce(p_cust->>'state', '')), lower(coalesce(p_cust->>'city', '')))) then\n      route_ := 'direct'; reason_ := 'The seller delivers to your area.';\n    else route_ := 'hub'; reason_ := 'The seller does not deliver directly to your area.'; end if;\n  end if;\n\n  disc := least(p_discount_base, sub_base);\n  total_ := round((sub_base - disc) * p_k + p_fee, 2);\n  if p_offer is not null and p_offer->>'id' is not null then\n    if not public.redeem_offer(p_offer->>'id') then raise exception 'That discount code has just been used up.'; end if;\n  end if;\n\n  select jsonb_agg(jsonb_build_object('id', product_id, 'name', name, 'size', coalesce(size, ''),\n           'price', round(base / qty * p_k, dg), 'qty', qty)) into lines from _co;\n  insert into public.orders(id, user_id, items, total, country, pm, cust, status, payment_status, at, currency, card_id, coupon, discount, offer, route, route_reason, delivery_fee)\n  values (oid, p_user, lines, total_, p_country, p_pm, p_cust, status_, status_, (extract(epoch from now()) * 1000)::bigint, p_cur, p_card_id,\n          nullif(p_offer->>'code', ''), round(disc * p_k, 2),\n          case when p_offer is null then null else jsonb_build_object('name', p_offer->>'name', 'kind', p_offer->>'kind', 'value', p_offer->'value') end,\n          route_, reason_, p_fee);\n  code := lpad(((('x' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))::bit(32)::bigint) % 10000)::text, 4, '0');\n  insert into public.order_secrets(order_id, delivery_code) values (oid, code);\n\n  for so in select store_id, sum(base) base from _co group by store_id loop\n    insert into public.seller_orders(order_id, store_id, subtotal, accept_by) values (oid, so.store_id, so.base, now() + make_interval(hours => private.pol('accept_hours', 24)::int));\n  end loop;\n  for it in select to_jsonb(c) from _co c loop\n    select s.id into so from public.seller_orders s where s.order_id = oid and s.store_id = it->>'store_id';\n    select sp.commission_override into rate from public.store_private sp where sp.store_id = it->>'store_id';\n    if (select is_official from public.stores where id = it->>'store_id') then rate := 0;\n    else\n      select data->'category_commission' into cat_rate from public.settings where id = 'policy';\n      rate := coalesce(rate, nullif(cat_rate->>(it->>'col'), '')::numeric, private.pol('commission_pct', 10));\n      select coalesce(max(pl.commission_discount), 0) into plan_disc from public.store_subscriptions ss join public.store_plans pl on pl.id = ss.plan_id where ss.store_id = it->>'store_id';\n      rate := greatest(rate - plan_disc, 0);\n    end if;\n    line_base := (it->>'base')::numeric;\n    with ins as (\n      insert into public.order_items(order_id, seller_order_id, product_id, store_id, name, size, unit_price, qty, line_total)\n      values (oid, (select id from public.seller_orders where order_id = oid and store_id = it->>'store_id'), it->>'product_id', it->>'store_id', it->>'name', nullif(it->>'size', ''),\n              round(line_base / (it->>'qty')::int * p_k, dg), (it->>'qty')::int, round(line_base * p_k, 2))\n      returning id)\n    insert into public.order_item_fees(order_item_id, commission_rate, commission_amount) select id, rate, round(line_base * rate / 100, 2) from ins;\n  end loop;\n  update public.seller_orders s set commission = f.c, earning = s.subtotal - f.c\n    from (select i.seller_order_id, sum(fe.commission_amount) c from public.order_items i join public.order_item_fees fe on fe.order_item_id = i.id where i.order_id = oid group by 1) f\n   where s.id = f.seller_order_id;\n\n  select to_jsonb(o) into ord from public.orders o where o.id = oid;\n  return ord;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "dispatch",
+      "identity_arguments": "p_order text, p_courier jsonb",
+      "definition": "CREATE OR REPLACE FUNCTION public.dispatch(p_order text, p_courier jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare o record;\nbegin\n  perform private.need_admin(); perform private.throttle('dispatch', 60, 60);\n  select * into o from public.orders where id = p_order for update;\n  if not found or o.status <> 'ready_for_delivery' or o.route <> 'hub' then raise exception 'This order is not ready for hub dispatch.'; end if;\n  update public.deliveries set status = 'dispatched', dispatched_at = now(), courier_name = left(p_courier->>'name', 80), courier_phone = left(p_courier->>'phone', 30), tracking_note = left(p_courier->>'note', 300)\n   where order_id = p_order;\n  if not found then raise exception 'Consolidate the parcel first.'; end if;\n  update public.seller_orders set status = 'out_for_delivery' where order_id = p_order and status = 'consolidated';\n  update public.orders set status = 'out_for_delivery', auto_confirm_at = now() + make_interval(days => private.pol('auto_confirm_days', 5)::int) where id = p_order;\n  perform private.notify(o.user_id, 'out_for_delivery', 'Your order is on its way', 'Keep your delivery code ready for the courier.', jsonb_build_object('order_id', p_order));\n  perform private.audit(auth.uid(), 'dispatch', 'order', p_order, null, p_courier);\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "expire_rentals",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.expire_rentals()\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare n int := 0; m int;\nbegin\n  update public.store_subscriptions set status = 'past_due', grace_until = current_period_end + make_interval(days => private.pol('grace_days', 3)::int)\n   where status in ('trialing', 'active') and current_period_end < now() and store_id not in (select id from public.stores where is_official);\n  get diagnostics m = row_count; n := n + m;\n  update public.store_subscriptions set status = 'expired' where status = 'past_due' and grace_until < now();\n  get diagnostics m = row_count; n := n + m;\n  return n;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "hub_consolidate",
+      "identity_arguments": "p_order text",
+      "definition": "CREATE OR REPLACE FUNCTION public.hub_consolidate(p_order text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare o record; n int;\nbegin\n  perform private.need_admin(); perform private.throttle('hub_consolidate', 60, 60);\n  select * into o from public.orders where id = p_order for update;\n  if not found or o.route <> 'hub' then raise exception 'This is not a hub order.'; end if;\n  select count(*) into n from public.seller_orders where order_id = p_order and status not in ('cancelled', 'rejected') and status <> 'at_hub';\n  if n > 0 or not exists (select 1 from public.seller_orders where order_id = p_order and status = 'at_hub') then raise exception 'Every seller must have dropped off and passed the check first.'; end if;\n  update public.seller_orders set status = 'consolidated' where order_id = p_order and status = 'at_hub';\n  insert into public.deliveries(order_id, mode, parcel_label) values (p_order, 'hub', 'EN-' || upper(substr(replace(p_order, '-', ''), 1, 6)))\n    on conflict (order_id) do update set parcel_label = coalesce(public.deliveries.parcel_label, excluded.parcel_label);\n  perform private.audit(auth.uid(), 'hub_consolidate', 'order', p_order, null, null);\n  perform private.sync_order(p_order);\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "hub_receive",
+      "identity_arguments": "p_so text, p_check jsonb",
+      "definition": "CREATE OR REPLACE FUNCTION public.hub_receive(p_so text, p_check jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare so record; bad int; missing int;\nbegin\n  perform private.need_admin(); perform private.throttle('hub_receive', 120, 60);\n  select * into so from public.seller_orders where id = p_so for update;\n  if not found or so.status <> 'handover_pending' then raise exception 'This seller order is not waiting at the hub.'; end if;\n  if jsonb_typeof(p_check) <> 'array' then raise exception 'Send one check result per item.'; end if;\n  select count(*) into missing from public.order_items i where i.seller_order_id = p_so and not exists (select 1 from jsonb_array_elements(p_check) c where c->>'item_id' = i.id);\n  if missing > 0 then raise exception 'Every item must be checked.'; end if;\n  select count(*) into bad from jsonb_array_elements(p_check) c where coalesce(c->>'status', '') not in ('received', 'missing', 'damaged') or (c->>'status') <> 'received';\n  update public.seller_orders set hub_check = p_check, hub_received_at = now(), status = case when bad = 0 then 'at_hub' else 'issue' end where id = p_so;\n  if bad > 0 then perform private.notify_admins('hub_issue', 'Hub check found a problem', null, jsonb_build_object('seller_order_id', p_so)); end if;\n  perform private.audit(auth.uid(), 'hub_receive', 'seller_order', p_so, null, p_check);\n  perform private.sync_order(so.order_id);\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_admin",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select coalesce(public.my_role()='admin',false) $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "join_waitlist",
+      "identity_arguments": "p_email text, p_name text, p_role text, p_country text, p_interest text, p_source text",
+      "definition": "CREATE OR REPLACE FUNCTION public.join_waitlist(p_email text, p_name text DEFAULT NULL::text, p_role text DEFAULT 'shopper'::text, p_country text DEFAULT NULL::text, p_interest text DEFAULT NULL::text, p_source text DEFAULT 'website'::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if p_email is null or p_email !~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$' then raise exception 'Enter a valid email'; end if;\n  insert into public.waitlist(email,name,role,country,interest,source)\n  values (lower(p_email), left(p_name,120), case when p_role in ('shopper','seller','both') then p_role else 'shopper' end, left(p_country,2), left(p_interest,200), left(p_source,40))\n  on conflict (lower(email)) do nothing;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "mark_delivered",
+      "identity_arguments": "p_order text, p_code text",
+      "definition": "CREATE OR REPLACE FUNCTION public.mark_delivered(p_order text, p_code text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare o record; code text; ok boolean;\nbegin\n  if auth.uid() is null then raise exception 'Please sign in.'; end if;\n  select * into o from public.orders where id = p_order;\n  if not found then raise exception 'Order not found.'; end if;\n  ok := coalesce(public.is_admin(), false) or (o.route = 'direct' and exists (\n    select 1 from public.seller_orders so join public.stores s on s.id = so.store_id where so.order_id = p_order and s.owner_id = auth.uid() and so.status not in ('cancelled', 'rejected')));\n  if not ok then raise exception 'You cannot confirm delivery for this order.'; end if;\n  if not public.rate_hit(auth.uid(), 'delivery_code:' || p_order, 5, 600) then raise exception 'Too many wrong codes. Try again in a few minutes.'; end if;\n  select delivery_code into code from public.order_secrets where order_id = p_order;\n  if code is null or code <> coalesce(trim(p_code), '') then raise exception 'That delivery code is not correct.'; end if;\n  perform private.deliver(p_order, 'code_verified', auth.uid());\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "my_role",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.my_role()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select role from public.profiles where id=auth.uid() $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "my_seller_orders",
+      "identity_arguments": "p_status text",
+      "definition": "CREATE OR REPLACE FUNCTION public.my_seller_orders(p_status text DEFAULT NULL::text)\n RETURNS TABLE(id text, order_id text, status text, route text, subtotal numeric, commission numeric, earning numeric, accept_by timestamp with time zone, created_at timestamp with time zone, customer_name text, customer_city text, customer_phone text, customer_address text, items jsonb)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select so.id, so.order_id, so.status, o.route, so.subtotal, so.commission, so.earning, so.accept_by, so.created_at,\n    case when o.route = 'direct' and so.status in ('accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered') then o.cust->>'name' else split_part(coalesce(o.cust->>'name', ''), ' ', 1) end,\n    o.cust->>'city',\n    case when o.route = 'direct' and so.status in ('accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered') then o.cust->>'phone' end,\n    case when o.route = 'direct' and so.status in ('accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered') then concat_ws(', ', o.cust->>'street', o.cust->>'city', o.cust->>'state') end,\n    (select coalesce(jsonb_agg(jsonb_build_object('id', i.id, 'name', i.name, 'size', i.size, 'qty', i.qty)), '[]'::jsonb) from public.order_items i where i.seller_order_id = so.id)\n  from public.seller_orders so join public.orders o on o.id = so.order_id\n  where so.released and private.owns_store(so.store_id) and (p_status is null or so.status = p_status)\n  order by so.created_at desc\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "next_slug",
+      "identity_arguments": "p_name text",
+      "definition": "CREATE OR REPLACE FUNCTION public.next_slug(p_name text)\n RETURNS text\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare base text; s text; n int := 0;\nbegin\n  if auth.uid() is null then raise exception 'Please sign in.'; end if;\n  base := private.slugify(left(coalesce(p_name, ''), 80)); s := base;\n  while exists (select 1 from public.stores where slug = s) loop n := n + 1; s := base || '-' || n; end loop;\n  return s;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=\"\""
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "on_signup",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.on_signup()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  insert into public.profiles(id, email, phone, name, country, dob, photo)\n  values (\n    new.id,\n    new.email,\n    new.phone,\n    new.raw_user_meta_data->>'name',\n    new.raw_user_meta_data->>'country',\n    nullif(new.raw_user_meta_data->>'dob', '')::date,\n    nullif(new.raw_user_meta_data->>'photo', '')\n  );\n  return new;\nend\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "order_tracking",
+      "identity_arguments": "p_order text",
+      "definition": "CREATE OR REPLACE FUNCTION public.order_tracking(p_order text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare o record; res jsonb;\nbegin\n  select * into o from public.orders where id = p_order and user_id = auth.uid();\n  if not found then raise exception 'Order not found.'; end if;\n  select jsonb_build_object('order_id', o.id, 'status', o.status, 'payment_status', o.payment_status, 'route', o.route, 'route_reason', o.route_reason,\n    'sellers', coalesce((select jsonb_agg(jsonb_build_object('store', s.name, 'status', so.status, 'accepted_at', so.accepted_at, 'ready_at', so.ready_at, 'delivered_at', so.delivered_at) order by s.name)\n                          from public.seller_orders so join public.stores s on s.id = so.store_id where so.order_id = o.id), '[]'::jsonb),\n    'delivery', (select to_jsonb(d) - 'id' - 'order_id' from public.deliveries d where d.order_id = o.id)) into res;\n  return res;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "rate_hit",
+      "identity_arguments": "p_user uuid, p_action text, p_max integer, p_window_seconds integer",
+      "definition": "CREATE OR REPLACE FUNCTION public.rate_hit(p_user uuid, p_action text, p_max integer, p_window_seconds integer)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare n integer;\nbegin\n  delete from public.rate_limits where at < now() - interval '1 day';\n  select count(*) into n from public.rate_limits\n   where user_id = p_user and action = p_action and at > now() - make_interval(secs => p_window_seconds);\n  if n >= p_max then return false; end if;\n  insert into public.rate_limits(user_id, action) values (p_user, p_action);\n  return true;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "record_payout",
+      "identity_arguments": "p_store text, p_amount numeric, p_reference text, p_period text",
+      "definition": "CREATE OR REPLACE FUNCTION public.record_payout(p_store text, p_amount numeric, p_reference text, p_period text DEFAULT NULL::text)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare bal numeric; pid text;\nbegin\n  perform private.need_admin(); perform private.throttle('payout', 30, 60);\n  perform 1 from public.stores where id = p_store for update;\n  if not found then raise exception 'Store not found.'; end if;\n  if p_amount is null or p_amount <= 0 then raise exception 'Enter the payout amount.'; end if;\n  if coalesce(trim(p_reference), '') = '' then raise exception 'Enter the bank transfer reference.'; end if;\n  select public.store_balance(p_store) into bal;\n  if p_amount > bal then raise exception 'That is more than the available balance (%).', bal; end if;\n  insert into public.payouts(store_id, amount, reference, recorded_by, period) values (p_store, p_amount, left(p_reference, 80), auth.uid(), left(p_period, 40)) returning id into pid;\n  insert into public.ledger_entries(store_id, kind, amount, status, note) values (p_store, 'payout', -p_amount, 'paid', 'Payout ' || left(p_reference, 80));\n  perform private.notify((select owner_id from public.stores where id = p_store), 'payout', 'A payout was recorded', null, jsonb_build_object('payout_id', pid, 'amount', p_amount));\n  perform private.audit(auth.uid(), 'record_payout', 'store', p_store, null, jsonb_build_object('amount', p_amount, 'reference', p_reference));\n  return pid;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "redeem_offer",
+      "identity_arguments": "p_id text",
+      "definition": "CREATE OR REPLACE FUNCTION public.redeem_offer(p_id text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare n integer;\nbegin\n  update public.offers set used = used + 1\n   where id = p_id and active and (limit_uses is null or used < limit_uses);\n  get diagnostics n = row_count;\n  return n > 0;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "refund",
+      "identity_arguments": "p_order text, p_seller_order text, p_amount numeric, p_reason text",
+      "definition": "CREATE OR REPLACE FUNCTION public.refund(p_order text, p_seller_order text, p_amount numeric, p_reason text)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare o record; so record; share numeric; paid_total numeric; refunded numeric; rid text; n int;\nbegin\n  perform private.need_admin(); perform private.throttle('refund', 30, 60);\n  select * into o from public.orders where id = p_order for update;\n  if not found then raise exception 'Order not found.'; end if;\n  if o.payment_status not in ('paid', 'partially_refunded') then raise exception 'This order has no payment to refund.'; end if;\n  if p_amount is null or p_amount <= 0 then raise exception 'Enter a refund amount.'; end if;\n  if p_seller_order is null then\n    select count(*) into n from public.seller_orders where order_id = p_order and status not in ('cancelled', 'rejected');\n    if n <> 1 then raise exception 'Choose which seller order to refund.'; end if;\n    select id into p_seller_order from public.seller_orders where order_id = p_order and status not in ('cancelled', 'rejected');\n  end if;\n  select * into so from public.seller_orders where id = p_seller_order and order_id = p_order for update;\n  if not found then raise exception 'Seller order not found on this order.'; end if;\n  select coalesce(sum(amount), 0) into refunded from public.refunds where order_id = p_order and status in ('approved', 'processed');\n  if refunded + p_amount > o.total then raise exception 'That is more than the customer paid.'; end if;\n  insert into public.refunds(order_id, seller_order_id, opened_by, reason, amount, status, resolved_by, resolved_at, resolution)\n    values (p_order, p_seller_order, auth.uid(), left(p_reason, 500), p_amount, 'processed', auth.uid(), now(), 'Refunded by admin') returning id into rid;\n  share := case when o.total > 0 then round(p_amount / o.total * so.subtotal, 2) else 0 end;\n  insert into public.ledger_entries(store_id, order_id, seller_order_id, kind, amount, status, note) values (so.store_id, p_order, p_seller_order, 'refund', -share, 'available', 'Refund ' || rid);\n  if so.subtotal > 0 then\n    insert into public.ledger_entries(store_id, order_id, seller_order_id, kind, amount, status, note)\n    values (so.store_id, p_order, p_seller_order, 'refund', round(share * so.commission / so.subtotal, 2), 'available', 'Commission returned for refund ' || rid);\n  end if;\n  update public.orders set payment_status = case when refunded + p_amount >= o.total then 'refunded' else 'partially_refunded' end where id = p_order;\n  perform private.notify(o.user_id, 'refund_processed', 'Refund processed', null, jsonb_build_object('order_id', p_order, 'amount', p_amount));\n  perform private.audit(auth.uid(), 'refund', 'order', p_order, null, jsonb_build_object('amount', p_amount, 'reason', p_reason, 'seller_order_id', p_seller_order));\n  return rid;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "reject_store",
+      "identity_arguments": "p_store text, p_reason text",
+      "definition": "CREATE OR REPLACE FUNCTION public.reject_store(p_store text, p_reason text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare s record;\nbegin\n  perform private.need_admin();\n  if length(coalesce(p_reason, '')) < 3 then raise exception 'Give the applicant a reason.'; end if;\n  select * into s from public.stores where id = p_store for update;\n  if not found then raise exception 'Store not found.'; end if;\n  update public.stores set status = 'rejected' where id = p_store;\n  insert into public.store_private(store_id, status_note) values (p_store, left(p_reason, 300)) on conflict (store_id) do update set status_note = left(p_reason, 300);\n  update public.store_applications set decision = 'rejected', reviewed_by = auth.uid(), reviewed_at = now(), reason = left(p_reason, 300) where store_id = p_store;\n  perform private.notify(s.owner_id, 'store_rejected', 'Your store was not approved', p_reason, jsonb_build_object('store_id', p_store));\n  perform private.audit(auth.uid(), 'reject_store', 'store', p_store, jsonb_build_object('status', s.status), jsonb_build_object('reason', p_reason));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "release_earnings",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.release_earnings()\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare n int;\nbegin\n  update public.ledger_entries set status = 'available'\n   where status = 'pending' and kind in ('sale', 'commission') and seller_order_id in (\n     select id from public.seller_orders where status = 'delivered' and delivered_at <= now() - make_interval(days => private.pol('payout_hold_days', 3)::int));\n  get diagnostics n = row_count;\n  return n;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "report_payment",
+      "identity_arguments": "order_id text, reference text, note text",
+      "definition": "CREATE OR REPLACE FUNCTION public.report_payment(order_id text, reference text DEFAULT ''::text, note text DEFAULT ''::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare n integer;\nbegin\n  if auth.uid() is null then raise exception 'Please sign in.'; end if;\n  perform private.throttle('report_payment', 10, 60);\n  update public.orders set status = 'payment_reported', payment_status = 'payment_reported',\n         ref = coalesce(nullif(left(trim(reference), 80), ''), ref), payment_note = nullif(left(trim(note), 300), '')\n   where id = order_id and user_id = auth.uid() and status = 'awaiting_transfer';\n  get diagnostics n = row_count;\n  if n = 0 then raise exception 'This order cannot be reported as paid.'; end if;\n  perform private.notify_admins('payment_reported', 'A customer reported a bank transfer', null, jsonb_build_object('order_id', order_id));\n  return jsonb_build_object('status', 'payment_reported');\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "review_product",
+      "identity_arguments": "p_product text, p_decision text, p_note text",
+      "definition": "CREATE OR REPLACE FUNCTION public.review_product(p_product text, p_decision text, p_note text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare p record; owner uuid;\nbegin\n  perform private.need_admin();\n  if p_decision not in ('publish', 'reject') then raise exception 'Decision must be publish or reject.'; end if;\n  if p_decision = 'reject' and length(coalesce(p_note, '')) < 3 then raise exception 'Tell the seller what to fix.'; end if;\n  select * into p from public.products where id = p_product for update;\n  if not found then raise exception 'Product not found.'; end if;\n  update public.products set status = case p_decision when 'publish' then 'published' else 'rejected' end where id = p_product;\n  insert into public.product_private(product_id, review_note, reviewed_by, reviewed_at) values (p_product, left(p_note, 500), auth.uid(), now())\n    on conflict (product_id) do update set review_note = left(p_note, 500), reviewed_by = auth.uid(), reviewed_at = now();\n  select owner_id into owner from public.stores where id = p.store_id;\n  perform private.notify(owner, 'product_' || p_decision, case p_decision when 'publish' then 'Product published' else 'Product needs changes' end, p.name || coalesce(': ' || p_note, ''), jsonb_build_object('product_id', p_product));\n  perform private.audit(auth.uid(), 'review_product', 'product', p_product, jsonb_build_object('status', p.status), jsonb_build_object('decision', p_decision, 'note', p_note));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "run_scheduled_jobs",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.run_scheduled_jobs()\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare late record; o record; n_released int; n_expired int; missed int := 0; auto int := 0;\nbegin\n  n_released := public.release_earnings();\n  n_expired := public.expire_rentals();\n  for late in select id from public.seller_orders where released and status = 'pending' and accept_by < now() loop\n    perform private.cancel_so(late.id, 'The seller did not respond in time.', null, 'cancelled'); missed := missed + 1;\n  end loop;\n  for o in select id from public.orders where status in ('out_for_delivery', 'shipped') and auto_confirm_at is not null and auto_confirm_at < now() loop\n    perform private.deliver(o.id, 'auto_confirmed', null); auto := auto + 1;\n  end loop;\n  return jsonb_build_object('released', n_released, 'rentals', n_expired, 'missed_acceptance', missed, 'auto_confirmed', auto);\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "seller_transition",
+      "identity_arguments": "p_so text, p_to text, p_payload jsonb",
+      "definition": "CREATE OR REPLACE FUNCTION public.seller_transition(p_so text, p_to text, p_payload jsonb DEFAULT '{}'::jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare so record; o record; st record; admin_ boolean := coalesce(public.is_admin(), false); reason text := left(coalesce(p_payload->>'reason', ''), 300);\nbegin\n  if auth.uid() is null then raise exception 'Please sign in.'; end if;\n  perform private.throttle('seller_transition', 60, 60);\n  select * into so from public.seller_orders where id = p_so for update;\n  if not found then raise exception 'Order not found.'; end if;\n  select * into st from public.stores where id = so.store_id;\n  if not admin_ and st.owner_id is distinct from auth.uid() then raise exception 'That is not your order.'; end if;\n  if not so.released then raise exception 'This order has not been paid yet.'; end if;\n  if p_to in ('delivered', 'at_hub', 'consolidated') then raise exception 'That step is done by the delivery or hub team.'; end if;\n  if p_to = 'issue' and not admin_ then raise exception 'Contact EverNeed to raise an issue.'; end if;\n  select * into o from public.orders where id = so.order_id;\n  if p_to in ('rejected', 'cancelled') then\n    if p_to = 'rejected' and length(reason) < 3 then raise exception 'Tell the customer why you are rejecting the order.'; end if;\n    if p_to = 'cancelled' and not admin_ and so.status <> 'pending' then raise exception 'Contact EverNeed to cancel an order you already accepted.'; end if;\n    perform private.cancel_so(p_so, coalesce(nullif(reason, ''), 'Cancelled'), auth.uid(), p_to);\n    return;\n  end if;\n  if not private.so_step_ok(so.status, p_to, o.route) then raise exception 'This order cannot move from % to %.', so.status, p_to; end if;\n  update public.seller_orders set status = p_to,\n    accepted_at = case when p_to = 'accepted' then now() else accepted_at end,\n    ready_at = case when p_to = 'ready' then now() else ready_at end,\n    handed_over_at = case when p_to = 'handover_pending' then now() else handed_over_at end where id = p_so;\n  if p_to = 'out_for_delivery' then\n    perform set_config('app.order_bypass', '1', true);\n    insert into public.deliveries(order_id, mode, courier_name, courier_phone, tracking_note, status, dispatched_at)\n      values (so.order_id, 'direct', coalesce(nullif(left(p_payload->>'courier_name', 80), ''), st.name), left(p_payload->>'courier_phone', 30), left(p_payload->>'note', 300), 'dispatched', now())\n      on conflict (order_id) do update set status = 'dispatched', dispatched_at = now(), courier_name = excluded.courier_name, courier_phone = excluded.courier_phone, tracking_note = excluded.tracking_note;\n    update public.orders set status = 'out_for_delivery', auto_confirm_at = now() + make_interval(days => private.pol('auto_confirm_days', 5)::int) where id = so.order_id and status = 'ready_for_delivery';\n  end if;\n  if p_to = 'handover_pending' then perform private.notify_admins('handover_pending', 'A seller is bringing items to the hub', null, jsonb_build_object('seller_order_id', p_so)); end if;\n  perform private.notify(o.user_id, 'order_update', 'Order update', 'A seller moved your order to ' || replace(p_to, '_', ' ') || '.', jsonb_build_object('order_id', so.order_id));\n  perform private.audit(auth.uid(), 'seller_transition', 'seller_order', p_so, jsonb_build_object('status', so.status), jsonb_build_object('status', p_to));\n  perform private.sync_order(so.order_id);\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "set_store_terms",
+      "identity_arguments": "p_store text, p_commission numeric, p_trusted boolean",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_store_terms(p_store text, p_commission numeric, p_trusted boolean)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  perform private.need_admin();\n  if p_commission is not null and (p_commission < 0 or p_commission > 60) then raise exception 'Commission must be between 0 and 60.'; end if;\n  insert into public.store_private(store_id, commission_override, trusted) values (p_store, p_commission, coalesce(p_trusted, false))\n    on conflict (store_id) do update set commission_override = p_commission, trusted = coalesce(p_trusted, false);\n  perform private.audit(auth.uid(), 'set_store_terms', 'store', p_store, null, jsonb_build_object('commission', p_commission, 'trusted', p_trusted));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "store_balance",
+      "identity_arguments": "p_store text",
+      "definition": "CREATE OR REPLACE FUNCTION public.store_balance(p_store text)\n RETURNS numeric\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select case when public.is_admin() or private.owns_store(p_store) then\n    coalesce((select sum(amount) from public.ledger_entries where store_id = p_store and ((status = 'available' and kind in ('sale', 'commission', 'refund', 'adjustment')) or kind = 'payout')), 0)\n  else null end\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "store_reply_stats",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.store_reply_stats()\n RETURNS TABLE(store_id text, median_minutes integer, chats integer)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select c.store_id, round(percentile_cont(0.5) within group (order by extract(epoch from (c.first_reply_at-c.created_at))/60))::int, count(*)::int\n  from public.conversations c where c.kind='store' and c.first_reply_at is not null and c.created_at>now()-interval '30 days' group by c.store_id having count(*)>=3 $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "=X/postgres\npostgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "submit_store",
+      "identity_arguments": "p_store text",
+      "definition": "CREATE OR REPLACE FUNCTION public.submit_store(p_store text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare a record; s record;\nbegin\n  if auth.uid() is null then raise exception 'Please sign in.'; end if;\n  perform private.throttle('submit_store', 5, 600);\n  select * into s from public.stores where id = p_store and owner_id = auth.uid() for update;\n  if not found then raise exception 'That is not your store.'; end if;\n  if s.status not in ('draft', 'rejected') then raise exception 'This store has already been submitted.'; end if;\n  select * into a from public.store_applications where store_id = p_store;\n  if not found or coalesce(a.business_name, '') = '' or coalesce(a.bank_name, '') = '' or coalesce(a.account_number, '') = '' or coalesce(a.account_name, '') = '' then\n    raise exception 'Complete your business and payout details first.';\n  end if;\n  update public.stores set status = 'pending' where id = p_store;\n  update public.store_applications set submitted_at = now(), decision = null, reason = null, reviewed_by = null, reviewed_at = null where store_id = p_store;\n  perform private.notify_admins('store_submitted', 'A store is waiting for approval', s.name, jsonb_build_object('store_id', p_store));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "support_guest_close",
+      "identity_arguments": "p_id text",
+      "definition": "CREATE OR REPLACE FUNCTION public.support_guest_close(p_id text)\n RETURNS void\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ update public.support_queue set status='closed', last_seen=now() where id=p_id $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "support_guest_open",
+      "identity_arguments": "p_id text, p_name text, p_topic text, p_page text",
+      "definition": "CREATE OR REPLACE FUNCTION public.support_guest_open(p_id text, p_name text DEFAULT NULL::text, p_topic text DEFAULT NULL::text, p_page text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if p_id is null or p_id !~ '^[A-Za-z0-9_-]{20,64}$' then raise exception 'Invalid visitor'; end if;\n  if (select count(*) from public.support_queue where created_at>now()-interval '10 minutes')>300 then raise exception 'We are busy. Please try again shortly.'; end if;\n  insert into public.support_queue(id,name,topic,page) values(p_id,left(nullif(trim(p_name),''),40),left(p_topic,60),left(p_page,120))\n  on conflict (id) do update set last_seen=now(), status=case when public.support_queue.status='closed' then 'waiting' else public.support_queue.status end;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "support_guest_ping",
+      "identity_arguments": "p_id text",
+      "definition": "CREATE OR REPLACE FUNCTION public.support_guest_ping(p_id text)\n RETURNS void\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ update public.support_queue set last_seen=now() where id=p_id and status<>'closed' $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "support_sla_minutes",
+      "identity_arguments": "p_tier text",
+      "definition": "CREATE OR REPLACE FUNCTION public.support_sla_minutes(p_tier text)\n RETURNS integer\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select coalesce((select (value->'minutes'->>coalesce(p_tier,'none'))::int from public.support_settings where key='sla'),\n                  (select (value->'minutes'->>'none')::int from public.support_settings where key='sla'),480) $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "support_sla_public",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.support_sla_public()\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select coalesce((select value->'minutes' from public.support_settings where key='sla'),'{}'::jsonb) $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nanon=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "support_sla_sweep",
+      "identity_arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.support_sla_sweep()\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare n int:=0; r record;\nbegin\n  if auth.uid() is not null and not public.is_admin() then raise exception 'Admins only'; end if;\n  for r in select id,kind from public.conversations where status='open' and sla_due_at is not null and sla_due_at<now() and not ('sla-breach'=any(tags)) loop\n    if r.kind='store' then perform public.chat_escalate_core(r.id,'Seller did not reply in time',1);\n    else update public.conversations set tags=array_append(tags,'sla-breach'), priority=greatest(priority,2) where id=r.id; end if;\n    n:=n+1;\n  end loop;\n  delete from public.support_queue where created_at<now()-interval '1 day' or (status='closed' and last_seen<now()-interval '1 hour');\n  return n;\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nauthenticated=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "support_tier",
+      "identity_arguments": "p_store text",
+      "definition": "CREATE OR REPLACE FUNCTION public.support_tier(p_store text)\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select coalesce((select lower(pl.name) from public.store_subscriptions s join public.store_plans pl on pl.id=s.plan_id\n    where s.store_id=p_store and s.status not in ('cancelled','canceled','expired','ended') order by s.current_period_end desc nulls last limit 1),'none') $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "suspend_store",
+      "identity_arguments": "p_store text, p_reason text",
+      "definition": "CREATE OR REPLACE FUNCTION public.suspend_store(p_store text, p_reason text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare s record;\nbegin\n  perform private.need_admin();\n  select * into s from public.stores where id = p_store for update;\n  if not found or s.is_official then raise exception 'That store cannot be suspended.'; end if;\n  update public.stores set status = 'suspended' where id = p_store;\n  insert into public.store_private(store_id, status_note) values (p_store, left(p_reason, 300)) on conflict (store_id) do update set status_note = left(p_reason, 300);\n  perform private.notify(s.owner_id, 'store_suspended', 'Your store was suspended', p_reason, jsonb_build_object('store_id', p_store));\n  perform private.audit(auth.uid(), 'suspend_store', 'store', p_store, jsonb_build_object('status', s.status), jsonb_build_object('reason', p_reason));\nend $function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=public"
+      ],
+      "acl": "postgres=X/postgres\nservice_role=X/postgres\nauthenticated=X/postgres"
+    }
+  ]
+}

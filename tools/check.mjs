@@ -49,11 +49,62 @@ for (const fn of readdirSync('supabase/functions')) {
   }
 }
 
+// 4b. A durable Paystack event that fails inline processing must not be acknowledged as delivered.
+const paystackSource = readFileSync('supabase/functions/paystack/index.ts', 'utf8');
+if (!paystackSource.includes('return json({ ok: false, retry: true }, 503);')) {
+  fail('Paystack webhook processing failures must return HTTP 503 so the provider retries the durable event');
+}
+if (paystackSource.includes('return json({ ok: true, queued: true });')) {
+  fail('Paystack webhook processing failure must not return a successful 2xx acknowledgement without a retry worker');
+}
+
+// 4c. Payment recovery worker must authenticate service-role calls and verify with Paystack before settlement.
+const recoveryWorkerPath = 'supabase/functions/payment-recovery/index.ts';
+if (existsSync(recoveryWorkerPath)) {
+  const recoverySource = readFileSync(recoveryWorkerPath, 'utf8');
+  for (const required of [
+    'claim_provider_event_recovery',
+    'finish_provider_event_recovery',
+    'get_payment_attempt_recovery_context',
+    'claim_stale_payment_attempt_recovery',
+    'finish_stale_payment_attempt_recovery',
+    'payment_attempt_id',
+    '/transaction/verify/',
+    'settle_verified_payment_attempt',
+    'Bearer " + SERVICE_KEY',
+  ]) {
+    if (!recoverySource.includes(required)) fail(recoveryWorkerPath + ' is missing required recovery safety check: ' + required);
+  }
+  const handlerStart = recoverySource.indexOf('Deno.serve');
+  const verifyCall = recoverySource.indexOf('await verifyPaystack(', handlerStart);
+  const contextCall = recoverySource.indexOf('db.rpc("get_payment_attempt_recovery_context"', handlerStart);
+  const settlementCall = recoverySource.indexOf('db.rpc("settle_verified_payment_attempt"', handlerStart);
+  if (verifyCall < 0 || contextCall < verifyCall || settlementCall < contextCall) {
+    fail(recoveryWorkerPath + ' must verify Paystack and match trusted attempt context before settlement');
+  }
+  if (!recoverySource.includes('event.signature_verified !== true')) {
+    fail(recoveryWorkerPath + ' must refuse inbox events without a verified provider signature');
+  }
+  if (recoverySource.includes('/transaction/initialize') || recoverySource.includes('/transaction/charge_authorization')) {
+    fail(recoveryWorkerPath + ' must never create or charge a new Paystack transaction during recovery');
+  }
+}
+
+// 4d. Staging migrations must never deploy on a branch push.
+const stagingWorkflowPath = '.github/workflows/staging-db.yml';
+if (existsSync(stagingWorkflowPath)) {
+  const stagingWorkflow = readFileSync(stagingWorkflowPath, 'utf8');
+  if (/^  push:/m.test(stagingWorkflow)) fail(stagingWorkflowPath + ' must not apply migrations automatically on push');
+  if (!stagingWorkflow.includes('confirm_staging') || !stagingWorkflow.includes('APPLY')) {
+    fail(stagingWorkflowPath + ' must require the explicit APPLY workflow-dispatch input');
+  }
+}
+
 // 5. No retired dropshipping integrations outside history files. Do not ban the word
 // "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
 const BAN = /\b(cj|cjdropshipping|eprolo|sup_[a-z]+)\b/i;
 const SKIP = new Set(['node_modules', '.git', 'assets', 'keystore', 'android']);
-const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'tools/check.mjs']);
+const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'docs/WORKFLOW/REPOSITORY_AND_PRODUCT_AUDIT_2026-11-12.md', 'tools/check.mjs']);
 const MANIFEST = existsSync('MANIFEST.txt') ? new Set(readFileSync('MANIFEST.txt', 'utf8').split('\n').filter(Boolean)) : null;
 // A second copy of the project inside the repository means a zip was unpacked one level too deep.
 for (const n of readdirSync('.')) {

@@ -1,4 +1,4 @@
--- Phase 2 checks (migrations 000-007 applied). One transaction; ends with an exception carrying the report so nothing persists.
+-- Phase 2 integration checks (full migration replay 000-028). The report is raised as an exception so fixtures do not persist.
 create function public.zz_as(u uuid) returns void language plpgsql as $$ begin
   perform set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
   perform set_config('request.jwt.claim.sub', u::text, true); execute 'set local role authenticated'; end $$;
@@ -22,6 +22,27 @@ begin
     (uc2, 'c2@t.local', 'authenticated', 'authenticated'), (um1, 'm1@t.local', 'authenticated', 'authenticated'), (um2, 'm2@t.local', 'authenticated', 'authenticated');
   update public.profiles set role = 'admin' where id = ua;
 
+  -- CI fixtures: publish the four current Nigerian seller policies and explicitly accept
+  -- each one as both test sellers. Production policy publication remains an admin action.
+  insert into public.policy_documents(policy_type,country,locale,version,title,content_url,effective_at,published,requires_acceptance)
+  values
+    ('seller_terms','NG','en','ci-v1','CI seller terms','/ci/seller-terms',now()-interval '1 day',true,true),
+    ('seller_privacy','NG','en','ci-v1','CI seller privacy','/ci/seller-privacy',now()-interval '1 day',true,true),
+    ('marketplace_rules','NG','en','ci-v1','CI marketplace rules','/ci/marketplace-rules',now()-interval '1 day',true,true),
+    ('returns_refunds','NG','en','ci-v1','CI returns and refunds','/ci/returns-refunds',now()-interval '1 day',true,true);
+  perform public.zz_as(um1);
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_terms' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_privacy' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='marketplace_rules' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='returns_refunds' and country='NG' and version='ci-v1'),'NG');
+  perform public.zz_back();
+  perform public.zz_as(um2);
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_terms' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='seller_privacy' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='marketplace_rules' and country='NG' and version='ci-v1'),'NG');
+  perform public.accept_policy((select id from public.policy_documents where policy_type='returns_refunds' and country='NG' and version='ci-v1'),'NG');
+  perform public.zz_back();
+
   -- merchants create and submit stores ------------------------------------------------------------------
   perform public.zz_as(um1);
   insert into public.stores(owner_id, name, about, status, country, state, city) values (um1, 'Urban Finds', 'Bags', 'draft', 'NG', 'Lagos', 'Ikeja') returning id into sA;
@@ -32,12 +53,12 @@ begin
   r := r || public.zz_ok('merchant cannot make self admin', public.zz_try(format($q$update public.profiles set role='admin' where id=%L$q$, um1)) like 'ERR%' or (select role from public.profiles where id = um1) = 'customer');
   insert into public.store_private(store_id, pickup_address, phone, direct_delivery_enabled, delivery_zones) values (sA, 'Shop 1 Ikeja', '08030000000', true, '["Lagos"]');
   r := r || public.zz_ok('merchant cannot set own commission override', public.zz_try(format($q$update public.store_private set commission_override=0 where store_id=%L$q$, sA)) like 'ERR%');
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name) values (sA, 'Urban Finds Ltd', 'NIN', '123', 'GTB', '0123456789', 'Urban Finds');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id) values (sA, 'Urban Finds Ltd', 'NIN', '123', 'GTB', '0123456789', 'Urban Finds', 'plan-starter');
   perform public.submit_store(sA);
   perform public.zz_back();
   perform public.zz_as(um2);
   insert into public.stores(owner_id, name, status, country, state, city) values (um2, 'TechNest', 'draft', 'NG', 'Abuja', 'Abuja') returning id into sB;
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name) values (sB, 'TechNest Ltd', 'NIN', '456', 'GTB', '0987654321', 'TechNest');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id) values (sB, 'TechNest Ltd', 'NIN', '456', 'GTB', '0987654321', 'TechNest', 'plan-starter');
   perform public.submit_store(sB);
   perform public.zz_back();
 
@@ -46,6 +67,22 @@ begin
   perform public.zz_anon(); r := r || public.zz_ok('anon cannot call next_slug', public.zz_try($q$select public.next_slug('x')$q$) like 'ERR%'); perform public.zz_back();
   perform public.zz_as(um1); r := r || public.zz_ok('merchant cannot call approve_store', public.zz_try(format('select public.approve_store(%L)', sA)) like 'ERR%'); perform public.zz_back();
   perform public.zz_as(ua); perform public.approve_store(sA, 'ok'); perform public.approve_store(sB, 'ok'); perform public.zz_back();
+
+  -- The approval RPC consumes the seller-selected plan from the application; no implicit plan assignment.
+
+
+  -- The regional activation gate (019) intentionally keeps approved stores offline
+  -- until every required provider verification has been recorded. Seed trusted,
+  -- verified outcomes for CI, then activate each store through its real owner RPC.
+  perform public.zz_svc();
+  insert into public.store_verification_checks(store_id,check_type,status,provider,provider_reference,reviewed_at)
+  select st.id, checks.check_type, 'verified', 'ci_fixture', 'ci-' || st.id || '-' || checks.check_type, now()
+  from public.stores st
+  cross join (values ('phone'),('identity'),('face_liveness'),('business_address')) as checks(check_type)
+  where st.id in (sA,sB);
+  perform public.zz_back();
+  perform public.zz_as(um1); perform public.request_store_activation(sA); perform public.zz_back();
+  perform public.zz_as(um2); perform public.request_store_activation(sB); perform public.zz_back();
   r := r || public.zz_ok('approval makes the owner a merchant', (select role from public.profiles where id = um1) = 'merchant');
   r := r || public.zz_ok('approval starts a trial subscription', (select status from public.store_subscriptions where store_id = sA) = 'trialing');
   perform public.zz_anon();
@@ -72,7 +109,7 @@ begin
   perform public.zz_back();
   perform public.zz_as(ua);
   perform public.review_product(p1, 'publish'); perform public.review_product(p2, 'publish'); perform public.review_product(p4, 'publish');
-  insert into public.products(name, col, price, stock, status) values ('EverNeed Mug', 'Home', 2000, 20, 'published') returning id into p3;
+  insert into public.products(name, col, price, stock, store_id, status) values ('EverNeed Mug', 'Home', 2000, 20, 'everneed-official', 'published') returning id into p3;
   perform public.zz_back();
   r := r || public.zz_ok('admin-created product lands in the official store', (select store_id from public.products where id = p3) = 'everneed-official');
   perform public.zz_as(um1);
