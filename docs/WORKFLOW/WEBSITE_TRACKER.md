@@ -654,3 +654,7 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 
 ## 21 Nov 2026 — FIN-02A aggregate budget reservation guard
 - Test 053 verifies a second 600 reservation is rejected against a 1,000 approved campaign budget, preserving only the first 600 hold. Staging execution passed with rollback; CI wired. Explicitly not a concurrency stress test. Finance section 45.
+
+
+## 21 Nov 2026 — FIN-02A concurrent reservation guard
+- Test 054 uses concurrent independent DB sessions, two 600 holds competing for 1,000 budget. Staging run confirmed one accepted/one rejected and exactly 600 held; fixture cleaned. CI wired. Finance section 46.
