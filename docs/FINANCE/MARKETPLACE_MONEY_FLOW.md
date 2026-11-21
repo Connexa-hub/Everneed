@@ -1140,3 +1140,10 @@ Migration `045_fin02a_card_checkout_wrapper_scope.sql` adds an explicit `p_pm='c
 - It asserts exactly one reservation succeeds and the final accounting is `reserved_minor=600` with exactly one active reservation. The fixture is cleaned up on exit.
 - Executed a real simultaneous pair of staging RPC calls through separate tool sessions: one accepted and one rejected with `Campaign budget would be exceeded`; staging showed 600 reserved and one active hold. Fixture then cleaned up. This is concurrency validation, not merely sequential testing.
 - CI wiring added. This does not yet stress many simultaneous sessions or retry/idempotency behavior under contention.
+
+
+## FIN-02A FX quote and currency exponent guard — 21 Nov 2026
+- Added regression test 055 to protect the immutable checkout quote's supported currency exponent mapping (currently NGN/GHS/KES/ZAR/GBP/USD, exponent 2), required FX provenance fields, effective-rate consistency validation, and v2 currency/exponent propagation and quote identity checks.
+- Test 055 was executed against Everneed staging successfully in a rollback-only transaction. It is wired into CI. The latest CI must rerun after this commit before this new test is considered CI-green.
+- Currency exponent is intentionally not generalized yet: unsupported currencies/zero-decimal currencies remain rejected until pricing and all minor-unit allocation/payment paths are updated consistently.
+- No payment/accounting integration, production change, campaign activation, or funds movement occurred.
