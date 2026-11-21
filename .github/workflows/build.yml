@@ -108,6 +108,8 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/049_fin02a_snapshot_quote_identity_guard_checks.sql
       - name: FIN-02A card-only checkout wrapper scope test (050)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/050_fin02a_card_checkout_wrapper_scope_checks.sql
+      - name: FIN-02A multi-store allocation and minor-unit rounding tests (051)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/051_fin02a_multistore_minor_unit_rounding_checks.sql
       - name: Seller onboarding, plan entitlement and quota tests (034)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
 
