@@ -80,7 +80,7 @@ html.ds-hastabs{--ds-tabh:calc(58px + env(safe-area-inset-bottom,0px))}
 
 /* ---------- chips, badges, status ---------- */
 .ds-chip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 var(--ds-s3);border-radius:var(--ds-r1);background:var(--surface-3);color:var(--text-1);font:600 var(--ds-t-s)/1 var(--font-body);border:1px solid transparent;white-space:nowrap}
-button.ds-chip{min-height:36px;cursor:pointer}
+button.ds-chip{min-height:var(--ds-hit);cursor:pointer}
 .ds-chip.ok{background:var(--success-soft);color:var(--success)}.ds-chip.warn{background:var(--warning-soft);color:var(--warning)}
 .ds-chip.bad{background:var(--danger-soft);color:var(--danger)}.ds-chip.info{background:var(--surface-1);color:var(--info);border-color:var(--border-strong)}
 .ds-chip.brand{background:var(--brand-soft);color:var(--brand-ink)}
@@ -113,14 +113,14 @@ button.ds-chip{min-height:36px;cursor:pointer}
 .ds-seg{display:flex;gap:4px;padding:4px;background:var(--surface-3);border-radius:var(--ds-r3);overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;flex:1;min-width:0;scroll-padding:0 var(--ds-s4);-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--fl,0px),#000 calc(100% - var(--fr,0px)),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 var(--fl,0px),#000 calc(100% - var(--fr,0px)),transparent 100%)}
 .ds-seg::-webkit-scrollbar{display:none}
 .ds-seg.l{--fl:22px}.ds-seg.r{--fr:22px}
-.ds-seg>*{flex:1 0 auto;scroll-snap-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 var(--ds-s4);border:0;border-radius:var(--ds-r2);background:transparent;color:var(--text-2);font:600 var(--ds-t-s)/1 var(--font-body);text-decoration:none;white-space:nowrap;cursor:pointer}
+.ds-seg>*{flex:1 0 auto;scroll-snap-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:var(--ds-hit);padding:0 var(--ds-s4);border:0;border-radius:var(--ds-r2);background:transparent;color:var(--text-2);font:600 var(--ds-t-s)/1 var(--font-body);text-decoration:none;white-space:nowrap;cursor:pointer}
 .ds-seg>.on,.ds-seg>[aria-selected=true],.ds-seg>[aria-current=page]{background:var(--surface-1);color:var(--text-1);box-shadow:var(--shadow-1)}
 .ds-seg .n{font-variant-numeric:tabular-nums;opacity:.8}
 .ds-segall{flex:none;width:var(--ds-hit);height:var(--ds-hit);border-radius:var(--ds-r3);border:1px solid var(--border-strong);background:var(--surface-1);color:var(--text-1);display:grid;place-items:center;cursor:pointer}
 /* the older .tabs / .so-tabs are restyled to the same control */
 .so-tabs,.tabs{display:flex;gap:4px;padding:4px;background:var(--surface-3);border:0;border-radius:var(--ds-r3);overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;margin:0 0 var(--ds-s4);flex:1;min-width:0}
 .so-tabs::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none}
-.so-tabs a,.tabs button{flex:1 0 auto;scroll-snap-align:center;display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 var(--ds-s4);border:0;border-radius:var(--ds-r2);background:transparent;color:var(--text-2);font:600 var(--ds-t-s)/1 var(--font-body);text-decoration:none;white-space:nowrap}
+.so-tabs a,.tabs button{flex:1 0 auto;scroll-snap-align:center;display:inline-flex;align-items:center;justify-content:center;min-height:var(--ds-hit);padding:0 var(--ds-s4);border:0;border-radius:var(--ds-r2);background:transparent;color:var(--text-2);font:600 var(--ds-t-s)/1 var(--font-body);text-decoration:none;white-space:nowrap}
 .so-tabs a.on,.so-tabs a[aria-current=page],.tabs button.on{background:var(--surface-1);color:var(--text-1);box-shadow:var(--shadow-1)}
 .ds-tabhost{display:flex;gap:var(--ds-s2);align-items:center;margin:0 0 var(--ds-s4)}.ds-tabhost>.so-tabs,.ds-tabhost>.tabs{margin:0}
 .ds-tabhost.l>.so-tabs,.ds-tabhost.l>.tabs{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 22px);mask-image:linear-gradient(90deg,transparent 0,#000 22px)}
@@ -248,7 +248,22 @@ button.ds-chip{min-height:36px;cursor:pointer}
 @media(min-width:700px){.ds-hero .ds-art{width:96px;height:96px}}
 
 /* ---------- context switcher ---------- */
-.ds-ctx{display:inline-flex;align-items:center;gap:var(--ds-s2);min-height:40px;padding:0 var(--ds-s3);border:1px solid var(--border-strong);border-radius:var(--ds-r2);background:var(--surface-1);color:var(--text-1);font:700 var(--ds-t-s) var(--font-body);cursor:pointer}
+.ds-ctx{display:inline-flex;align-items:center;gap:var(--ds-s2);min-height:var(--ds-hit);padding:0 var(--ds-s3);border:1px solid var(--border-strong);border-radius:var(--ds-r2);background:var(--surface-1);color:var(--text-1);font:700 var(--ds-t-s) var(--font-body);cursor:pointer}
+
+/* ---------- admin page pieces ---------- */
+.ds-ctxbar{display:flex;justify-content:flex-end;margin:0 0 var(--ds-s3)}
+.ds-ringcard{display:flex;align-items:center;gap:var(--ds-s3);margin-top:var(--ds-s3)}.ds-ringcard small{display:block}
+.ds-owner{display:flex;align-items:center;gap:var(--ds-s3);margin-top:var(--ds-s3);min-width:0}.ds-owner span{min-width:0}.ds-owner b{display:block;font-size:var(--ds-t-m)}.ds-owner small{display:block;color:var(--text-2);font-size:var(--ds-t-s);overflow-wrap:anywhere}
+.ds-about{margin:var(--ds-s3) 0 0;color:var(--text-2);font-size:var(--ds-t-s);line-height:1.45}
+.ds-pr{display:flex;gap:var(--ds-s3);align-items:flex-start}.ds-pr .ds-grow{flex:1;min-width:0}
+.ds-thumb{width:64px;height:64px;border-radius:var(--ds-r3);background:var(--surface-2);border:1px solid var(--border);display:grid;place-items:center;overflow:hidden;flex:none}
+.ds-thumb img{width:100%;height:100%;object-fit:cover}.ds-thumb.sm{width:44px;height:44px;border-radius:var(--ds-r2)}
+.ds-storehead{margin:0 0 var(--ds-s4)}
+.ds-storehead .ds-name{margin-top:var(--ds-s3)}
+.ds-grid>[hidden]{display:none}
+/* older admin markup (plan limits, verification cases) restyled to match */
+.queue,.so-case{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--ds-r4);padding:var(--ds-s4);margin:0 0 var(--ds-s3);box-shadow:var(--shadow-1)}
+.so-chk{border-radius:var(--ds-r2)}
 
 /* ---------- reduced motion ---------- */
 @media(prefers-reduced-motion:reduce){
