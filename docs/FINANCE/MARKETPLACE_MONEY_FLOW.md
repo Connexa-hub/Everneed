@@ -1132,3 +1132,11 @@ Migration `045_fin02a_card_checkout_wrapper_scope.sql` adds an explicit `p_pm='c
 - Added test `053_fin02a_campaign_budget_overreservation_guard.sql`: with 1,000 minor units approved, a 600 hold succeeds and a second 600 hold is rejected; the budget remains reserved=600 with exactly one active hold.
 - Staging test passed with rollback. An initial fixture used invalid zero-value offer input; corrected to a valid offer value and reran successfully.
 - This is a sequential boundary test for the row-lock/accounting guard, **not a true concurrent stress test**. CI includes test 053. True concurrent reservation testing remains required.
+
+
+## 46. FIN-02A concurrent campaign budget reservation test — 21 Nov 2026
+
+- Added `054_fin02a_campaign_budget_concurrency.sh`, a CI harness that launches two independent PostgreSQL sessions at the same time, each attempting to reserve 600 minor units against a 1,000-minor-unit campaign budget.
+- It asserts exactly one reservation succeeds and the final accounting is `reserved_minor=600` with exactly one active reservation. The fixture is cleaned up on exit.
+- Executed a real simultaneous pair of staging RPC calls through separate tool sessions: one accepted and one rejected with `Campaign budget would be exceeded`; staging showed 600 reserved and one active hold. Fixture then cleaned up. This is concurrency validation, not merely sequential testing.
+- CI wiring added. This does not yet stress many simultaneous sessions or retry/idempotency behavior under contention.
