@@ -101,3 +101,47 @@ App shell with bottom tabs (phone) and rail (desktop), notification centre, full
 ## Product catalogue foundation added by ChatGPT (19 Nov 2026)
 
 See `docs/WORKFLOW/SELLER_PRODUCT_CATALOG_BACKEND_HANDOFF.md` for the new backend schema, RPCs, RLS, plan capability flags, tested contracts and the next product-editor/admin workspace requirements. Product variants are not yet checkout-integrated and must not be enabled for purchase until that backend contract is complete.
+
+## Seller and admin experience redesign: backend requests (20 Nov 2026, Claude)
+
+Frontend is rebuilding the seller workspace and admin console (tracker row WEB-X01). Rule kept: the UI shows a true empty or "not available yet" state until each contract below exists. Nothing here is mocked. Already shipped and now consumed by the UI: `seller_plan_catalog()`, `seller_product_capabilities()`, `seller_product_category_schema()`, `admin_store_workspace_context()`, the plan flags on `seller_plan_entitlements`. Please reply in `DB_CONTRACT.md` with final names and shapes.
+
+### R1. Admin aggregates (no capped row lists in the browser)
+- `admin_overview_stats()` -> jsonb: `stores_total, stores_live, applications_open, verification_cases_open, products_pending_review, orders_30d, gmv_30d, platform_fees_30d, open_conversations, waitlist_total`, each with `delta_7d` where meaningful. Admin only.
+- `admin_store_directory(p_filter jsonb, p_search text, p_cursor text, p_limit int default 24)` -> rows: `id, name, slug, logo_url, cover_url, accent, plan_id, plan_name, status, activation_status, is_official, product_count, active_product_count, order_count_30d, last_activity_at, open_cases, owner_name, city, state`, plus `next_cursor`. Keyset pagination. Admin only.
+- `admin_activity_feed(p_cursor text, p_limit int)` view or RPC over `audit_log` returning `id, at, actor_name, kind, summary` (human-readable sentence), `target_type, target_id`. Admin only.
+- `admin_application_queue(p_status text, p_cursor text)` with applicant, store name, plan chosen, submitted_at, age.
+
+### R2. Staff and roles (platform store workspace)
+- Table `staff_members(user_id uuid pk, role text check in (owner, operations, support, catalogue, finance), permissions jsonb, store_scope text[] default '{everneed-official}', active bool, created_by, created_at, revoked_at)`; RLS: admin or owner-role staff read; writes only through RPCs.
+- RPCs: `staff_list()`, `staff_invite(p_email, p_role, p_permissions)`, `staff_set_role(p_user, p_role, p_permissions)`, `staff_revoke(p_user)`, `my_staff_context()` returning `{role, permissions, store_scope}`. Every change writes `audit_log`.
+- Permission keys the UI will check: `catalogue.write, catalogue.publish, orders.read, orders.transition, inbox.reply, finance.read, finance.payout, staff.manage, settings.write`.
+- Official-store workspace: RLS on `products`, `product_variants`, `product_media`, `seller_orders`, `conversations` should allow staff whose `store_scope` contains the store id and whose permissions allow the action, instead of owner-only. `my_store_entitlements()` / `seller_product_capabilities()` for the official store should return the full override with no plan or verification fields.
+
+### R3. Taxonomy art
+- `collections.icon_key text`, `collections.art_key text` (keys from the front-end art set: apparel, shoes, bags, phones, computers, audio, home, kitchen, beauty, hair, health, grocery, food, baby, toys, sports, auto, tools, books, office, pets, jewellery, art, garden, other). Suggested backfill for the 22 current categories: Accessories=jewellery, Automotive=auto, Baby and Kids=baby, Bags=bags, Beauty and Personal Care=beauty, Books and Stationery=books, Building and Tools=tools, Computers=computers, Electronics=audio, Fashion and Clothing=apparel, Food and Drinks=food, Furniture=home, Groceries=grocery, Hair and Wigs=hair, Home and Kitchen=kitchen, Office Supplies=office, Pet Supplies=pets, Phones and Tablets=phones, Shoes=shoes, Skincare=beauty, Sports and Fitness=sports, Toys and Games=toys. The old emoji in `collections.icon` is not used by the UI, `collections.sort_order` exists. Please backfill the 22 categories; the UI falls back to a generic glyph for null.
+- `seller_product_category_schema` should include `icon_key, art_key, depth, product_count` per node.
+
+### R4. Messaging (items already in section 3 above, priority order)
+`conversations.awaiting` + `last_sender_id` + `urgent`; `conversation_people()`; `search_conversations()`; attachments with signed URLs; read receipts; `store_quick_replies`; per-member pin, mute, archive. Push: `push_subscriptions`, `push_subscribe/unsubscribe`, VAPID Edge Function, message-to-notification trigger, `notification_preferences`.
+
+### R5. Product tools (plan-gated server-side by `bulk_tools_enabled` and `csv_import_enabled`)
+- `bulk_update_products(p_ids uuid[], p_patch jsonb)` returning per-id result and error code; audited.
+- `duplicate_product(p_id)` returning the new id (draft, copies variants, media metadata, attributes).
+- `import_products(p_rows jsonb, p_dry_run boolean)` returning `{valid, errors:[{row, field, code, message}]}`.
+- `validate_product_for_review(p_id)` returning missing required attributes as `{field, label, message}` so the UI can list exact fixes before submit.
+- Explicit workflow RPCs (create, save draft, submit, resubmit) as already noted in SELLER_PRODUCT_CATALOG_BACKEND_HANDOFF.md section "Backend gaps" item 4.
+
+### R6. Orders
+- Document `seller_transition(p_so, p_to, p_payload)`: allowed transitions per status, required payload fields (decline reason, ready-by, packing note), error codes.
+- `my_seller_order(p_id)` returning items (with variant snapshot when it exists), customer city, delivery mode, timeline. Packing-slip data function.
+
+### R7. Plan flags and analytics data
+Flags already exist. Still needed for the modules to show real numbers: `seller_sales_summary(p_from, p_to, p_bucket)`, `seller_top_products(p_from, p_to, p_limit)`, `seller_inventory_alerts()`, each enforcing `analytics_level` / `inventory_alerts_enabled` server-side. Until then the Analytics module shows "Not available yet".
+
+### R8. Storage
+Private-write, public-read bucket for logos, covers and product media with owner-scoped paths, MIME allowlist (jpeg, png, webp), size limits (logo 1 MB, cover 3 MB, product image 5 MB), generated thumbnails (320 and 800 px), and a `register_product_media(p_product, p_path, alt, position)` RPC. Until it exists the UI shows the media section as "Uploads are not available yet" and offers no URL pasting.
+
+### R9. Notes from the frontend audit
+- `tokens.css` has 6 palettes x 3 modes (18 themes); frontend does not need new tokens from the backend.
+- `approve_store` still ignores `store_applications.plan_id` (carry-over, section 7).
