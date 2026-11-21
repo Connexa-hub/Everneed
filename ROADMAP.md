@@ -259,3 +259,7 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 ## 20 Nov 2026 — FIN-02A card-only guard
 - Migration 045 restricts the atomic v2 wrapper to `p_pm='card'`, so legacy transfer/other checkout methods cannot enter the new funding path accidentally. Test 050 passed staging; actual card wrapper fixture 048 still passed.
 - Migration 045 applied staging-only. Production untouched. See finance architecture section 42.
+
+
+## 21 Nov 2026 — FIN-02A rounding regression
+- Added SQL test 051 for multi-store item allocation, deterministic residual handling, mixed funding shares, seller-payable reconciliation and store aggregation. Test executed successfully on staging with rollback; an initial assertion bug was corrected and rerun green. CI wiring is added; wait for full CI before marking checkpoint complete. Finance section 43.
