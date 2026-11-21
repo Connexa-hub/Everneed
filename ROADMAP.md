@@ -287,3 +287,8 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 ## Android build pause — web-first development
 - Android APK CI job is temporarily disabled (`if: false`) while Everneed development is web-only. Web app checks, database tests, and migration validation continue normally.
 - Re-enable APK builds only when the user explicitly resumes Android work. This is a temporary CI pause, not deletion of Android project assets or native functionality.
+
+
+### FIN-02A unpaid-order expiry — design gate (21 Nov 2026)
+- Existing trigger 043 releases active campaign reservations on unpaid order cancellation; test 047 covers paid consumption and cancellation release.
+- Expiry worker is not implemented. Require configurable approved checkout timeout, payment-attempt-aware eligibility (active/succeeded/reconciliation attempts block), safe row locks/bounded batches, idempotency, atomic cancellation+reservation release and concurrency tests before activation.
