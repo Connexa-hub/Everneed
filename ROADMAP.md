@@ -275,3 +275,10 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 
 ## 21 Nov 2026 — FIN-02A concurrent reservation guard
 - Added concurrent test 054: two separate PostgreSQL sessions race to reserve 600 each against a 1,000 campaign budget; exactly one may win. Actual simultaneous staging calls produced one success/one budget rejection and 600 reserved; fixtures cleaned. CI wired. Finance section 46.
+
+
+### FIN-02A latest test checkpoint — 21 Nov 2026
+- FIN-02A tests 051–054 are green in the latest full database CI run: multi-store allocation/rounding, insufficient-budget rollback, sequential over-reservation, and true concurrent budget reservation.
+- Added test 055 for FX provenance, supported currency exponent mapping, and schema-v2 quote currency/exponent identity. It passed against staging in a rollback-only transaction and is wired into CI; new-head CI pending.
+- The current quote pipeline supports the listed currencies at exponent 2 only. Zero-decimal currencies are explicitly out of scope until end-to-end minor-unit paths are upgraded.
+- Android APK build for the prior latest head is still running. Draft PR #32 remains unmerged; production untouched.
