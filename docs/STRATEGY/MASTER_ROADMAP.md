@@ -743,3 +743,7 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 ## 20 Nov 2026 — FIN-02A card-only guard
 - Migration 045 restricts the atomic v2 wrapper to `p_pm='card'`, so legacy transfer/other checkout methods cannot enter the new funding path accidentally. Test 050 passed staging; actual card wrapper fixture 048 still passed.
 - Migration 045 applied staging-only. Production untouched. See finance architecture section 42.
+
+
+## 21 Nov 2026 — FIN-02A rounding regression
+- SQL test 051 covers multi-store allocation, mixed seller/platform discount funding, deterministic residual rounding, and store/payable reconciliation. Staging execution succeeded after test assertion correction; no data persisted. CI wiring added; full workflow pending. Finance section 43.
