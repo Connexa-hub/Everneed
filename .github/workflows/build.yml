@@ -114,6 +114,8 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/052_fin02a_insufficient_campaign_budget_atomic_rollback.sql
       - name: FIN-02A campaign budget over-reservation guard test (053)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/053_fin02a_campaign_budget_overreservation_guard.sql
+      - name: FIN-02A concurrent campaign budget reservation test (054)
+        run: bash supabase/tests/054_fin02a_campaign_budget_concurrency.sh "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       - name: Seller onboarding, plan entitlement and quota tests (034)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
 
