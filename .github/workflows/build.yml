@@ -110,6 +110,8 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/050_fin02a_card_checkout_wrapper_scope_checks.sql
       - name: FIN-02A multi-store allocation and minor-unit rounding tests (051)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/051_fin02a_multistore_minor_unit_rounding_checks.sql
+      - name: FIN-02A insufficient campaign budget atomic rollback test (052)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/052_fin02a_insufficient_campaign_budget_atomic_rollback.sql
       - name: Seller onboarding, plan entitlement and quota tests (034)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
 
