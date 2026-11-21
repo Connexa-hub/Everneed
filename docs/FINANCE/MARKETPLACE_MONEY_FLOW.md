@@ -1108,3 +1108,12 @@ Migration `044_fin02a_snapshot_quote_identity_guard.sql` strengthens the snapsho
 ## 42. FIN-02A card-only wrapper scope — 20 Nov 2026
 
 Migration `045_fin02a_card_checkout_wrapper_scope.sql` adds an explicit `p_pm='card'` guard to the v2 atomic wrapper. This prevents service-role callers from accidentally using the new funding snapshot path for transfer, WhatsApp or other legacy payment methods while those flows remain unintegrated. Test 050 passed against staging; test 048 still passed through the actual card wrapper. Migration 045 is staging-only. Production untouched.
+
+
+## 43. FIN-02A multi-store allocation/rounding regression — 21 Nov 2026
+
+- Added test `051_fin02a_multistore_minor_unit_rounding_checks.sql` to exercise three items across two stores, mixed commission rates, a 33.33% seller/66.67% platform funding split, and 100% seller-funded discount on the second store.
+- The test checks item allocation conservation, store-level aggregation, seller payable + commission reconciliation, and deterministic output when input JSON order changes. It uses integer minor units and rolls back.
+- Executed on staging. The first run exposed an incorrect assertion in the test (it counted mismatch rows but expected one); corrected it to expect zero mismatch rows and reran successfully. No staging records persisted.
+- CI now invokes test 051. Commit `21a679f` added the test; `1332178` wired it into CI; `97fef7c` corrected the assertion. Full workflow status is pending.
+- Next finance blockers remain campaign budget concurrency/insufficient-budget atomic rollback, FX quote validation, variant allocation, automatic expiry release, and Paystack verified success/webhook/refund/reconciliation.
