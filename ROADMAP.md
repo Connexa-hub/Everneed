@@ -282,3 +282,8 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 - Added test 055 for FX provenance, supported currency exponent mapping, and schema-v2 quote currency/exponent identity. It passed against staging in a rollback-only transaction and is wired into CI; new-head CI pending.
 - The current quote pipeline supports the listed currencies at exponent 2 only. Zero-decimal currencies are explicitly out of scope until end-to-end minor-unit paths are upgraded.
 - Android APK build for the prior latest head is still running. Draft PR #32 remains unmerged; production untouched.
+
+
+## Android build pause — web-first development
+- Android APK CI job is temporarily disabled (`if: false`) while Everneed development is web-only. Web app checks, database tests, and migration validation continue normally.
+- Re-enable APK builds only when the user explicitly resumes Android work. This is a temporary CI pause, not deletion of Android project assets or native functionality.
