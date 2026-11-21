@@ -271,3 +271,7 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 
 ## 21 Nov 2026 — FIN-02A aggregate budget reservation guard
 - Test 053 confirms 600 + 600 holds cannot exceed a 1,000 budget: second request fails, one active hold remains and reserved amount is exactly 600. Staging test passed with rollback; CI wired. This does not replace concurrency stress. Finance section 45.
+
+
+## 21 Nov 2026 — FIN-02A concurrent reservation guard
+- Added concurrent test 054: two separate PostgreSQL sessions race to reserve 600 each against a 1,000 campaign budget; exactly one may win. Actual simultaneous staging calls produced one success/one budget rejection and 600 reserved; fixtures cleaned. CI wired. Finance section 46.
