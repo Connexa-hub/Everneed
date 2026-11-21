@@ -1147,3 +1147,12 @@ Migration `045_fin02a_card_checkout_wrapper_scope.sql` adds an explicit `p_pm='c
 - Test 055 was executed against Everneed staging successfully in a rollback-only transaction. It is wired into CI. The latest CI must rerun after this commit before this new test is considered CI-green.
 - Currency exponent is intentionally not generalized yet: unsupported currencies/zero-decimal currencies remain rejected until pricing and all minor-unit allocation/payment paths are updated consistently.
 - No payment/accounting integration, production change, campaign activation, or funds movement occurred.
+
+
+## FIN-02A unpaid-order expiry safety design — 21 Nov 2026
+- The campaign reservation lifecycle trigger already consumes holds when `orders.payment_status` becomes `paid` and releases holds when an order transitions to `cancelled` while unpaid. Test 047 covers both.
+- Automatic expiry is **not yet implemented**. Do not invent a fixed timeout: the business owner must choose the checkout expiry window and user-facing warning policy, which should be configurable rather than hard-coded.
+- Expiry worker must use a caller-supplied/approved cutoff, bounded batch size, row locking with `SKIP LOCKED`, and only eligible unpaid order states/payment statuses. It must not touch paid, partially refunded, refunded, disputed, or delivered orders.
+- Any payment attempt in `initializing`, `pending`, or `processing` blocks expiry. `succeeded` and `reconciliation_required` also block cancellation pending verified settlement/reconciliation. Only conclusively failed/abandoned attempts or no attempt may permit expiry, subject to an explicit grace period.
+- Worker must cancel through the guarded order transition, never bypass the order guard except a narrowly-scoped internal implementation; cancellation then releases active campaign holds through the existing trigger. Order, reservation and budget accounting changes must be atomic.
+- Tests required before migration: expired/no attempt cancels and releases; not-yet-expired remains; active provider attempt blocks; succeeded attempt blocks; reconciliation-required blocks; paid never cancels; idempotent repeated batches; concurrent workers skip locked; reservation totals remain reconciled; fixtures clean/rollback. Worker remains disabled until approved cutoff and operational scheduling exist.
