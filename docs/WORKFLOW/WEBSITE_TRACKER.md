@@ -665,3 +665,8 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Test 055 (`supabase/tests/055_fin02a_fx_quote_currency_exponent_contract.sql`) was added and executed against staging successfully (rollback-only); it is wired into CI. CI is pending for the newer test commit.
 - This test locks supported currency exponent/provenance contracts and v2 quote identity. Current checkout currencies remain exponent 2; no zero-decimal currency support implied.
 - PR #32 remains draft, base `web-portal`, unmerged. No production deploy/payment activity.
+
+
+## Android build pause — web-first development
+- Android APK CI job is temporarily disabled (`if: false`) while Everneed development is web-only. Web app checks, database tests, and migration validation continue normally.
+- Re-enable APK builds only when the user explicitly resumes Android work. This is a temporary CI pause, not deletion of Android project assets or native functionality.
