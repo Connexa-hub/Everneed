@@ -646,3 +646,7 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 
 ## 21 Nov 2026 — FIN-02A rounding regression
 - Added SQL test 051 for multi-store allocation and minor-unit rounding. Staging run succeeded after correcting an assertion in the test itself; fixture is read-only/pure and rolled back. CI wired; workflow pending. Finance section 43.
+
+
+## 21 Nov 2026 — FIN-02A campaign budget failure atomicity
+- Test 052 verifies insufficient campaign budget aborts the card checkout without persisted order, reservation or reserved budget. Staging execution passed with rollback; CI wired. Finance section 44.
