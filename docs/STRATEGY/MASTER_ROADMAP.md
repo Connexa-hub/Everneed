@@ -747,3 +747,7 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 
 ## 21 Nov 2026 — FIN-02A rounding regression
 - SQL test 051 covers multi-store allocation, mixed seller/platform discount funding, deterministic residual rounding, and store/payable reconciliation. Staging execution succeeded after test assertion correction; no data persisted. CI wiring added; full workflow pending. Finance section 43.
+
+
+## 21 Nov 2026 — FIN-02A campaign budget failure atomicity
+- Test 052 exercises insufficient platform campaign budget and verifies the atomic checkout rolls back order/reservation/budget mutations. Staging execution passed; fixture rolled back. CI wired. Finance section 44.
