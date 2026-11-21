@@ -755,3 +755,7 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 
 ## 21 Nov 2026 — FIN-02A aggregate budget reservation guard
 - Test 053 verifies aggregate reservations stay within campaign budget (600 accepted; second 600 rejected against 1,000), leaving exactly one active hold. Staging passed; fixtures rolled back; CI wired. Concurrent stress remains a separate gate. Finance section 45.
+
+
+## 21 Nov 2026 — FIN-02A concurrent reservation guard
+- Test 054 runs two concurrent database sessions competing for campaign budget; staging confirmed only one 600 hold accepted against 1,000. Fixture cleaned; CI wired. Finance section 46.
