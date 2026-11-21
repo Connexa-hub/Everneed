@@ -766,3 +766,8 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 - New contract test 055 covers FX quote provenance, currently supported exponent-2 currencies, and snapshot v2 quote identity. Staging execution passed with rollback fixtures; CI rerun pending for this newer commit.
 - Zero-decimal currencies remain unsupported until end-to-end pricing, quote, allocation, Paystack, refund and settlement minor-unit handling is updated.
 - FIN-02A remains staging/draft only. No production deployment, live payment, journal posting, seller settlement or wallet activity.
+
+
+## Android build pause — web-first development
+- Android APK CI job is temporarily disabled (`if: false`) while Everneed development is web-only. Web app checks, database tests, and migration validation continue normally.
+- Re-enable APK builds only when the user explicitly resumes Android work. This is a temporary CI pause, not deletion of Android project assets or native functionality.
