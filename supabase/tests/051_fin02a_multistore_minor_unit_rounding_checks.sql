@@ -47,7 +47,7 @@ begin
         <> (select sum((e->>'discount_minor')::bigint) from jsonb_array_elements(v_a->'items') e where e->>'store_id'='store-a') then
     raise exception 'Store A aggregate does not reconcile to its item allocations.';
   end if;
-  if (select count(*) from jsonb_array_elements(v_a->'items') e where e->>'store_id'='store-b' and (e->>'seller_discount_minor')::bigint<>(e->>'discount_minor')::bigint)<>1 then
+  if (select count(*) from jsonb_array_elements(v_a->'items') e where e->>'store_id'='store-b' and (e->>'seller_discount_minor')::bigint<>(e->>'discount_minor')::bigint)<>0 then
     raise exception 'Store B 100%% seller funding consent was not honored.';
   end if;
   if (select sum((e->>'discount_minor')::bigint) from jsonb_array_elements(v_a->'items') e)<>17 then
