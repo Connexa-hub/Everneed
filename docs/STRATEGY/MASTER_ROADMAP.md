@@ -751,3 +751,7 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 
 ## 21 Nov 2026 — FIN-02A campaign budget failure atomicity
 - Test 052 exercises insufficient platform campaign budget and verifies the atomic checkout rolls back order/reservation/budget mutations. Staging execution passed; fixture rolled back. CI wired. Finance section 44.
+
+
+## 21 Nov 2026 — FIN-02A aggregate budget reservation guard
+- Test 053 verifies aggregate reservations stay within campaign budget (600 accepted; second 600 rejected against 1,000), leaving exactly one active hold. Staging passed; fixtures rolled back; CI wired. Concurrent stress remains a separate gate. Finance section 45.
