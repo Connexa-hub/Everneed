@@ -1117,3 +1117,11 @@ Migration `045_fin02a_card_checkout_wrapper_scope.sql` adds an explicit `p_pm='c
 - Executed on staging. The first run exposed an incorrect assertion in the test (it counted mismatch rows but expected one); corrected it to expect zero mismatch rows and reran successfully. No staging records persisted.
 - CI now invokes test 051. Commit `21a679f` added the test; `1332178` wired it into CI; `97fef7c` corrected the assertion. Full workflow status is pending.
 - Next finance blockers remain campaign budget concurrency/insufficient-budget atomic rollback, FX quote validation, variant allocation, automatic expiry release, and Paystack verified success/webhook/refund/reconciliation.
+
+
+## 44. FIN-02A insufficient campaign-budget atomic rollback — 21 Nov 2026
+
+- Added test `052_fin02a_insufficient_campaign_budget_atomic_rollback.sql`: attempts card checkout with a platform subsidy of 2,000 minor units against only 1,000 approved budget.
+- It asserts the checkout fails specifically for budget exhaustion and that no order, reservation or reserved-budget balance survives. The test fixture is wrapped in a rollback.
+- Executed successfully against staging; no fixture rows persisted. CI now invokes test 052.
+- This verifies budget-fail closed behavior for a single checkout. Concurrent reservation stress testing and full FX/variant cases remain open. No production changes or live payment activity.
