@@ -130,7 +130,9 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
+  # TEMPORARILY PAUSED: web-only development; do not build Android APKs until requested.
   apk:
+    if: false
     needs: [test, database]
     runs-on: ubuntu-latest
     steps:
