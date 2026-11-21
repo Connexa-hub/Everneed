@@ -759,3 +759,10 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 
 ## 21 Nov 2026 — FIN-02A concurrent reservation guard
 - Test 054 runs two concurrent database sessions competing for campaign budget; staging confirmed only one 600 hold accepted against 1,000. Fixture cleaned; CI wired. Finance section 46.
+
+
+## FIN-02A checkpoint — 21 Nov 2026
+- Latest full database CI passed tests 033–054, including concurrency reservation safety and insufficient-budget rollback; install/check passed. APK job was in progress at checkpoint.
+- New contract test 055 covers FX quote provenance, currently supported exponent-2 currencies, and snapshot v2 quote identity. Staging execution passed with rollback fixtures; CI rerun pending for this newer commit.
+- Zero-decimal currencies remain unsupported until end-to-end pricing, quote, allocation, Paystack, refund and settlement minor-unit handling is updated.
+- FIN-02A remains staging/draft only. No production deployment, live payment, journal posting, seller settlement or wallet activity.
