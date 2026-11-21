@@ -215,6 +215,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 | WEB-Q03 | Accessibility pass (focus, labels, contrast, 200% text) | P2 | TODO | | | | The setup scenes are decorative (`aria-hidden`) and still when reduced motion is on; check the step rail and the hours picker with a keyboard. |
 | WEB-Q04 | Performance pass (Lighthouse, image sizes, script count) | P3 | TODO | | | | 23 scripts load in sequence today (`geo.js`, `workspace.js`, `how.js`, `setup-art.js` and `setup.js` were added 13 to 14 Nov). Merge or defer the ones only needed on some pages. |
 
+| WEB-X01 | Seller workspace and admin console redesign: design system (`ds.css`, `ds.js`), feedback system, sheet pickers, segmented tabs, rich admin cards, Everneed Store workspace | P1 | IN PROGRESS | `web/assets/css/ds.css`, `web/assets/js/ds*.js`, `docs/PRODUCT/DESIGN_SYSTEM.md`, `tools/web-seller-tests/`; backend requests R1 to R9 in `SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md` | Claude | web-portal | Claimed 21 Nov 2026. Staging only; no database changes. Shows true empty or not-available states until each backend request ships. Real-device visual checks still needed from the owner. |
 ---
 
 ## Change log (newest first)
