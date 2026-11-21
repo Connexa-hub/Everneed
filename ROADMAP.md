@@ -263,3 +263,7 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 
 ## 21 Nov 2026 — FIN-02A rounding regression
 - Added SQL test 051 for multi-store item allocation, deterministic residual handling, mixed funding shares, seller-payable reconciliation and store aggregation. Test executed successfully on staging with rollback; an initial assertion bug was corrected and rerun green. CI wiring is added; wait for full CI before marking checkpoint complete. Finance section 43.
+
+
+## 21 Nov 2026 — FIN-02A campaign budget failure atomicity
+- Test 052 proves a card checkout requiring 2,000 minor units subsidy is rejected when the approved budget is 1,000 and leaves no order/reservation/budget hold. Staging test passed with rollback; CI wired. Finance section 44.
