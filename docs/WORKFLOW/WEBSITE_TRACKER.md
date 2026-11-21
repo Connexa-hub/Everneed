@@ -650,3 +650,7 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 
 ## 21 Nov 2026 — FIN-02A campaign budget failure atomicity
 - Test 052 verifies insufficient campaign budget aborts the card checkout without persisted order, reservation or reserved budget. Staging execution passed with rollback; CI wired. Finance section 44.
+
+
+## 21 Nov 2026 — FIN-02A aggregate budget reservation guard
+- Test 053 verifies a second 600 reservation is rejected against a 1,000 approved campaign budget, preserving only the first 600 hold. Staging execution passed with rollback; CI wired. Explicitly not a concurrency stress test. Finance section 45.
