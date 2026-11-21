@@ -13,7 +13,7 @@ declare
   v_count integer;
 begin
   insert into public.offers(id,name,kind,value,scope,active)
-  values(v_offer,'Budget hold boundary fixture','fixed',0,'all',true);
+  values(v_offer,'Budget hold boundary fixture','fixed',1,'all',true);
   insert into private.offer_campaign_budgets(offer_id,currency,approved_budget_minor,reserved_minor,consumed_minor,approved_by,approval_note)
   values(v_offer,'NGN',1000,0,0,v_uid,'Budget hold boundary fixture');
 
