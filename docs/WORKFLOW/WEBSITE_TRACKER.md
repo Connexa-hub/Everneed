@@ -658,3 +658,10 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 
 ## 21 Nov 2026 — FIN-02A concurrent reservation guard
 - Test 054 uses concurrent independent DB sessions, two 600 holds competing for 1,000 budget. Staging run confirmed one accepted/one rejected and exactly 600 held; fixture cleaned. CI wired. Finance section 46.
+
+
+## Finance CI checkpoint — 21 Nov 2026
+- Full database CI on head `3681ab21d16ba33d8a23da6f02402cd4426df581` passed tests 033–054, including all FIN-02A reservation concurrency and rollback gates. Install/check job passed. APK job was still building at checkpoint.
+- Test 055 (`supabase/tests/055_fin02a_fx_quote_currency_exponent_contract.sql`) was added and executed against staging successfully (rollback-only); it is wired into CI. CI is pending for the newer test commit.
+- This test locks supported currency exponent/provenance contracts and v2 quote identity. Current checkout currencies remain exponent 2; no zero-decimal currency support implied.
+- PR #32 remains draft, base `web-portal`, unmerged. No production deploy/payment activity.
