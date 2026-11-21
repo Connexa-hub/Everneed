@@ -299,3 +299,41 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+## Variant-aware checkout phase (design pending implementation)
+
+Catalogue variants are currently database-managed only. Existing `create_order` checkout reads `products.price` and legacy `products.stock` / `products.stocks`; it does not validate a `product_variants` selection or snapshot variant SKU/options. Existing cancellation path restores legacy stock via `private.stock_add`. Until the variant-aware checkout phase is implemented and tested, clients must not offer variant selection as a purchasable checkout feature. See `VARIANT_CHECKOUT_BACKEND_PHASE.md` for contract and acceptance tests.
+
+
+## Variant-aware checkout draft
+
+Migration `20261119042700_variant_checkout_inventory.sql` and test 039 are on `feature/variant-checkout`, not applied to staging. It adds order-item variant identity/options/SKU and reservation/restoration markers, server-side variant price resolution, atomic stock decrement, snapshot integration and cancellation restoration. CI/staging validation pending; variant buying remains disabled. Other catalog workflow gaps (price tiers, media storage, bulk tools, promotions, analytics, team seats, multi-location inventory) remain open.
+
+
+## Official store visibility correction
+
+Migration `20261119042710_official_store_live_entitlement_bypass.sql` fixes the seller entitlement version of `private.store_live()` so the approved official Everneed store remains live without a seller subscription/entitlement row. Non-official sellers still require a valid plan, activation status, verification and subscription period. Added to the feature branch migration replay manifest; CI validation pending.
+
+
+- Variant-restoration helper ACL: `private.restore_variant_order_item(text)` is client-role-revoked and service-role-only; regression test 039 asserts both sides of the privilege boundary.
+
+
+## Seller quota guard trusted execution fix (draft)
+
+Regression test 034 found `private.products_guard()` was not SECURITY DEFINER although it reads private entitlement/event data for quota enforcement. Additive migration `20261119122500_seller_product_quota_guard_security_definer.sql` redefines it as SECURITY DEFINER with an empty search_path and revokes direct EXECUTE from API roles. This migration is on `feature/variant-checkout` only; CI rerun pending, staging/production unchanged.
+
+
+## Product guard caller-role preservation — CI regression fix
+
+The SECURITY DEFINER quota guard must use the original JWT role, not PostgreSQL `current_user` (which becomes the function owner inside the definer context). Additive migration `20261119124500_products_guard_preserve_caller_role.sql` updates `private.is_privileged()` to evaluate `auth.role()` with a safe fallback and retain the admin check. This prevents ordinary authenticated sellers from being treated as privileged when the quota guard executes. CI Phase 2 product permission tests exposed this regression; the new migration is included in the local replay manifest. Draft PR only; staging and production are unchanged pending CI.
+
+
+## Seller plan catalogue RPC grant restoration
+
+CI test 034 found that the seller-safe `public.seller_plan_catalog()` RPC had lost its explicit read grants to `anon` and `authenticated`. Additive migration `20261119125500_restore_seller_plan_catalog_read_grants.sql` revokes PUBLIC and explicitly grants those two API roles execute. The RPC exposes only plan/entitlement comparison fields; private entitlement table RLS remains admin-only. Included in migration replay manifest; CI rerun pending, no staging/production change.
+
+
+## Seller category schema RPC anonymous-access correction
+
+The authenticated RPC boundary test found that `seller_product_category_schema(text)` retained default PUBLIC EXECUTE, exposing seller editor taxonomy metadata to anonymous callers. Additive migration `20261119130500_revoke_anonymous_category_schema_rpc.sql` revokes PUBLIC/anon and grants the seller-facing RPC only to authenticated and service_role. This does not affect public category browsing or the anonymous storefront. Regression coverage remains in test 017.

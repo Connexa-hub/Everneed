@@ -213,3 +213,18 @@ Please implement the product editor/list/management UI and admin store-context s
 - AliExpress Seller Workbench User Manual (PDF, surfaced from AliExpress media CDN): https://ae-pic-a1.aliexpress-media.com/kf/S270b37a6df9f4c038d3156879ff19aeao.pdf — seller workbench modules for products, orders, after-sales, logistics, marketing, store operations and analytics.
 
 Everneed's benchmark should be feature breadth and backend correctness, not copying a foreign marketplace's mandatory paperwork, shipping model, fee structure or UI. Keep Nigerian mobile-first seller flows, local delivery/hub, seller plan limits and product/country compliance rules authoritative.
+
+
+## Variant-aware checkout phase — implementation draft
+
+A draft migration `20261119042700_variant_checkout_inventory.sql` is committed to `feature/variant-checkout`. It adds variant ID/SKU/options and reservation/restoration markers to order items, server-side variant/sale-price resolution, atomic tracked inventory reservation, immutable checkout snapshot fields, and one-time cancellation restoration. Regression test 039 and CI wiring are added. Migration replay-name CI has passed for the draft branch; database replay and full CI are still pending. **Not staging-applied; variant purchases must remain disabled.**
+
+
+## Variant checkout validation update
+
+Migration `20261119042700_variant_checkout_inventory.sql`, test 039 and CI wiring are drafted on `feature/variant-checkout`. Migration replay passed on the earlier CI run, but the full database job stopped at two public-read Phase 2 failures before the variant test. The likely official-store visibility root cause was fixed by `20261119042710_official_store_live_entitlement_bypass.sql`; a temporary draft validation PR is running the latest branch. Staging remains unchanged, and variants remain disabled until test/CI and staging verification are green.
+
+
+## CI test placement correction
+
+Tests 034 and 036–038 were previously attached to the APK job, which does not start a local Supabase stack. They are moved to the database job before anonymous-read smoke tests. Variant test 039 is run before Phase 2 so failures are isolated. The updated workflow is on `feature/variant-checkout`; CI rerun pending.

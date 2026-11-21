@@ -54,6 +54,7 @@ declare
   v_chat_order_id text;
   v_so_b text;
   v_duplicate jsonb;
+  v_hub_item_count integer;
   v_result text;
   v_customer jsonb := '{"name":"F17 Test Buyer","phone":"08000000000","street":"1 Test Road","city":"Ikeja","state":"Lagos","email":"f17@test.local"}';
 begin
@@ -70,16 +71,16 @@ begin
   insert into public.stores(owner_id, name, about, status, country, state, city)
   values (v_seller_a, 'F17 Store A', 'Security test', 'draft', 'NG', 'Lagos', 'Ikeja')
   returning id into v_store_a;
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name)
-  values (v_store_a, 'F17 Store A Ltd', 'NIN', 'F17-A', 'Test Bank', '0000000001', 'F17 Store A');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id)
+  values (v_store_a, 'F17 Store A Ltd', 'NIN', 'F17-A', 'Test Bank', '0000000001', 'F17 Store A', 'plan-starter');
   perform public.zz_f17_back();
 
   perform public.zz_f17_as(v_seller_b);
   insert into public.stores(owner_id, name, about, status, country, state, city)
   values (v_seller_b, 'F17 Store B', 'Security test', 'draft', 'NG', 'Lagos', 'Ikeja')
   returning id into v_store_b;
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name)
-  values (v_store_b, 'F17 Store B Ltd', 'NIN', 'F17-B', 'Test Bank', '0000000002', 'F17 Store B');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id)
+  values (v_store_b, 'F17 Store B Ltd', 'NIN', 'F17-B', 'Test Bank', '0000000002', 'F17 Store B', 'plan-starter');
   perform public.zz_f17_back();
 
   perform public.zz_f17_as(v_admin);
@@ -195,6 +196,13 @@ begin
   perform public.zz_f17_back();
 
   -- Duplicate item results must not satisfy a hub check.
+  select count(*) into v_hub_item_count
+  from public.order_items
+  where seller_order_id = v_so_b;
+  if v_hub_item_count <> 1 then
+    raise exception 'F17 hub duplicate fixture expected exactly one item, found %', v_hub_item_count;
+  end if;
+
   select jsonb_build_array(
     jsonb_build_object('item_id', i.id, 'status', 'received'),
     jsonb_build_object('item_id', i.id, 'status', 'received')
@@ -202,6 +210,18 @@ begin
   from public.order_items i
   where i.seller_order_id = v_so_b
   limit 1;
+
+  if jsonb_array_length(v_duplicate) <> 2
+     or (select count(distinct c->>'item_id') from jsonb_array_elements(v_duplicate) c) <> 1 then
+    raise exception 'F17 duplicate fixture is not two entries for the same item: %', v_duplicate;
+  end if;
+
+  if pg_get_functiondef('public.hub_receive(text,jsonb)'::regprocedure)
+     not ilike '%Send exactly one check result per item.%'
+     or pg_get_functiondef('public.hub_receive(text,jsonb)'::regprocedure)
+     not ilike '%jsonb_array_length(p_check)%' then
+    raise exception 'F17 hardened hub_receive implementation is missing from replayed schema';
+  end if;
 
   perform public.zz_f17_as(v_admin);
   v_result := public.zz_f17_try(format(
@@ -235,7 +255,7 @@ begin
   perform public.zz_f17_back();
 
   -- Every authenticated-callable public SECURITY DEFINER function must have an empty path
-  -- and no implicit PUBLIC EXECUTE. Anonymous access is limited to the six intended public RPCs.
+  -- and no implicit PUBLIC EXECUTE. Anonymous access is limited to the explicitly allow-listed public RPCs, including the seller-safe plan catalogue.
   if exists (
     select 1
     from pg_proc p
@@ -275,10 +295,11 @@ begin
         'support_guest_ping',
         'support_guest_close',
         'store_reply_stats',
-        'support_sla_public'
+        'support_sla_public',
+        'seller_plan_catalog'
       )
   ) then
-    raise exception 'An unexpected anonymous SECURITY DEFINER RPC is executable';
+    raise exception 'Unexpected anonymous SECURITY DEFINER RPC(s): %', (select string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') ACL=' || coalesce(p.proacl::text,'<default>'), '; ' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef and has_function_privilege('anon',p.oid,'EXECUTE') and p.proname not in ('join_waitlist','support_guest_open','support_guest_ping','support_guest_close','store_reply_stats','support_sla_public','seller_plan_catalog'));
   end if;
 end
 $test$;
