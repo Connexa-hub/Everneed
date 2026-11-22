@@ -7,7 +7,7 @@ Status checked 22 Nov 2026. Branches are development snapshots, not separate app
 - `feature/variant-checkout`: isolated integration branch for variants/inventory checkout, payment and finance hardening. It is the current active draft PR #32 branch; not merged. Latest work includes FIN-02A and migration 056 checkout-expiry draft.
 
 ## Legacy branches not currently listed as active remote branches
-- `feature/multivendor-cleanup`: historical clean multi-vendor refactor branch created to remove CJ dropshipping and preserve marketplace features. Branch search did not find it now; treat it as archived/deleted, not current.
+- `feature/multivendor-cleanup`: historical clean multi-vendor refactor branch created to remove the former external fulfilment connector and preserve marketplace features. Branch search did not find it now; treat it as archived/deleted, not current.
 - `everneed01`: historical branch based on a separate phase-2 build. User previously said it was no longer useful. Branch search did not find it now; do not revive.
 - Other experiments/variants: if not found in current branch list, they are not assumed active.
 
