@@ -704,3 +704,8 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Read-only staging review: legacy `refund` marks local `processed` without provider API confirmation; cap is order-total, allocation pro-rata; cancellation auto-creates `approved` rows and reverses ledger before provider confirmation, with premature buyer notification. Provider-refund schema is present but not wired to RPC/Edge/webhook/journal.
 - Recommended defaults (approval pending) documented in `docs/WORKFLOW/PAYMENT_REFUND_AUDIT.md`: snapshot item/store allocation, pending refund cap reservations, provider-confirmed status, promotion funding reversal, delivery fee/manual method/seller recovery policy, and evidence/notification rules.
 - FIN-04 implementation is gated on policy approval. No refund provider request, migration, payout or production action.
+
+
+## Staging Paystack deployment mismatch — 22 Nov 2026
+- Staging Edge Function `paystack` is ACTIVE v13. Its direct settlement path verifies provider transaction/order/user then calls the settlement RPC, but lacks explicit metadata `payment_attempt_id` binding. Branch code now adds persisted-attempt context matching; unit/full CI passed, but source not deployed.
+- FIN-03 journal migration 057 is applied in staging and posts atomically through the settlement RPC. No sandbox E2E accepted yet; deliberate staging function deployment and webhook/verify/replay tests are a gate. No deployment or charge.
