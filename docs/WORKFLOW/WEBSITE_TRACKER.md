@@ -688,3 +688,8 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Migration 056 applied to staging; test 056 executed successfully and rolled back fixtures.
 - Service-role-only ACL confirmed; anon/authenticated EXECUTE denied.
 - No expiry window decision, cron/scheduler, or production change. Documentation commits require fresh CI.
+
+## FIN-03 Paystack audit checkpoint — 22 Nov 2026
+- Audited webhook/manual verification against recovery-worker checks. Direct settlement path previously checked user/order and settlement RPC amount/currency but lacked explicit metadata attempt-ID binding.
+- Updated Paystack Edge Function to match persisted recovery context: order, user, payment-attempt ID, amount and currency. This is source-only; not deployed.
+- Await CI/Deno type-check. Sandbox webhook replay, mismatched metadata and duplicate-event E2E remain acceptance tests. No live charges or production changes.
