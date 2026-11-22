@@ -1,6 +1,5 @@
 node_modules/
 www/
-android/
 
 # Local Android signing material
 *.keystore
