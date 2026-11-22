@@ -21,8 +21,8 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 - Latest verified PR head: `c9fdf5f916fa2bc0efb468e37fbfab0c16ecb7c5`. PR workflow runs `43822453026` (migration files), `43822453073` (website checks) and `43822453133` (install/test, Phase 2 database/security/payment/finance checks and APK) all completed successfully.
 - Subsequent commits `f40984c`, `f52b6cd` and `baa9cb4` update settlement specification, finance audit and DB contract documentation only; no application or database code changed in those commits.
 - Supabase staging ledger includes legacy versions `000`–`033` plus migration `20261116201132_seller_onboarding_entitlements_and_quotas`; repository migration filename uses the matching timestamp. Structural assertions for migration 034 pass. Full CI replay and browser E2E remain outstanding.
-- Staging Edge Functions: `public-forms` ACTIVE v3; `paystack` ACTIVE v1. Newer Paystack webhook retry code and `payment-recovery` worker are not deployed.
-- `APP-08` remains open: Android app staging/production environment selection is not yet wired to the shared config.
+- Staging Edge Functions (latest finance checkpoint): `public-forms` ACTIVE v3; staging `paystack` ACTIVE v14 with the attempt-context binding update deployed. Sandbox HTTP/webhook/verify/replay tests are still unperformed; do not infer acceptance from deployment.
+- `APP-08` is a confirmed P0 blocker: root `js/config.js` hard-codes production Supabase (`zpgasfweaixwsktlueje`); root app does not load `shared/config.js`. No buyer-app checkout or payment testing until a staging-only build is implemented and verified.
 - Historical task scoreboard and change log below contain dated snapshots; use the dated evidence and current statuses rather than assuming every old note is current.
 
 
