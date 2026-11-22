@@ -161,3 +161,7 @@ Audit of `public.settle_verified_payment_attempt` and `private.confirm_payment_c
 5. CI pass; apply to staging; run rollback-only staging tests; read-only verify journal balances and matching seller subledger. Keep production and transfer automation disabled.
 
 No live payment or payout has been run. This audit records the gap and proposed accounting design, not an approval to deploy or recognize revenue.
+
+
+## 10. FIN-03 metadata-binding unit tests added — 22 Nov 2026
+The strict provider-to-attempt metadata binding was extracted to `supabase/functions/paystack/payment-context.ts` and is used by the direct Paystack settlement path. Unit tests cover valid match, order/user/attempt ID mismatch, amount mismatch, unsafe integer, currency mismatch and missing context/metadata. CI now runs `deno test` for this helper in addition to Deno type-checking. This is source-level coverage only; it does not simulate a signed webhook, provider verify API, database settlement, campaign consume or finance-journal posting. Await CI before claiming validation.
