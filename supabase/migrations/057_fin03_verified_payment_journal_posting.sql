@@ -6,6 +6,13 @@ select 'liability.delivery_fee_held','Delivery fees held pending fulfilment allo
 from (values('NGN'),('GHS'),('KES'),('ZAR'),('GBP'),('USD')) c(currency)
 on conflict(account_code,currency) do nothing;
 
+-- Platform-funded checkout incentives are a company expense and must be
+-- journalable in every supported checkout currency.
+insert into private.finance_accounts(account_code,account_name,account_type,currency)
+select 'expense.platform_promotions','Platform-funded promotions expense','expense',c.currency
+from (values('NGN'),('GHS'),('KES'),('ZAR'),('GBP'),('USD')) c(currency)
+on conflict(account_code,currency) do nothing;
+
 create or replace function private.post_verified_order_payment_journal(p_order_id text,p_attempt_id uuid)
 returns uuid language plpgsql security definer set search_path=''
 as $$
