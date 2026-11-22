@@ -128,3 +128,36 @@ GitHub Actions run `43799090404` on commit `fcc3230d4d97c9489bb22fb3266b3767c698
 - Staging currently has zero finance journals, zero journal lines and zero payment attempts. There is no transaction history yet to reconcile.
 - CI run `43799090404` passed local Phase 2 and migration 033 SQL tests. The fixture-based Phase 2 SQL script was not run directly against the persistent staging database.
 - Production was not queried or changed. No live payout or transfer was initiated.
+
+
+## 8. Current staging and CI update — 22 Nov 2026
+
+- Staging has migration 034 finance-journal input hardening and FIN-02A migrations through 056, including the unpaid checkout expiry worker.
+- Test 056 passed on staging using rollback-only fixtures. Worker ACL: anon/authenticated denied; service_role allowed. No scheduler is enabled and no expiry duration is approved.
+- Latest source CI at commit `47641035022231d2027a22e00d5c8a96369fe59f` passed migration validation and the full Build Android app workflow's install/database tests; APK job is intentionally skipped. Subsequent documentation commits have migration validation passing; full workflow is pending on current documentation head.
+- The latest direct Paystack settlement source now binds metadata order/user/payment_attempt_id to persisted attempt context and checks amount/currency before calling the settlement RPC. This is source-only; no Edge Function deployed and no sandbox/live payment run.
+
+## 9. FIN-03 finding — successful payment is not yet journaled
+
+Audit of `public.settle_verified_payment_attempt` and `private.confirm_payment_core` found that successful payment currently updates the payment-attempt state, marks the order paid, creates seller `ledger_entries` and seller-order state, notifications and audit data—but does **not** post a balanced finance-journal transaction. Migration 033/034 provide a balanced, immutable, service-only journal API, but the API is not yet wired into payment settlement or order events. This is the next integration task.
+
+### Proposed accounting mapping for a verified v2 card order (design pending tests)
+
+- Debit Paystack clearing for provider-confirmed customer amount.
+- Debit platform promotion expense for the platform-funded discount in immutable snapshot v2.
+- Credit seller payable by store allocation, using `seller_payable_minor`.
+- Credit platform commission revenue using the frozen `commission_minor`.
+- Credit delivery revenue using `delivery_fee_minor`, only if that revenue-recognition policy is approved for the delivery state.
+- All lines must use the snapshot currency/exponent and be balanced; posting must be in the same database transaction as confirmed settlement, idempotent by order/payment event, and use immutable snapshot values. Do not derive from current product prices or mutable settings.
+- The chart of accounts currently has no explicit `expense.platform_promotions` account; this must be added with migration and tests before this mapping can post.
+- Delivery revenue recognition, Paystack fee accounting, taxes, partial refunds, chargebacks, returns, and transfer clearing remain separate policy/accounting decisions. This integration must not trigger payouts.
+
+### Implementation gates
+
+1. Add the promotion-expense account for all supported currencies, migration tests, and validate exact snapshot v2 totals/store allocations.
+2. Add a private posting helper that fails closed if snapshot is missing, malformed, not v2, currency/exponent mismatch, or totals don't reconcile; never post legacy orders without known facts.
+3. Integrate helper into the verified settlement transaction after `confirm_payment_core` reports newly paid. Idempotent retry must return already-settled without duplicate journal; journal source/idempotency key unique.
+4. Add rollback SQL fixtures for one store, multiple stores, platform-funded discounts, seller-funded discounts, delivery fee, duplicate settlement, failed journal posting rollback, and ACL.
+5. CI pass; apply to staging; run rollback-only staging tests; read-only verify journal balances and matching seller subledger. Keep production and transfer automation disabled.
+
+No live payment or payout has been run. This audit records the gap and proposed accounting design, not an approval to deploy or recognize revenue.
