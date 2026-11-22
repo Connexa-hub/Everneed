@@ -258,6 +258,7 @@ returns table (
   event_type text,
   provider_reference text,
   provider_transaction_id text,
+  signature_verified boolean,
   payload jsonb,
   lease_token uuid,
   attempts integer
@@ -308,10 +309,10 @@ begin
       from due
      where e.id = due.id
     returning e.id, e.event_key, e.event_type, e.provider_reference,
-              e.provider_transaction_id, e.payload, e.lease_token, e.attempts
+              e.provider_transaction_id, e.signature_verified, e.payload, e.lease_token, e.attempts
   )
   select c.id, c.event_key, c.event_type, c.provider_reference,
-         c.provider_transaction_id, c.payload, c.lease_token, c.attempts
+         c.provider_transaction_id, c.signature_verified, c.payload, c.lease_token, c.attempts
     from claimed c;
 end
 $$;
