@@ -47,10 +47,18 @@ Official Paystack documentation:
 9. For bank transfer/manual payments, use a separate admin evidence workflow and do not pretend Paystack processed the refund.
 10. Keep delivery-fee refunds subject to an explicit policy. Existing checkout snapshots mark this as admin-review-required; do not silently refund or retain it.
 
-## 4. Dependencies and release boundary
+## 4. Dependencies and release boundary — current staging checkpoint
 
-- Refunds depend on the verified payment-attempt lifecycle and immutable checkout snapshot.
-- Migration 032 currently hardens legacy payment wrappers only; no refund schema or provider behaviour has been changed.
-- The next new repository migration number is 034, but no refund migration has been created yet; migration 033 is reserved for the finance journal foundation.
-- The delivery-fee refund policy and the treatment of platform transaction fees still need a business decision.
-- No staging migration, Edge Function deployment, scheduler or production action was performed for this audit.
+- FIN-04 depends on the verified payment-attempt lifecycle, immutable checkout snapshots and FIN-03 settlement journal (migration 057 is applied to staging and test 057 passed with rollback fixtures).
+- Migration 026's `private.provider_refunds` schema exists in staging, but there is no narrow refund lifecycle RPC, Paystack refund API integration, refund webhook correlation or refund journal posting. The table alone is not an executable refund flow.
+- Current legacy `public.refund` and `private.cancel_so` behaviour remains unchanged and unsafe to treat as provider-confirmed: local records can be marked `processed` or `approved`, seller-ledger adjustments occur before provider confirmation, and automated cancellation can notify the buyer that a refund is on its way without submitting a provider refund.
+- Refund policy decisions still required: delivery-fee treatment, promotion funding reversal, commission/tax allocation, provider-fee treatment, FX, manual-payment evidence, and seller recovery if the payable was already withdrawn.
+- No refund migration, provider request, webhook, refund journal, payout or production action was performed in this checkpoint. Staging has FIN-03 journal integration only; production untouched.
+
+## 5. Latest refund audit checkpoint — 22 Nov 2026
+
+The existing refund RPC still uses a numeric major-unit amount and caps the cumulative `approved/processed` refund against the parent order total—not each seller-order/item refundable allocation. It writes a local `processed` row immediately, calculates seller reversal pro-rata from parent total and seller subtotal, returns commission to the seller ledger, and marks the parent payment status based on local records. It does not call Paystack or verify a refund status.
+
+The `private.cancel_so` path auto-creates an `approved` refund for a pro-rata share of merchandise (excluding delivery by its current formula), reverses pending/available seller-ledger sale/commission rows immediately, and sends “refund is on its way” notification/admin task. It does not execute provider refund. These paths must be replaced/routed to a durable refund request and provider lifecycle before launch; do not interpret current `approved`/`processed` as money returned.
+
+FIN-04 acceptance sequence: immutable per-item/store refund allocation; pending/processing/needs-attention/failed/processed provider state; stable idempotent provider reference; cumulative caps include pending attempts; signed webhook and provider verify/reconciliation; refund journal posting only on provider-confirmed processing; failure releases reservation/reverses provisional accounting; admin evidence path for manual payments; buyer completion notification only after confirmation. Delivery, promotion and fee allocation policy must be approved before coding.
