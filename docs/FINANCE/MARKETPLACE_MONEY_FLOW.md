@@ -1156,3 +1156,12 @@ Migration `045_fin02a_card_checkout_wrapper_scope.sql` adds an explicit `p_pm='c
 - Any payment attempt in `initializing`, `pending`, or `processing` blocks expiry. `succeeded` and `reconciliation_required` also block cancellation pending verified settlement/reconciliation. Only conclusively failed/abandoned attempts or no attempt may permit expiry, subject to an explicit grace period.
 - Worker must cancel through the guarded order transition, never bypass the order guard except a narrowly-scoped internal implementation; cancellation then releases active campaign holds through the existing trigger. Order, reservation and budget accounting changes must be atomic.
 - Tests required before migration: expired/no attempt cancels and releases; not-yet-expired remains; active provider attempt blocks; succeeded attempt blocks; reconciliation-required blocks; paid never cancels; idempotent repeated batches; concurrent workers skip locked; reservation totals remain reconciled; fixtures clean/rollback. Worker remains disabled until approved cutoff and operational scheduling exist.
+
+
+## FIN-02A — unpaid checkout expiry worker (source checkpoint, 22 Nov 2026)
+
+Migration 056 adds `public.expire_unpaid_checkout_orders(p_cutoff, p_batch_size, p_reason)` as a service-role-only bounded RPC. The caller must supply a cutoff; no fixed checkout timeout is embedded. It only targets pending/awaiting-payment orders whose payment status remains awaiting payment/transfer, orders by age, and uses `FOR UPDATE SKIP LOCKED`. It calls the existing `private.cancel_order_core` so cancellation inventory restoration, campaign reservation-release trigger and audit behavior remain in the established path.
+
+The worker excludes orders with payment attempts in `initializing`, `pending`, `processing`, `succeeded` or `reconciliation_required`. Attempt creation locks the order, and the worker rechecks attempts while holding its order lock to close the selection race. Failed/cancelled attempts do not block. Cancellation exceptions are isolated and reported in the JSON result rather than stopping the batch.
+
+Test 056 covers old unpaid cancellation, recent-order retention, paid-order exclusion, pending and reconciliation blockers, failed-attempt eligibility, repeat-call idempotency and least-privilege RPC ACL. Migration 056 and the regression are source-only on the draft feature branch; staging apply, worker scheduling and expiry policy approval are pending. Automatic activation remains disabled.
