@@ -314,3 +314,12 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 
 ## Current checkpoint — 22 Nov 2026
 Migration 056 is applied to staging and test 056 passed with rollback-only fixtures. ACL is service-role-only. No expiry scheduling/policy approved. Direct Paystack metadata binding hardening has CI passed on commit 4764103; not deployed. Finance audit found double-entry posting is not wired into verified settlement. The next implementation phase is FIN-03 payment-to-journal atomic integration; accounting mapping and acceptance gates are documented in `docs/WORKFLOW/FINANCE_LEDGER_PHASE_3_AUDIT.md`. Production untouched; APK CI remains paused.
+
+
+## FIN-03 settlement journal integration — staging checkpoint (22 Nov 2026)
+- Migration 057 integrates verified card settlement with the immutable v2 financial snapshot and balanced journal in one transaction. Posting/account validation failure rolls settlement back; duplicate provider reference is idempotent.
+- Journal mapping: Paystack clearing debit (exact buyer payment), platform-promotion expense debit (platform subsidy), seller payable credit by store, commission revenue credit, and delivery-fee-held liability credit. Delivery fee is not prematurely recognized as revenue.
+- Test 057 includes 10% seller commission, platform-funded promotion, delivery, balanced lines, duplicate settlement, amount-mismatch quarantine, and fail-closed missing-account rollback.
+- Full clean database CI and migration-order validation passed at head `a7b0d3f576df03f78010b79926c003531beed2db`. Migration applied to staging version `20261122140408`; rollback-only staging test passed. Account seeds for six supported currencies confirmed; test fixtures/journal rows did not persist. Production untouched.
+- Still gated: sandbox Paystack E2E, webhook replay, reconciliation, provider fees, bank settlement, refund accounting, seller payouts, final commission/delivery recognition policy. Edge Function is not deployed. PR remains draft; APK paused.
+- Next: FIN-03 provider sandbox acceptance, then FIN-04 refund lifecycle/provider confirmation and frozen allocation integration.
