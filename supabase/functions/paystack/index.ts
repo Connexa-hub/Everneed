@@ -1,3 +1,4 @@
+import { paymentContextMatches } from "./payment-context.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
@@ -80,14 +81,35 @@ function best(lines: { col: string; base: number }[], offers: any[]) {
 // The price is always computed here from product prices, offers, delivery settings and today's rate.
 async function price(o: any, cur: string) {
   const ids = (o.items || []).map((i: any) => i.id);
-  const { data: rows } = await db.from("products").select("id,price,col").in("id", ids);
+  const { data: rows, error: productError } = await db.from("products").select("id,price,col").in("id", ids);
+  if (productError) throw new Error("Could not load checkout products.");
   const by = new Map((rows || []).map((p: any) => [p.id, p]));
+  const variantIds = (o.items || []).map((i: any) => i.variant_id).filter(Boolean);
+  const variantsById = new Map<string, any>();
+  if (variantIds.length) {
+    const { data: variants, error: variantError } = await db.from("product_variants")
+      .select("id,product_id,store_id,price,sale_price,sale_starts_at,sale_ends_at,active")
+      .in("id", variantIds);
+    if (variantError) throw new Error("Could not validate selected product options.");
+    for (const v of variants || []) variantsById.set(v.id, v);
+  }
   const lines: { col: string; base: number }[] = [];
   let sub = 0;
   for (const i of o.items || []) {
     const p: any = by.get(i.id);
     if (!p) throw new Error("A product in this order is no longer available.");
-    const b = Number(p.price) * Number(i.qty);
+    let unit = Number(p.price);
+    if (i.variant_id) {
+      const v = variantsById.get(String(i.variant_id));
+      if (!v || v.product_id !== i.id || !v.active) throw new Error("The selected product option is no longer available.");
+      const now = Date.now();
+      const saleActive = v.sale_price != null &&
+        (!v.sale_starts_at || Date.parse(v.sale_starts_at) <= now) &&
+        (!v.sale_ends_at || Date.parse(v.sale_ends_at) > now);
+      unit = Number(saleActive ? v.sale_price : v.price);
+    }
+    if (!Number.isFinite(unit) || unit < 0) throw new Error("A product has an invalid price.");
+    const b = unit * Number(i.qty);
     sub += b;
     lines.push({ col: p.col, base: b });
   }
@@ -109,7 +131,6 @@ async function price(o: any, cur: string) {
     }
   };
 }
-
 async function settleLegacyPayOnDelivery(tx: any, o: any) {
   if (!tx || tx.status !== "success" || o.pm !== "card_later") return false;
   if (!o.currency || tx.currency !== o.currency || tx.amount !== Math.round(Number(o.total) * 100)) return false;
@@ -131,6 +152,14 @@ async function settle(tx: any) {
 
   if (v.metadata?.user_id !== o.user_id) return false;
   if (o.pm === "card_later") return await settleLegacyPayOnDelivery(v, o);
+
+  // The direct webhook/verify path must enforce the same metadata-to-attempt
+  // binding as the recovery worker before invoking settlement.
+  const { data: context, error: contextError } = await db.rpc("get_payment_attempt_recovery_context", {
+    p_provider_reference: String(v.reference),
+  });
+  if (contextError) throw new Error(contextError.message);
+  if (!paymentContextMatches(v.metadata, v.amount, v.currency, context)) return false;
 
   const { data: result, error } = await db.rpc("settle_verified_payment_attempt", {
     p_provider_reference: v.reference,
@@ -240,7 +269,7 @@ Deno.serve(async (req) => {
 
     if (b.action === "create") {
       // Orders are created here so prices, offers, stock and totals come from the server, not the app.
-      const items = (b.items || []).map((i: any) => ({ id: String(i.id), size: String(i.size || ""), qty: Math.floor(Number(i.qty)) }));
+      const items = (b.items || []).map((i: any) => ({ id: String(i.id), size: String(i.size || ""), qty: Math.floor(Number(i.qty)), ...(i.variant_id ? { variant_id: String(i.variant_id) } : {}) }));
       if (!items.length || items.some((i: any) => !(i.qty > 0 && i.qty <= 50))) return json({ error: "Your cart is empty or has an invalid quantity." }, 400);
       const country = String(b.country || ""), cur = DISPLAY[country];
       if (!cur) return json({ error: "We do not deliver to that country yet." }, 400);
@@ -268,7 +297,7 @@ Deno.serve(async (req) => {
       // Card checkout uses the snapshot wrapper. Manual/WhatsApp/POD flows retain
       // their existing path until their separate payment lifecycle is implemented.
       const { data: order, error } = pm === "card"
-        ? await db.rpc("create_order_with_snapshot", { ...createArgs, p_pricing_context: pr.pricingContext })
+        ? await db.rpc("create_order_with_financial_snapshot_v2", { ...createArgs, p_pricing_context: pr.pricingContext })
         : await db.rpc("create_order", createArgs);
       if (error) return json({ error: error.message }, 400);
       return json({ order });

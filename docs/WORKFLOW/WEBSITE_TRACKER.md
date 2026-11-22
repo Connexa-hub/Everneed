@@ -1,3 +1,9 @@
+## Variant-aware checkout backend phase — 19 Nov 2026
+
+- Catalogue schema now supports product variants, per-variant prices, stock and option values; checkout is still legacy product/size-based and must not expose variants as purchasable yet.
+- Started isolated branch `feature/variant-checkout` from `web-portal`. Backend contract/test matrix is in `VARIANT_CHECKOUT_BACKEND_PHASE.md`.
+- Required next: update `create_order` server-side variant validation/pricing/atomic reservation; immutable order/payment snapshot; cancel/reject stock restoration; regression checks. Staging and production untouched by this phase so far.
+
 **17 Nov 2026 — social sharing preview:** Added server-delivered Open Graph and Twitter Card metadata to `web/index.html`, including Everneed site name, title, description, canonical URL and a 1200×630 branded PNG preview served by the Pages Function `functions/og-image.png.js`. This is intended for WhatsApp and other link-preview crawlers; the preview must be fetched from the deployed public URL, and platform caches may need refreshing. Change is on `web-portal` only; production `main` is untouched pending PR review/merge.
 
 **Last updated:** 22 Nov 2026 (Claude) — WEB-S22 part 2 pushed (seller home and products list); product workspace, orders, inbox still to do. Previously: 16 Nov 2026 (ChatGPT coordinator) — seller onboarding/entitlement migration `20261116201132` is applied to Everneed-staging; structural SQL regression assertions pass. Production untouched. Previous GitHub CI on PR head `c9fdf5f916fa2bc0efb468e37fbfab0c16ecb7c5` passed migration naming/order, website syntax/reference checks, database migration replay and Phase 2/security/payment/finance tests, plus APK packaging. Everneed-staging project `vjiadqygpyebpisxslbx` records legacy migrations 000–033 plus timestamped migration `20261116201132`. Do not describe 030–033 as source-only or pending. This confirms migration application and CI, not browser-based end-to-end website readiness. The current focus is a fast, safe website MVP: real customer journey, seller onboarding/catalogue/orders, admin operations, legal/support essentials, and phone-based E2E checks. Refund provider lifecycle and automatic seller transfers remain separate backend workstreams; no live transfers are enabled. PR #31 remains open/unmerged; production branch `main` and production database remain protected. **14 Nov (Claude):** store setup rebuilt in `setup.js`; seller workspace in `workspace.js`; real URL routing introduced. See WEB-S20/S21 and the change log.
@@ -15,8 +21,8 @@ Priority: **P0** do first, **P1** core product, **P2** important, **P3** later.
 - Latest verified PR head: `c9fdf5f916fa2bc0efb468e37fbfab0c16ecb7c5`. PR workflow runs `43822453026` (migration files), `43822453073` (website checks) and `43822453133` (install/test, Phase 2 database/security/payment/finance checks and APK) all completed successfully.
 - Subsequent commits `f40984c`, `f52b6cd` and `baa9cb4` update settlement specification, finance audit and DB contract documentation only; no application or database code changed in those commits.
 - Supabase staging ledger includes legacy versions `000`–`033` plus migration `20261116201132_seller_onboarding_entitlements_and_quotas`; repository migration filename uses the matching timestamp. Structural assertions for migration 034 pass. Full CI replay and browser E2E remain outstanding.
-- Staging Edge Functions: `public-forms` ACTIVE v3; `paystack` ACTIVE v1. Newer Paystack webhook retry code and `payment-recovery` worker are not deployed.
-- `APP-08` remains open: Android app staging/production environment selection is not yet wired to the shared config.
+- Staging Edge Functions (latest finance checkpoint): `public-forms` ACTIVE v3; staging `paystack` ACTIVE v14 with the attempt-context binding update deployed. Sandbox HTTP/webhook/verify/replay tests are still unperformed; do not infer acceptance from deployment.
+- `APP-08` is a confirmed P0 blocker: root `js/config.js` hard-codes production Supabase (`zpgasfweaixwsktlueje`); root app does not load `shared/config.js`. No buyer-app checkout or payment testing until a staging-only build is implemented and verified.
 - Historical task scoreboard and change log below contain dated snapshots; use the dated evidence and current statuses rather than assuming every old note is current.
 
 
@@ -455,3 +461,264 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Added explicit `advanced_product_editor=true` for every plan and `product_editor_mode`: Free/Starter `guided`, Growth/Pro `full`. Basic plans retain the full backend field set and only receive a simplified guided UI. Test 038 confirms the Free seller capability RPC.
 
 - Added catalogue trigger ACL hardening migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 verifies API roles cannot directly execute internal trigger helpers while the actual trigger paths still function.
+
+
+## Variant-aware checkout — feature branch implementation draft
+
+- Draft migration `20261119042700_variant_checkout_inventory.sql` committed on `feature/variant-checkout`: variant validation, database-resolved price/sale windows, atomic tracked-stock reservation, SKU/options item snapshots, immutable checkout snapshot extension, movement reference and one-time cancellation restoration.
+- Regression test 039 and CI invocation added; migration replay manifest updated on this branch.
+- **Not staging-applied or CI-validated yet.** Keep variant purchase UI disabled until full SQL replay, regression suite and staging verification pass. Production untouched.
+
+
+- CI revealed the official store was being hidden by the subscription/entitlement JOIN inside the newer `private.store_live()`. Follow-up migration `20261119042710_official_store_live_entitlement_bypass` restores the official-store exception without relaxing seller gates; regression assertion added to test 039.
+
+
+- CI wiring correction: seller onboarding test 034 and seller notification/catalogue tests 036–038 were located under the APK job, where the local Supabase database is not started. They are moved into the database job so they run against the replayed local schema. This is on the feature branch; full CI pending.
+
+
+## Public roadmap and payment/verification checkpoint — 19 Nov 2026
+
+- Added repository-root ROADMAP.md as the public milestone register for humans and AI agents. It records milestone IDs EV-00–EV-11, status definitions, exit criteria, current payment blocker, Prembly sequence, security constraints and source-of-truth documents. Root README links to it.
+- Draft PR #32 remains open/draft on feature/variant-checkout against web-portal; latest known diagnostic commit at time of update: 528ff3e1b813b9b15ce91ce49d25ab9cf576666a.
+- Paystack Deno type-check passed; variant checkout test 039 and Phase 2 (93/93) were reported passing in earlier CI evidence. The subsequent authenticated-RPC boundary test still reports an anonymous-executable SECURITY DEFINER routine. A diagnostic was added to report exact routine name and ACL; latest diagnostic CI result is pending/not yet available.
+- Variant checkout migrations are not applied to staging. Updated Paystack Edge Function is not deployed to staging. End-to-end Paystack sandbox checkout/webhook/reconciliation remains unverified. Keep variant purchase disabled.
+- Prembly sandbox connection and targeted Nigeria BVN/NIN/phone/CAC endpoint discovery are confirmed; sandbox wallet previously reported ₦0.00. No verification transaction or live integration is confirmed.
+- No production migration, Edge Function deployment, PR merge or live transaction was performed.
+- Next order: resolve security regression → green full CI → apply reviewed migrations to staging → deploy Paystack to staging → run payment lifecycle/reconciliation tests → implement and sandbox-test Prembly.
+
+
+## 19 Nov 2026 — CI green and payment staging rollout
+
+- CI run 44540581382: web/install checks passed; database tests passed, including Deno type checks for Paystack and payment recovery, variant checkout contract test 039, Phase 2, public/authenticated RPC security, buyer/seller/admin RLS isolation, payment attempts/recovery, finance journal, seller plan/quota and catalogue regressions.
+- Applied six missing migrations from `feature/variant-checkout` to Everneed staging `vjiadqygpyebpisxslbx`: variant checkout/inventory, official-store live entitlement exception, seller quota trigger hardening, caller-role preservation, public seller plan catalogue grants, and anonymous category-schema RPC revocation. All six returned success and appear in the staging migration ledger.
+- Read-only staging verification: all five variant snapshot columns exist; anon can execute seller_plan_catalog; anon cannot execute seller_product_category_schema or private.products_guard; authenticated sellers can execute seller_product_category_schema.
+- Deployed reviewed Paystack Edge Function to staging as version 13. No sandbox transaction has yet been run, so payment flow is not yet certified end-to-end. Keep variant purchase UI disabled pending acceptance tests.
+- APK job remains in progress. Prembly endpoint searches returned no concrete endpoint definitions; no verification request or wallet spend has occurred.
+- No production changes, PR merge or live payment.
+
+
+## 19 Nov 2026 — APK and Prembly discovery update
+
+- APK job in CI run 44540581382 completed successfully: build 1219, artifact `everneed-apk`, 9.48 MB ZIP. Download from the run's Artifacts section.
+- Prembly sandbox endpoint registry is now visible and includes BVN, NIN, phone, CAC and TIN operations. Read-only wallet balance is ₦0.00 NGN (active/unlocked). Nigeria BGC fallback categories include Identity, Education, Employment and Criminal; the Entry Package catalogue contains Identity and NIN items. No verification request was submitted and no wallet spend occurred.
+- Exact endpoint payload schemas and the appropriate seller verification flow remain to be confirmed. A package-detail lookup returned 404; no package was created. Preserve manual/non-CAC review and obtain owner approval before funding or any paid verification.
+
+- Executed the exact `supabase/tests/039_variant_checkout_contract_checks.sql` against Everneed staging after applying the six migrations. It completed without raised assertions and ends with `ROLLBACK`, so the test's buyer/seller/store/product/order/inventory fixtures were not retained. This validates variant requirement/ownership checks, sale-price window, stock oversell protection, reservation audit, immutable snapshot, backorder/untracked stock behavior and idempotent cancellation restoration on the actual staging database.
+
+
+## Marketplace financial operating system — 19 Nov 2026
+
+- Added `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` as the detailed source of truth for buyer checkout, payment methods, seller wallet/settlement, buyer credits, coupons/promotions/cashback, shipping/hub charges, refunds, withdrawals, reconciliation and risk/compliance.
+- Staging audit: orders, seller_orders, order_item_fees, legacy ledger_entries, payouts, refunds, store_payments, offers, cards and payment attempt/provider-event flows exist. There are no wallet account tables and legacy ledger_entries is not a balanced double-entry journal. Do not expose a wallet UI as functional until FIN-01 onward is implemented and tested.
+- Current Paystack function has card initialize/charge/verify and webhook handling; bank transfer/USSD full lifecycle, wallet tender, seller transfer lifecycle, full refund gateway lifecycle and multi-seller financial allocation/reconciliation remain to be proven/implemented.
+- Critical credential review: cards.code stores a provider authorization token. Treat as sensitive server-only data; inspect and harden RLS/column access and token encryption before saved-card rollout.
+- Work sequence: FIN-00 existing-contract/security audit; FIN-01 double-entry journal; FIN-02 payment collection hardening; FIN-03 seller allocations/reserves; FIN-04 seller withdrawals; FIN-05 buyer credits and safe card tokens; FIN-06 promotions/cashback; FIN-07 shipping/hub finance; FIN-08 refunds/disputes; FIN-09 reconciliation; FIN-10 regulatory partner/wallet approval; FIN-11 controlled beta.
+- Cash buyer wallet top-up, peer transfers and bank cash-out are not authorised for launch without Nigeria-specific legal review and a licensed issuing/custody partner. Seller wallet is initially a settlement ledger, not an e-money account.
+
+- FIN-00 function-level staging audit completed and documented. Important legacy gaps: `record_payout` only records a manual payout (no provider transfer); `refund` marks refund processed and posts legacy seller/commission reversals without calling Paystack; `confirm_payment_core` posts single-entry sale/commission rows and does not create balanced journal allocations; `redeem_offer` increments only a global usage counter. Payment attempt settlement has strong snapshot/amount/currency/reference checks and must be preserved. Full details in `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` sections 22–23.
+
+
+
+
+## Finance audit continuation checkpoint — 19 Nov 2026
+
+- FIN-00 function-level staging audit is complete; details are in `docs/FINANCE/MARKETPLACE_MONEY_FLOW.md` sections 22–24.
+- Cancellation of a paid seller order currently creates an `approved` refund and reverses legacy ledger rows, but does not execute a Paystack refund. Do not show this as a completed customer refund.
+- `mark_delivered` verifies delivery and updates order/seller-order/delivery records; it does not initiate a seller transfer. `seller_orders.released` is an operational acceptance/release flag, not withdrawable cash.
+- Payment recovery uses bounded leases, idempotency and strict immutable-snapshot/amount/currency/reference validation; preserve these controls.
+- Existing triggers protect checkout snapshots and legacy ledger core fields. Privileged RPCs are role-restricted; new finance SECURITY DEFINER functions must use an empty search path and schema-qualified references.
+- FIN-01 posting contract is documented but not migrated. No wallet/journal schema was added in this checkpoint.
+- Current PR #32 head at checkpoint: `2e0b9554f9b27352d2b16f8ff597786b37d8815c`. Migration validation and Android build workflows passed (runs 44543116567 and 44543116525). PR remains draft/open/unmerged; production untouched.
+
+
+
+
+## FIN-01 implementation audit correction — 19 Nov 2026
+
+- Located migration 033 and test 033 already in the feature branch. Staging migration ledger confirms 033 is applied.
+- Staging has 96 seeded finance account rows and zero journal transactions/lines. The journal is not yet connected to live business events.
+- Executed test 033 against staging; it completed without an SQL error and rolled back all test postings.
+- Service role has SELECT-only access to private journal tables; posting/reversal are service-role-only RPCs. Anon/authenticated cannot read the tables.
+- FIN-01 foundation is therefore implemented/staged; remaining work is migration 033 hardening, expanded negative/security tests, and integration design. Do not create a duplicate journal migration or imply that wallets/payouts/refunds are fully implemented.
+- Full audit and remaining hardening checklist: finance architecture sections 25–26.
+
+
+
+
+## Finance journal input hardening — 19 Nov 2026
+
+Migration 034 and dedicated test 034 have been added on `feature/variant-checkout`. The posting RPC now enforces bounded source/idempotency fields, a 16 KiB metadata limit, a 512 KiB line-payload limit, strict line-key/type/length validation and BIGINT amount bounds. CI includes test 034 and migration replay order. Do not apply to staging until the full database workflow passes. Production is untouched.
+
+
+## Finance checkpoint — 19 November 2026
+
+- FIN-01 migration 034 (journal posting/reversal input hardening) is applied to Everneed staging only; migration history, function security settings and service-role-only execution were verified.
+- Full CI on PR head 01ee1c0811f07f3243e88c767f176f25b8b4c917 passed, including database regressions 033/034 and Android APK build (workflow 44546455256).
+- Test 034 executed against staging successfully with rollback-based fixtures. No business journal postings were created.
+- FIN-02 is the next workstream: design and test verified payment-event accounting, provider clearing/fees, seller pending and available payable, delivery allocation, refunds, chargebacks and provider-confirmed payouts. Existing payment confirmation/refund/payout functions are not yet journal-integrated.
+- PR #32 remains draft/open/unmerged. Production and live money movement remain untouched.
+- See docs/FINANCE/MARKETPLACE_MONEY_FLOW.md sections 27–28 for evidence, event mapping and release gates.
+
+
+## FIN-02A implementation gate — 19 November 2026
+
+- Audit found checkout snapshot v1 does not freeze commission and seller-payable allocations in the order currency. Seller-order subtotal/commission/earning and order-item commission rows are currently based on base-price values, while buyer checkout totals may be FX-converted.
+- Do not journal those base-currency seller amounts as foreign-currency values. This would misstate seller payable and platform revenue.
+- Next step is schema-version-2 immutable checkout allocation snapshot with item and seller-level integer minor-unit totals, commission policy version, discount funding and deterministic rounding.
+- Only after FIN-02A passes should FIN-02B map verified snapshot allocations to balanced journal lines and FIN-02C integrate posting atomically into payment settlement.
+- Detailed evidence and acceptance cases: docs/FINANCE/MARKETPLACE_MONEY_FLOW.md section 29. No payment-settlement function has been changed and no new finance integration migration has been applied.
+
+
+- FIN-02A must also persist promotion funding attribution (seller/store vs Everneed/platform vs split). Current offers and checkout snapshots do not record who funds discounts. Unattributed discounts must not be journaled or silently deducted from seller proceeds. See finance architecture section 30.
+
+
+## 19 Nov 2026 — Everneed sustainable unit-economics policy
+- Everneed is a profit-conscious marketplace and fulfilment business. GMV, seller proceeds, buyer funds and provider-clearing balances are not Everneed revenue or unrestricted operating cash.
+- Approved potential revenue streams: versioned marketplace commission; optional seller subscriptions/advanced tools; delivery margin only on managed deliveries; disclosed hub receiving/consolidation/packaging/storage/special-handling fees; opt-in labelled seller advertising/boosts; and separately disclosed value-added services.
+- Seller-funded discounts are the default for seller-created promotions, subject to seller acceptance. Platform-wide offers are not automatically Everneed-funded: require a named funder, explicit seller participation or a reserved management-approved marketing budget. Joint funding must store each party's exact allocation. Unallocated legacy offers cannot be journaled or silently assigned to either party.
+- Calculate contribution after provider fees, delivery/hub direct costs, platform-funded discounts, refunds/chargebacks and other attributable costs. Negative contribution must be visible and subject to a versioned pricing/subsidy/fulfilment gate; no arbitrary commission rate or minimum margin is introduced without owner/finance approval.
+- Admin reporting must separate GMV, platform revenue, seller liabilities, contribution, operating expenses, unrestricted cash and reserves for infrastructure, payroll, logistics, risk, marketing and retained earnings. Restricted seller/buyer funds must never finance company overhead.
+- Full policy, calculations, campaign controls and FIN-02A consequences: docs/FINANCE/MARKETPLACE_MONEY_FLOW.md section 31. No production change, commission change, transfer or campaign activation is authorized by this documentation.
+
+
+## FIN-02A deeper checkout audit — 19 Nov 2026
+- Read-only staging inspection confirms current per-item commission rates are persisted, but commission amounts and seller-order subtotal/commission/earning are calculated in base currency; they cannot be posted as buyer-currency values.
+- `order_items.unit_price` uses zero-decimal display rounding for NGN/KES while `line_total` is stored at two decimals. New allocation must use authoritative persisted line totals and quote provenance, never reconstruct totals from display unit price × quantity.
+- Schema-v2 should calculate commission in buyer order currency using the frozen policy. Seller-funded discounts reduce seller-funded merchandise consideration before commission; platform-funded discounts do not reduce seller proceeds and are separately attributed to Everneed. This defines a fair commission basis without inventing a commission rate.
+- FIN-02A must be a forward-only versioned path. Preserve v1 orders and existing payment verification/quarantine. Inspect all callers, triggers, grants and immutability controls before migration. See finance architecture section 32.
+
+
+## FIN-02A allocation math added — 19 Nov 2026
+- Added migration 035 with a private immutable pure helper for integer-minor-unit per-item allocations, explicit seller/platform discount funding basis points, commission on seller consideration after seller-funded discount, deterministic residuals and reconciliation.
+- Added SQL tests 035 for multi-item proportional allocation, split funding, exact totals, input validation and order-independent results; CI now runs this suite and migration replay validates the new file.
+- Scope is intentionally limited: no checkout caller, v2 snapshot persistence, campaign budget reservation, payment settlement, seller release or journal posting is connected yet. See finance architecture section 33.
+
+
+## 19 Nov 2026 — FIN-02A staging checkpoint
+- Migration 035 applied to Everneed staging only; SQL contract test 035 executed successfully and rolled back fixtures.
+- Catalog confirms private allocation helper exists; EXECUTE denied to anon, authenticated and service_role. No order/payment/journal/payout data changed; production untouched.
+- Migration-file workflow passed at head ffb6b6f. Android/database CI was queued behind an earlier build; verify the latest head before claiming CI-green.
+- Next: seller consent, approved currency budgets, atomic reservations/release, immutable financial allocation snapshot and checkout integration.
+
+
+## 20 Nov 2026 — FIN-02A funding controls checkpoint
+- Added migrations 036/037: seller per-offer/store funding consent (owner-verified RPC), admin-approved currency-specific campaign budget, idempotent order-keyed atomic reservation/consume/release, and append-only consent/reservation event audits.
+- Added contract test 040 and CI invocation; staging migrations applied and test ran successfully with rollback fixtures. Existing checkout, payments, journals and balances untouched; production untouched.
+- Controls are not connected to offers/checkout yet. Next: immutable v2 allocation snapshot persistence and a separately tested checkout integration path. See finance architecture section 35.
+
+
+## 20 Nov 2026 — FIN-02A snapshot-v2 persistence boundary
+- Added migration 038: immutable private v2 financial snapshot storage and service-role-only validation/persistence RPC. Checks per-item arithmetic, aggregate reconciliation, persisted quote consistency, item/store identity and campaign reservation references; v1 snapshot remains separate.
+- Added SQL test 041 and CI invocation. Migration applied to staging; contract test passed with rollback fixtures. No checkout integration, v2 snapshots, payments, journals or payouts created; production untouched.
+- Current migration replay workflow passed on head 9feb280; Android/database workflow is still pending. See finance architecture section 36.
+- Next gate: deterministic v2 builder/store aggregation and atomic checkout wrapper integration with regression coverage.
+
+
+## 20 Nov 2026 — FIN-02A store totals reconciliation guard
+- Migration 039 adds a private pure validator + insert trigger to verify each store allocation summary exactly matches item-level amounts in v2 snapshots. Missing/duplicate stores and mismatched totals reject.
+- Test 042 executed successfully against staging with rollback fixtures; migration applied. Checkout remains unconnected and production untouched.
+- See finance architecture section 37. Next remains deterministic v2 builder + atomic checkout integration and full payment/promotion regressions.
+
+
+## 20 Nov 2026 — FIN-02A ACL correction
+- Staging ACL review found service_role EXECUTE on seller consent and admin campaign-budget RPCs. Although auth.uid checks would reject calls without user identity, permissions were broader than intended.
+- Migration 040 explicitly removes service_role EXECUTE from those three human-facing RPCs. Test 043 passed on staging. Authenticated role retains intended access; snapshot persistence remains service-role-only. Production untouched.
+- See finance architecture section 38.
+
+
+## 20 Nov 2026 — FIN-02A consent audit actor fix
+- Migration 041 corrected the seller-consent audit trigger to record the current actor (auth.uid()) rather than only the original consent owner. Test 044 passed against staging.
+- No campaign consent/offer state changed; production untouched. See finance architecture section 39.
+
+
+## 20 Nov 2026 — FIN-02A atomic card checkout builder milestone
+- Migrations 042–044: atomic card-checkout v2 builder/wrapper, reservation consumption on paid and release on unpaid cancellation, and strict v2 parent-quote/offer/reservation identity guard.
+- Edge Function source now routes card-create through the new wrapper; legacy transfer/manual paths remain unchanged. Not deployed.
+- Staging tests 046–049 passed: platform subsidy, seller-funded discounts, actual wrapper with rollback fixtures, payment-consume/cancellation-release lifecycle, and quote identity checks. Staging-only, fixtures rolled back, no production or real payment activity.
+- Migration workflow passed at head 6f9b34d; Android/database CI pending. Finance architecture sections 40–41.
+- Next: multi-store/FX rounding, concurrency and insufficient-budget rollback, failed/expired attempt handling, variants, verified Paystack duplicate/refund/reconciliation, before journal/settlement activation.
+
+
+## FIN-02A fixture clarification
+- The full atomic wrapper test 048 uses the baseline seeded Everneed official store (official-store commission is 0 by policy), and asserts the commission matches the persisted fee rate and seller payable reconciles. The explicit 10% math scenarios are in builder test 046. Platform budget reservation remains 2,000 minor units. All fixture rows rolled back.
+
+
+## 20 Nov 2026 — FIN-02A card-only guard
+- Migration 045 restricts the atomic v2 wrapper to `p_pm='card'`, so legacy transfer/other checkout methods cannot enter the new funding path accidentally. Test 050 passed staging; actual card wrapper fixture 048 still passed.
+- Migration 045 applied staging-only. Production untouched. See finance architecture section 42.
+
+
+## 21 Nov 2026 — FIN-02A rounding regression
+- Added SQL test 051 for multi-store allocation and minor-unit rounding. Staging run succeeded after correcting an assertion in the test itself; fixture is read-only/pure and rolled back. CI wired; workflow pending. Finance section 43.
+
+
+## 21 Nov 2026 — FIN-02A campaign budget failure atomicity
+- Test 052 verifies insufficient campaign budget aborts the card checkout without persisted order, reservation or reserved budget. Staging execution passed with rollback; CI wired. Finance section 44.
+
+
+## 21 Nov 2026 — FIN-02A aggregate budget reservation guard
+- Test 053 verifies a second 600 reservation is rejected against a 1,000 approved campaign budget, preserving only the first 600 hold. Staging execution passed with rollback; CI wired. Explicitly not a concurrency stress test. Finance section 45.
+
+
+## 21 Nov 2026 — FIN-02A concurrent reservation guard
+- Test 054 uses concurrent independent DB sessions, two 600 holds competing for 1,000 budget. Staging run confirmed one accepted/one rejected and exactly 600 held; fixture cleaned. CI wired. Finance section 46.
+
+
+## Finance CI checkpoint — 21 Nov 2026
+- Full database CI on head `3681ab21d16ba33d8a23da6f02402cd4426df581` passed tests 033–054, including all FIN-02A reservation concurrency and rollback gates. Install/check job passed. APK job was still building at checkpoint.
+- Test 055 (`supabase/tests/055_fin02a_fx_quote_currency_exponent_contract.sql`) was added and executed against staging successfully (rollback-only); it is wired into CI. CI is pending for the newer test commit.
+- This test locks supported currency exponent/provenance contracts and v2 quote identity. Current checkout currencies remain exponent 2; no zero-decimal currency support implied.
+- PR #32 remains draft, base `web-portal`, unmerged. No production deploy/payment activity.
+
+
+## Android build pause — web-first development
+- Android APK CI job is temporarily disabled (`if: false`) while Everneed development is web-only. Web app checks, database tests, and migration validation continue normally.
+- Re-enable APK builds only when the user explicitly resumes Android work. This is a temporary CI pause, not deletion of Android project assets or native functionality.
+
+
+## FIN-02A expiry-worker safety gate — 21 Nov 2026
+- Existing order cancellation trigger releases campaign reservations; test 047 covers lifecycle. Automatic expiry has not been implemented.
+- Design requirements documented in finance architecture: approved configurable cutoff, payment-attempt-aware block conditions, bounded `SKIP LOCKED` worker, atomic cancellation/reservation release, idempotent and concurrency regression tests. No worker scheduling until accepted.
+
+
+## FIN-02A expiry-worker implementation checkpoint — 22 Nov 2026
+- Migration 056 and SQL regression 056 added on `feature/variant-checkout`; CI step added. Worker uses explicit cutoff, bounded batch, row locking/`SKIP LOCKED`, service-only ACL and guarded existing cancellation core. Payment-attempt blockers: initializing/pending/processing/succeeded/reconciliation-required. Failed attempts may expire.
+- Migration replay order initially failed because 056 was missing from the explicit order list; list has now been corrected. Re-run CI is pending. Do not apply migration to staging until migration validation and database CI pass.
+- No expiry duration approved, no scheduled worker enabled, no production changes.
+
+
+## FIN-02A expiry worker — staging verified (22 Nov 2026)
+- Corrected test fixture status constraint after CI surfaced invalid `pending` order status; test now uses a valid `awaiting_payment` order status for the paid exclusion.
+- Migration 056 applied to staging; test 056 executed successfully and rolled back fixtures.
+- Service-role-only ACL confirmed; anon/authenticated EXECUTE denied.
+- No expiry window decision, cron/scheduler, or production change. Documentation commits require fresh CI.
+
+## FIN-03 Paystack audit checkpoint — 22 Nov 2026
+- Audited webhook/manual verification against recovery-worker checks. Direct settlement path previously checked user/order and settlement RPC amount/currency but lacked explicit metadata attempt-ID binding.
+- Updated Paystack Edge Function to match persisted recovery context: order, user, payment-attempt ID, amount and currency. This is source-only; not deployed.
+- Await CI/Deno type-check. Sandbox webhook replay, mismatched metadata and duplicate-event E2E remain acceptance tests. No live charges or production changes.
+
+## FIN-03 verified settlement journal — 22 Nov 2026
+- Migration 057 source adds atomic verified-payment journal posting using immutable financial snapshot v2. Mapping separates clearing, platform-funded promo expense, store payable, commission and delivery-fee-held liability. Failures roll back settlement; duplicate settlement is idempotent.
+- Full database CI and migration validation passed at head `a7b0d3f576df03f78010b79926c003531beed2db`; staging migration `20261122140408` applied and test 057 passed with rollback-only fixtures. Read-only checks confirm six currency account seeds and no test rows/journal persisted. Helper EXECUTE denied to client/service roles.
+- Production untouched; no Edge Function deployment/live payment/provider settlement/refund/payout. FIN-03 sandbox acceptance and accounting recognition policy remain open; next FIN-04 refund provider lifecycle. PR draft; APK remains paused.
+
+
+## FIN-04 refund audit/design gate — 22 Nov 2026
+- Read-only staging review: legacy `refund` marks local `processed` without provider API confirmation; cap is order-total, allocation pro-rata; cancellation auto-creates `approved` rows and reverses ledger before provider confirmation, with premature buyer notification. Provider-refund schema is present but not wired to RPC/Edge/webhook/journal.
+- Recommended defaults (approval pending) documented in `docs/WORKFLOW/PAYMENT_REFUND_AUDIT.md`: snapshot item/store allocation, pending refund cap reservations, provider-confirmed status, promotion funding reversal, delivery fee/manual method/seller recovery policy, and evidence/notification rules.
+- FIN-04 implementation is gated on policy approval. No refund provider request, migration, payout or production action.
+
+
+## Staging Paystack deployment mismatch — 22 Nov 2026
+- Staging Edge Function `paystack` is ACTIVE v13. Its direct settlement path verifies provider transaction/order/user then calls the settlement RPC, but lacks explicit metadata `payment_attempt_id` binding. Branch code now adds persisted-attempt context matching; unit/full CI passed, but source not deployed.
+- FIN-03 journal migration 057 is applied in staging and posts atomically through the settlement RPC. No sandbox E2E accepted yet; deliberate staging function deployment and webhook/verify/replay tests are a gate. No deployment or charge.
+
+
+## FIN-03 staging deploy and retest — 22 Nov 2026
+- Staging-only approved Paystack deployment completed: `paystack` ACTIVE v14, attempt-context matching added. Production untouched.
+- SQL tests 055/056/057 rerun and passed (rollback fixtures); clean residue check; account seeds and helper ACL validated.
+- No Edge Function invocation/HTTP POST or Deno runner is available via current connector, so sandbox webhook/verify/replay/mismatch/failure/reconciliation E2E is still pending. No sandbox charge initiated; no payment-launch acceptance.
+
+## Buyer app work resumed — 22 Nov 2026
+Initial source inventory is committed in `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`; detailed Claude handoff in `docs/WORKFLOW/MOBILE_BUYER_APP_RESUMPTION_HANDOFF.md`. Confirmed P0 blocker: root app config hard-codes production Supabase. Tracking issue [#34 APP-08 staging isolation](https://github.com/Connexa-hub/Everneed/issues/34) opened. No APK build or app checkout/payment test is authorized/attempted.

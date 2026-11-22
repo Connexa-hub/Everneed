@@ -35,11 +35,25 @@ jobs:
           deno-version: v2.x
       - name: Type-check payment recovery worker
         run: deno check --config supabase/deno.json supabase/functions/payment-recovery/index.ts
+      - name: Type-check Paystack checkout and webhook function
+        run: deno check --config supabase/deno.json supabase/functions/paystack/index.ts
+      - name: Paystack verified attempt-context binding unit tests
+        run: deno test --config supabase/deno.json supabase/functions/paystack/payment-context.test.ts
       - uses: supabase/setup-cli@v3
         with:
           version: 3.1.0
       - run: test -f supabase/config.toml || supabase init
+      - name: Remove any stale local Supabase volumes before replay
+        run: supabase stop --no-backup || true
+      - name: Remove persisted local Supabase database volumes
+        run: docker volume ls -q | grep '^supabase_db_' | xargs -r docker volume rm
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
+      - name: Force a clean migration replay
+        run: supabase db reset --local
+      - name: Apply legacy payment RPC search-path migration (032)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/migrations/032_legacy_payment_rpc_search_path.sql
+      - name: Variant-aware checkout contract tests (039)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/039_variant_checkout_contract_checks.sql
       - name: Run Phase 2 checks
         shell: bash
         run: |
@@ -76,9 +90,61 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/032_legacy_payment_rpc_search_path_checks.sql
       - name: Double-entry finance journal tests (033)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/033_double_entry_finance_journal_checks.sql
+      - name: Finance journal input hardening tests (034)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_finance_journal_input_hardening_checks.sql
+      - name: FIN-02A deterministic financial allocation tests (035)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/035_fin02a_allocation_math_checks.sql
+      - name: FIN-02A offer funding consent and campaign budget tests (040)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/040_fin02a_offer_funding_controls_checks.sql
+      - name: FIN-02A immutable financial snapshot v2 storage tests (041)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/041_fin02a_snapshot_v2_storage_checks.sql
+      - name: FIN-02A store allocation totals validation tests (042)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/042_fin02a_store_totals_validation_checks.sql
+      - name: FIN-02A funding RPC least-privilege ACL tests (043)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/043_fin02a_rpc_acl_tightening_checks.sql
+      - name: FIN-02A consent audit actor attribution tests (044)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/044_fin02a_consent_audit_actor_checks.sql
+      - name: FIN-02A v2 checkout builder integration tests (045)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/045_fin02a_checkout_snapshot_builder_checks.sql
+      - name: FIN-02A platform and seller-funded snapshot builder fixtures (046)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/046_fin02a_snapshot_builder_integration_fixtures.sql
+      - name: FIN-02A campaign reservation lifecycle tests (047)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/047_fin02a_campaign_reservation_lifecycle_checks.sql
+      - name: FIN-02A atomic checkout wrapper test (048)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/048_fin02a_atomic_checkout_wrapper_fixture.sql
+      - name: FIN-02A snapshot quote identity guard tests (049)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/049_fin02a_snapshot_quote_identity_guard_checks.sql
+      - name: FIN-02A card-only checkout wrapper scope test (050)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/050_fin02a_card_checkout_wrapper_scope_checks.sql
+      - name: FIN-02A multi-store allocation and minor-unit rounding tests (051)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/051_fin02a_multistore_minor_unit_rounding_checks.sql
+      - name: FIN-02A insufficient campaign budget atomic rollback test (052)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/052_fin02a_insufficient_campaign_budget_atomic_rollback.sql
+      - name: FIN-02A campaign budget over-reservation guard test (053)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/053_fin02a_campaign_budget_overreservation_guard.sql
+      - name: FIN-02A concurrent campaign budget reservation test (054)
+        run: bash supabase/tests/054_fin02a_campaign_budget_concurrency.sh "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+      - name: FIN-02A FX quote and currency exponent contract test (055)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/055_fin02a_fx_quote_currency_exponent_contract.sql
+      - name: FIN-02A unpaid checkout expiry safety tests (056)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/056_fin02a_unpaid_checkout_expiry_worker_checks.sql
+      - name: FIN-03 verified settlement lifecycle tests (057)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/057_fin03_verified_settlement_lifecycle_checks.sql
+      - name: Seller onboarding, plan entitlement and quota tests (034)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
+
+      - name: Seller message notification contract tests (036)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/036_seller_message_notification_contract_checks.sql
+      - name: Seller notification trigger ACL tests (037)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/037_chat_notification_trigger_acl_checks.sql
+
+      - name: Product catalogue foundation regression tests (038)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
+  # TEMPORARILY PAUSED: web-only development; do not build Android APKs until requested.
   apk:
+    if: false
     needs: [test, database]
     runs-on: ubuntu-latest
     steps:
@@ -146,13 +212,3 @@ jobs:
           echo "Branch: \`${{ github.ref_name }}\`, build ${{ github.run_number }}." >> "$GITHUB_STEP_SUMMARY"
           echo "- Or this run's Artifacts section: **everneed-apk**." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Seller onboarding, plan entitlement and quota tests (034)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
-
-      - name: Seller message notification contract tests (036)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/036_seller_message_notification_contract_checks.sql
-      - name: Seller notification trigger ACL tests (037)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/037_chat_notification_trigger_acl_checks.sql
-
-      - name: Product catalogue foundation regression tests (038)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql

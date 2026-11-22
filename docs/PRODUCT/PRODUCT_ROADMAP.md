@@ -381,3 +381,14 @@ These are priorities for investigation and delivery, not claims that the work is
 ## Closing Direction
 
 **Make the core marketplace dependable. Validate it with real users. Expand only when the evidence supports it.**
+
+
+## Mobile buyer app — frontend work resumed (22 Nov 2026)
+The customer app's frontend design and implementation are back in the active roadmap, in parallel with web portal work. Begin with a current code/design inventory and incremental screen plan; then deliver discovery, search, storefront, product details, cart, delivery, server-quoted checkout, staging payment, order confirmation/tracking and account/support. Keep design lightweight and mobile-first for lower-end Android devices and Nigeria-first network conditions. The detailed Claude handoff, dependencies and acceptance criteria are in `docs/WORKFLOW/MOBILE_BUYER_APP_RESUMPTION_HANDOFF.md`. APK generation remains paused.
+
+
+## Buyer app inventory and next gates — 22 Nov 2026
+Source inventory: `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. Existing root SPA and Capacitor wrapper should be extended, not replaced. Prioritize APP-08 staging configuration proof, screen inventory, discovery/store/product detail, then cart/delivery/authoritative quote/payment. Existing legacy payment choices need policy/backend validation. APK generation remains paused.
+
+
+**Critical blocker confirmed:** buyer app root `js/config.js` points to production Supabase. Do not test shopping checkout or payment with the current app build. First implement and verify staging-safe environment selection (APP-08). Details and proposed acceptance checks are in `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`.

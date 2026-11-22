@@ -6,7 +6,7 @@ begin;
 
 -- The 029 claim RPC did not return the persisted signature-verification flag.
 -- Drop/recreate is required because PostgreSQL cannot change a function's TABLE return type.
-drop function public.claim_provider_event_recovery(integer,integer,integer);
+drop function if exists public.claim_provider_event_recovery(integer,integer,integer);
 
 create function public.claim_provider_event_recovery(
   p_batch_size integer default 20,

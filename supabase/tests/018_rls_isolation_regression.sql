@@ -121,6 +121,14 @@ begin
   perform public.submit_store(v_store_a);
   perform public.zz_q01_back();
 
+  -- The approval contract reads the seller-selected plan from store_applications.
+  -- Seed the lowest-cost active plan as the service fixture, matching choose_plan().
+  perform public.zz_q01_svc();
+  update public.store_applications
+  set plan_id=(select id from public.store_plans where active order by price asc limit 1)
+  where store_id in (v_store_a,v_store_b);
+  perform public.zz_q01_back();
+
   perform public.zz_q01_as(v_admin);
   perform public.approve_store(v_store_a,'Q01 fixture');
   perform public.approve_store(v_store_b,'Q01 fixture');

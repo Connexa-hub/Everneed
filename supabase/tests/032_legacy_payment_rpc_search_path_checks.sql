@@ -19,8 +19,11 @@ begin
     if not (select prosecdef from pg_proc where oid=v_oid) then
       raise exception 'A legacy payment wrapper lost SECURITY DEFINER';
     end if;
+    v_fn := v_oid::regprocedure;
     if not (select coalesce(array_to_string(proconfig, ','), '') like '%search_path=""%' from pg_proc where oid=v_oid) then
-      raise exception 'A legacy payment wrapper does not use an empty search_path';
+      raise exception 'Legacy payment wrapper % has unexpected proconfig: %',
+        v_fn,
+        (select proconfig from pg_proc where oid=v_oid);
     end if;
     if has_function_privilege('anon', v_oid, 'EXECUTE')
        or has_function_privilege('authenticated', v_oid, 'EXECUTE') then

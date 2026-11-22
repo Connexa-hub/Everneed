@@ -128,3 +128,68 @@ GitHub Actions run `43799090404` on commit `fcc3230d4d97c9489bb22fb3266b3767c698
 - Staging currently has zero finance journals, zero journal lines and zero payment attempts. There is no transaction history yet to reconcile.
 - CI run `43799090404` passed local Phase 2 and migration 033 SQL tests. The fixture-based Phase 2 SQL script was not run directly against the persistent staging database.
 - Production was not queried or changed. No live payout or transfer was initiated.
+
+
+## 8. Current staging and CI update — 22 Nov 2026
+
+- Staging has migration 034 finance-journal input hardening and FIN-02A migrations through 056, including the unpaid checkout expiry worker.
+- Test 056 passed on staging using rollback-only fixtures. Worker ACL: anon/authenticated denied; service_role allowed. No scheduler is enabled and no expiry duration is approved.
+- Latest source CI at commit `47641035022231d2027a22e00d5c8a96369fe59f` passed migration validation and the full Build Android app workflow's install/database tests; APK job is intentionally skipped. Subsequent documentation commits have migration validation passing; full workflow is pending on current documentation head.
+- The latest direct Paystack settlement source now binds metadata order/user/payment_attempt_id to persisted attempt context and checks amount/currency before calling the settlement RPC. This is source-only; no Edge Function deployed and no sandbox/live payment run.
+
+## 9. FIN-03 finding — successful payment is not yet journaled
+
+Audit of `public.settle_verified_payment_attempt` and `private.confirm_payment_core` found that successful payment currently updates the payment-attempt state, marks the order paid, creates seller `ledger_entries` and seller-order state, notifications and audit data—but does **not** post a balanced finance-journal transaction. Migration 033/034 provide a balanced, immutable, service-only journal API, but the API is not yet wired into payment settlement or order events. This is the next integration task.
+
+### Proposed accounting mapping for a verified v2 card order (design pending tests)
+
+- Debit Paystack clearing for provider-confirmed customer amount.
+- Debit platform promotion expense for the platform-funded discount in immutable snapshot v2.
+- Credit seller payable by store allocation, using `seller_payable_minor`.
+- Credit platform commission revenue using the frozen `commission_minor`.
+- Credit delivery revenue using `delivery_fee_minor`, only if that revenue-recognition policy is approved for the delivery state.
+- All lines must use the snapshot currency/exponent and be balanced; posting must be in the same database transaction as confirmed settlement, idempotent by order/payment event, and use immutable snapshot values. Do not derive from current product prices or mutable settings.
+- The chart of accounts currently has no explicit `expense.platform_promotions` account; this must be added with migration and tests before this mapping can post.
+- Delivery revenue recognition, Paystack fee accounting, taxes, partial refunds, chargebacks, returns, and transfer clearing remain separate policy/accounting decisions. This integration must not trigger payouts.
+
+### Implementation gates
+
+1. Add the promotion-expense account for all supported currencies, migration tests, and validate exact snapshot v2 totals/store allocations.
+2. Add a private posting helper that fails closed if snapshot is missing, malformed, not v2, currency/exponent mismatch, or totals don't reconcile; never post legacy orders without known facts.
+3. Integrate helper into the verified settlement transaction after `confirm_payment_core` reports newly paid. Idempotent retry must return already-settled without duplicate journal; journal source/idempotency key unique.
+4. Add rollback SQL fixtures for one store, multiple stores, platform-funded discounts, seller-funded discounts, delivery fee, duplicate settlement, failed journal posting rollback, and ACL.
+5. CI pass; apply to staging; run rollback-only staging tests; read-only verify journal balances and matching seller subledger. Keep production and transfer automation disabled.
+
+No live payment or payout has been run. This audit records the gap and proposed accounting design, not an approval to deploy or recognize revenue.
+
+
+## 10. FIN-03 metadata-binding unit tests added — 22 Nov 2026
+The strict provider-to-attempt metadata binding was extracted to `supabase/functions/paystack/payment-context.ts` and is used by the direct Paystack settlement path. Unit tests cover valid match, order/user/attempt ID mismatch, amount mismatch, unsafe integer, currency mismatch and missing context/metadata. CI now runs `deno test` for this helper in addition to Deno type-checking. This is source-level coverage only; it does not simulate a signed webhook, provider verify API, database settlement, campaign consume or finance-journal posting. Await CI before claiming validation.
+
+
+## 11. Accounting timing caution — payment is not delivery or payout
+The Section 9 mapping is a preliminary mapping sketch, not a final posting policy. In particular, the journal must distinguish (a) verified customer cash received, (b) seller obligations and platform commissions, (c) platform-funded promotion, (d) delivery service earned, and (e) actual provider/bank settlement. A conservative payment-receipt entry may debit Paystack clearing and credit a customer-funds-held liability; recognition/reclassification of seller payable, commission, delivery revenue and promotion expense may occur only at policy-defined fulfillment milestones. The exact treatment must align with the existing seller subledger, refunds/returns policy, and merchant-of-record/provider contract. Do not implement the Section 9 entry mapping as written until this timing decision is approved and tests prove it reconciles to seller ledger and order lifecycle. The journal must never count both customer-funds-held and seller-payable for the same amount at the same stage.
+
+
+## 12. FIN-03 verified-payment journal integration — 22 Nov 2026
+
+- Added forward-only migration `057_fin03_verified_payment_journal_posting.sql`. The verified settlement RPC now calls a private journal-posting helper in the same transaction as `confirm_payment_core`. Only a newly paid settlement posts; posting/account/validation failure aborts and rolls back the payment/order/attempt transition.
+- The helper requires service-role settlement context and checks the successful Paystack attempt/order reference, immutable v2 snapshot identity and digest, amount/currency/exponent, persisted order total and delivery fee, discount-funding arithmetic, seller-payable/commission arithmetic, and store-allocation totals.
+- Mapping implemented for this staging checkpoint: debit `asset.paystack_clearing` for the verified customer amount; debit `expense.platform_promotions` for the platform subsidy; credit `liability.seller_payable` by store allocation; credit `revenue.platform_commission`; credit `liability.delivery_fee_held`. Journal idempotency uses the payment settlement source/order and provider reference. Promotion-expense and delivery-held accounts are provisioned in each supported exponent-2 currency.
+- Test 057 covers the 10% non-official-store commission fixture, platform-funded promotion, delivery charge, exact balanced mapping, duplicate settlement, amount mismatch quarantine/no journal, and fail-closed rollback when the promotion account is missing. CI clean replay/database suite and migration-file validation passed at head `a7b0d3f576df03f78010b79926c003531beed2db`.
+- Applied to Everneed staging as migration version `20261122140408` / `fin03_verified_payment_journal_posting`. Test 057 ran successfully in a rollback-only transaction. Read-only verification: both new accounts exist for NGN/GHS/KES/ZAR/GBP/USD; zero journal headers/lines and zero test stores/offers remain; the private posting helper is executable only by its owner (postgres), not anon/authenticated/service_role. Production untouched.
+- **Boundary:** this does not deploy the Paystack Edge Function, run a live/sandbox charge, settle Paystack balance to bank, post provider fees, issue refunds, release seller payouts, or enable transfer automation. The commission-recognition timing and fulfillment/delivery allocation policy remain finance-owner review items; delivery proceeds remain held, not recognized as revenue. Do not mark this as end-to-end payment launch acceptance.
+- Next: FIN-03 provider sandbox end-to-end and reconciliation acceptance, followed by FIN-04 refund eligibility/provider-confirmation/partial-allocation integration. Keep PR draft and production unchanged.
+
+
+## 13. Staging Edge Function deployment boundary — verified 22 Nov 2026
+Read-only Supabase inventory shows staging Paystack Edge Function `paystack` ACTIVE version 13, `verify_jwt=false` (webhook handler validates HMAC and user-token actions authenticate inside the function). Its deployed direct settle path verifies the provider transaction, order and user metadata, then calls the settlement RPC with reference/transaction/amount/currency; it does **not** call `get_payment_attempt_recovery_context` or the branch `paymentContextMatches` helper to bind `metadata.payment_attempt_id` explicitly. The feature-branch source now does that and its unit tests/full CI passed, but it is not deployed. The staging RPC itself still checks the persisted attempt/reference/snapshot and, after migration 057, posts the journal atomically. No Edge Function deployment or charge was performed. Explicit staging deployment + sandbox event/verify/replay tests are required before FIN-03 end-to-end acceptance.
+
+
+## Staging Paystack deployment + SQL retest — 22 Nov 2026
+
+Owner approved staging-only deployment. Updated Paystack Edge Function deployed to Everneed staging project `vjiadqygpyebpisxslbx`, ACTIVE version **14** (`verify_jwt=false` preserved; webhook HMAC validation and user-token auth remain inside handler). Deployment includes `paymentContextMatches` binding verified transaction metadata (order/user/payment-attempt IDs), amount and currency to persisted attempt context before settlement. Production unchanged.
+
+Retests against staging after deployment: migration 057 verified-payment/journal contract passed with rollback fixtures; 055 FX/currency exponent quote contract passed; 056 unpaid checkout expiry worker safety/idempotency contract passed. Post-test checks: 0 FIN03 fixture stores/orders/journals/lines remain; all 12 account seeds (two accounts × six currencies) exist; private posting helper EXECUTE is denied to anon/authenticated/service_role and granted to owner.
+
+**Limits:** Connector does not expose an Edge Function invocation/HTTP POST or Deno test runner, so we could not directly call v14 endpoints or run `payment-context.test.ts` in this session. No Paystack sandbox transaction was initiated; signed webhook delivery, browser redirect verification, replay, mismatched metadata, failed payment, recovery and reconciliation are still pending manual/automated HTTP acceptance. Do not mark payment launch accepted. Next test matrix is documented in the branch handoff; production untouched.

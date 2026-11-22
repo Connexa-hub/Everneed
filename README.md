@@ -24,6 +24,12 @@ The website is not a duplicate customer shopping website. Customer catalogue bro
 
 All changes are developed on `web-portal`, tested against the staging environment, and released through a reviewed pull request to `main`. Cloudflare Pages production deploys from `main`; previews from `web-portal` use staging.
 
+## Public roadmap and milestone status
+
+- [Public roadmap (human- and AI-readable)](ROADMAP.md) — milestone register, current status, acceptance criteria, blockers and safe continuation rules.
+- [Detailed master strategy roadmap](docs/STRATEGY/MASTER_ROADMAP.md)
+- [Marketplace money-flow and payments architecture](docs/FINANCE/MARKETPLACE_MONEY_FLOW.md) — buyer/seller balances, double-entry journal, Paystack, coupons, cashback, shipping, refunds, withdrawals, reconciliation and compliance gates.
+
 Read these before making changes:
 1. [AI protocol](docs/WORKFLOW/AI_PROTOCOL.md)
 2. [Project tracker](docs/WORKFLOW/WEBSITE_TRACKER.md)
