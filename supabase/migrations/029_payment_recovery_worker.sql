@@ -242,6 +242,9 @@ begin
 end
 $$;
 
+-- Return shape is replaced by migration 030; drop first for safe replay across partial histories.
+drop function if exists public.claim_provider_event_recovery(integer,integer,integer);
+
 -- Atomic multi-worker claim. Expired leases are reclaimable after a worker crash.
 -- Attempt count is incremented at claim time, so crashes are bounded too.
 create or replace function public.claim_provider_event_recovery(
