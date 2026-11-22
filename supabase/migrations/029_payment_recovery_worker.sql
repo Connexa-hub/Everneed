@@ -242,80 +242,7 @@ begin
 end
 $$;
 
--- Return shape is replaced by migration 030; drop first for safe replay across partial histories.
-drop function if exists public.claim_provider_event_recovery(integer,integer,integer);
-
--- Atomic multi-worker claim. Expired leases are reclaimable after a worker crash.
--- Attempt count is incremented at claim time, so crashes are bounded too.
-create or replace function public.claim_provider_event_recovery(
-  p_batch_size integer default 20,
-  p_lease_seconds integer default 180,
-  p_max_attempts integer default 8
-)
-returns table (
-  event_id uuid,
-  event_key text,
-  event_type text,
-  provider_reference text,
-  provider_transaction_id text,
-  signature_verified boolean,
-  payload jsonb,
-  lease_token uuid,
-  attempts integer
-)
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if p_batch_size not between 1 and 50
-     or p_lease_seconds not between 30 and 900
-     or p_max_attempts not between 1 and 20 then
-    raise exception 'Invalid provider-event recovery limits.';
-  end if;
-
-  update private.provider_event_inbox
-     set processing_status = 'dead_lettered',
-         dead_lettered_at = now(),
-         lease_token = null,
-         lease_expires_at = null,
-         next_attempt_at = null,
-         last_error_code = 'retry_limit_exhausted',
-         last_error_message = 'Provider event exhausted its bounded recovery attempts.'
-   where attempts >= p_max_attempts
-     and processing_status in ('received', 'retry', 'processing')
-     and (processing_status <> 'processing' or lease_expires_at is null or lease_expires_at <= now())
-     and (next_attempt_at is null or next_attempt_at <= now());
-
-  return query
-  with due as (
-    select e.id
-      from private.provider_event_inbox e
-     where e.attempts < p_max_attempts
-       and e.processing_status in ('received', 'retry', 'processing')
-       and (e.next_attempt_at is null or e.next_attempt_at <= now())
-       and (e.processing_status <> 'processing' or e.lease_expires_at is null or e.lease_expires_at <= now())
-     order by coalesce(e.next_attempt_at, e.received_at), e.received_at
-     for update skip locked
-     limit p_batch_size
-  ),
-  claimed as (
-    update private.provider_event_inbox e
-       set processing_status = 'processing',
-           attempts = e.attempts + 1,
-           lease_token = gen_random_uuid(),
-           lease_expires_at = now() + make_interval(secs => p_lease_seconds),
-           dead_lettered_at = null
-      from due
-     where e.id = due.id
-    returning e.id, e.event_key, e.event_type, e.provider_reference,
-              e.provider_transaction_id, e.signature_verified, e.payload, e.lease_token, e.attempts
-  )
-  select c.id, c.event_key, c.event_type, c.provider_reference,
-         c.provider_transaction_id, c.signature_verified, c.payload, c.lease_token, c.attempts
-    from claimed c;
-end
-$$;
+-- The claim RPC is created with its final return shape in migration 030.
 
 -- A worker may finish only the lease it owns. A late worker cannot overwrite
 -- a newer worker's result after the lease expires and is reclaimed.
@@ -404,11 +331,8 @@ $$;
 
 revoke all on function public.claim_provider_event_recovery(integer,integer,integer) from public, anon, authenticated;
 revoke all on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) from public, anon, authenticated;
-grant execute on function public.claim_provider_event_recovery(integer,integer,integer) to service_role;
 grant execute on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) to service_role;
 
-comment on function public.claim_provider_event_recovery(integer,integer,integer) is
-  'Service-only atomic SKIP LOCKED claim for bounded Paystack inbox recovery with expiring leases.';
 comment on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) is
   'Service-only lease-token guarded completion with exponential retry backoff and dead-lettering.';
 
