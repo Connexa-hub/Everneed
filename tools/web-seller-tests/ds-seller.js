@@ -27,6 +27,7 @@ function seller(o){
   x.ctx.Supa.rpc=(f)=>{x.calls.push('RPC '+f);
     if(f==='my_store_entitlements')return Promise.resolve(o.noent?null:ENT);
     if(f==='my_seller_orders')return o.failorders?Promise.reject(new Error('x')):Promise.resolve(o.orders||[{status:'pending',subtotal:5000,earning:4500,accept_by:'2026-11-23T10:00:00Z',customer_name:'Musa',created_at:'2026-11-22'},{status:'preparing',subtotal:2000,earning:1800}]);
+    if(f==='seller_product_capabilities')return o.nocap?Promise.reject(new Error('x')):Promise.resolve(o.cap||{analytics_level:'none',promotions_enabled:false,bulk_tools_enabled:false});
     return Promise.resolve(null)};
   x.V.portal=(p)=>Promise.resolve(o.orig||{layout:'portal',active:p[0]?'portal/'+p[0]:'portal',title:p[0]==='products'?'Products':'Dashboard',html:'OLD '+p.join('/')});
   vm.runInContext(J('ds-seller.js'),x.ctx);
@@ -38,10 +39,13 @@ function seller(o){
    assert.equal(r.layout,'portal');assert(r.html.includes('ds-hero')&&r.html.includes('ds-stats'));
    assert(r.html.includes('Ada &lt;b&gt;Fabrics')&&!r.html.includes('<b>Fabrics'));
    assert(r.html.includes('data-count="1"'),'1 new order');assert(r.html.includes('1 new order waiting'))});
- await t('home: plan card shows real usage; gated modules say not available yet and invent no number',async()=>{
-   const r=await seller().V.portal([]);
-   assert(r.html.includes('3 of 10 products')&&r.html.includes('Today: 1 of 5'));
-   assert((r.html.match(/Not available yet/g)||[]).length>=3&&r.html.includes('Analytics')&&r.html.includes('Promotions')&&!/upgrade/i.test(r.html))});
+ await t('home: plan card shows real usage',async()=>{
+   const r=await seller().V.portal([]);assert(r.html.includes('3 of 10 products')&&r.html.includes('Today: 1 of 5'))});
+ await t('home: modules the plan lacks show an upgrade card; included ones say data is not available yet',async()=>{
+   const a=await seller().V.portal([]);assert((a.html.match(/href="\/portal\/plan">See plans/g)||[]).length===3&&a.html.includes('Analytics')&&!a.html.includes('Included in your plan'));
+   const b=await seller({cap:{analytics_level:'advanced',promotions_enabled:true,bulk_tools_enabled:true}}).V.portal([]);
+   assert((b.html.match(/Included in your plan/g)||[]).length===3&&b.html.includes('Analytics (advanced)')&&!b.html.includes('See plans'));
+   const c=await seller({nocap:true}).V.portal([]);assert(!c.html.includes('Growth tools'),'unknown flags show nothing, not a guess')});
  await t('home: no entitlements means no plan card, not a made-up plan',async()=>{
    const r=await seller({noent:true}).V.portal([]);assert(!r.html.includes('ds-ringcard'))});
  await t('home: rejected and low-stock products become to-do rows with links',async()=>{
@@ -69,7 +73,7 @@ function seller(o){
    const e=await seller({prods:[]}).V.portal(['products']);assert(e.html.includes('No products yet')&&!e.html.includes('ds-pf'));
    const f=await seller({fail:p=>p.startsWith('products?')}).V.portal(['products']);assert(f.html.includes('could not load')&&f.html.includes('data-act="ds-reload"'))});
  await t('products: bulk tools are a gate, not a button that does nothing',async()=>{
-   const r=await seller().V.portal(['products']);assert(r.html.includes('ds-gate')&&r.html.includes('Not available yet'))});
+   const r=await seller().V.portal(['products']);assert(r.html.includes('ds-gate')&&r.html.includes('See plans'));const b=await seller({cap:{bulk_tools_enabled:true}}).V.portal(['products']);assert(b.html.includes('Bulk actions are not available yet')&&!b.html.includes('See plans'))});
  await t('actions added are prefixed ds-',async()=>{
    const x=seller();const base=make({}).A;Object.keys(x.A).filter(k=>!(k in base)).forEach(k=>assert(k.startsWith('ds-'),k))});
  console.log(`${pass} passed, ${fail} failed`);

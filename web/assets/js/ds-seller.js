@@ -2,7 +2,8 @@
    Drawn here: the live-store home and the products list. Everything else (product editor, orders, plan, verification) falls through
    to the existing pages and is only restyled by ds.css and the select/tab upgrades.
    All numbers come from the database. Plan-gated modules (analytics, promotions, bulk tools) need entitlement flags that sellers cannot
-   read yet (request R10), so they say "not available yet"; no upgrade claim and no number is invented.
+   seller_product_capabilities() returns them. A module the plan lacks shows an upgrade card; a module the plan includes but whose data
+   contract is missing (R5, R7) says so. No number is invented.
    Actions are prefixed ds- so they cannot collide. Backend requests: docs/WORKFLOW/SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md. */
 (function(){
   var C=window.Core,D=window.DS,esc=C.esc,V=C.V,A=C.A,old=V.portal;
@@ -39,6 +40,16 @@
     });
   };
 
+  /* ---------- plan-gated modules (flags from seller_product_capabilities) ---------- */
+  var UP={label:"See plans",href:"/portal/plan"};
+  function tools(cap){
+    var an=cap.analytics_level&&cap.analytics_level!=="none";
+    return[
+      an?D.gate({icon:"chart",title:"Analytics ("+cap.analytics_level+")",text:"Included in your plan. Sales figures are not available yet."}):D.gate({icon:"lock",title:"Analytics",text:"Sales and product insight come with a higher plan.",action:UP}),
+      cap.promotions_enabled?D.gate({icon:"percent",title:"Promotions",text:"Included in your plan. Promotions are not available yet."}):D.gate({icon:"lock",title:"Promotions",text:"Discounts and offers come with a higher plan.",action:UP}),
+      cap.bulk_tools_enabled?D.gate({icon:"layers",title:"Bulk tools",text:"Included in your plan. Bulk edit and import are not available yet."}):D.gate({icon:"lock",title:"Bulk tools",text:"Bulk edit and import come with a higher plan.",action:UP})].join("");
+  }
+
   /* ---------- home ---------- */
   function home(orig){
     return Supa.get("stores?select=*&owner_id=eq."+enc(Supa.uid())).then(function(r){
@@ -48,9 +59,10 @@
         q(Supa.get("products?select=id,name,col,status,stock,sizes,stocks,img,images&store_id=eq."+id)),
         q(Supa.rpc("my_seller_orders",{}).then(unwrap)),
         q(Supa.get("product_private?select=product_id,review_note")),
-        Supa.rpc("my_store_entitlements",{}).then(unwrap).catch(function(){return null})
+        Supa.rpc("my_store_entitlements",{}).then(unwrap).catch(function(){return null}),
+        Supa.rpc("seller_product_capabilities",{}).then(unwrap).catch(function(){return null})
       ]).then(function(a){
-        var prods=(a[0]||[]).filter(function(x){return x.status!=="archived"}),orders=Array.isArray(a[1])?a[1]:[],pn={},e=a[3];
+        var prods=(a[0]||[]).filter(function(x){return x.status!=="archived"}),orders=Array.isArray(a[1])?a[1]:[],pn={},e=a[3],cap=a[4];
         (a[2]||[]).forEach(function(x){pn[x.product_id]=x});
         var c=function(st){return prods.filter(function(x){return x.status===st}).length};
         var fresh=orders.filter(function(o){return o.status==="pending"}),act=orders.filter(function(o){return ACTIVE.indexOf(o.status)>-1});
@@ -82,8 +94,7 @@
           +plan
           +'<div class="ds-h"><h2>Recent orders</h2></div><div class="ds-rows">'+(recent||D.empty({icon:"box",title:"No orders yet",text:"Orders appear here as shoppers buy."}))+"</div>"
           +'<div class="ds-card"><b>In progress, not yet delivered</b><p class="ds-sub">'+C.money(inprog)+"</p><small>Withdrawals are not available yet.</small></div>"
-          +'<div class="ds-h"><h2>Growth tools</h2></div><div class="ds-grid c2">'
-          +["Analytics","Promotions","Bulk tools"].map(function(n){return D.gate({icon:"lock",title:n,text:"Not available yet. This module appears when it is ready for your plan."})}).join("")+"</div>";
+          +(cap?'<div class="ds-h"><h2>Growth tools</h2></div><div class="ds-grid c2">'+tools(cap)+"</div>":"");
         return out(html,"Dashboard","portal");
       });
     }).catch(function(){return orig});
@@ -94,8 +105,8 @@
   function products(orig){
     return Supa.get("stores?select=id&owner_id=eq."+enc(Supa.uid())).then(function(r){
       var s=r&&r[0];if(!s)return orig;
-      return Promise.all([Supa.get("products?select=*&store_id=eq."+enc(s.id)+"&order=at.desc"),Supa.get("product_private?select=product_id,review_note").catch(soft)]).then(function(a){
-        var list=a[0]||[],pn={},cnt={all:0};(a[1]||[]).forEach(function(x){pn[x.product_id]=x});
+      return Promise.all([Supa.get("products?select=*&store_id=eq."+enc(s.id)+"&order=at.desc"),Supa.get("product_private?select=product_id,review_note").catch(soft),Supa.rpc("seller_product_capabilities",{}).then(unwrap).catch(function(){return null})]).then(function(a){
+        var cap=a[2],list=a[0]||[],pn={},cnt={all:0};(a[1]||[]).forEach(function(x){pn[x.product_id]=x});
         list.forEach(function(x){cnt[x.status]=(cnt[x.status]||0)+1;if(x.status!=="archived")cnt.all++});
         var cards=list.map(function(x){
           var st=ST[x.status]||[x.status,"","box"],n=pn[x.id],id=esc(x.id),can=x.status==="draft"||x.status==="rejected";
@@ -114,7 +125,7 @@
           +(list.length?'<div class="ds-search">'+D.icon("search",20)+'<input type="search" data-dsp placeholder="Search by name or SKU" aria-label="Search products" autocomplete="off"></div>'+seg
             +'<div class="ds-grid c2" id="ds-plist">'+cards+'</div><div id="ds-pnone" hidden>'+D.empty({icon:"search",title:"Nothing here",text:"No products match this filter or search."})+"</div>"
             :D.empty({icon:"box",title:"No products yet",text:"Add your first product. It goes live after the Everneed team approves it.",action:{label:"Add product",href:"/portal/product/new"}}))
-          +'<div class="ds-h"><h2>Bulk tools</h2></div>'+D.gate({icon:"lock",title:"Bulk edit, import and duplicate in bulk",text:"Not available yet. This appears when it is ready for your plan."});
+          +(cap?'<div class="ds-h"><h2>Bulk tools</h2></div>'+(cap.bulk_tools_enabled?D.gate({icon:"layers",title:"Bulk edit and import",text:"Included in your plan. Bulk actions are not available yet."}):D.gate({icon:"lock",title:"Bulk edit and import",text:"Edit many products at once with a higher plan.",action:UP})):"");
         F.tab="all";F.q="";
         return out(html,"Products","portal/products");
       });
