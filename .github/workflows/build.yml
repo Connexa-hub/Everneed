@@ -45,6 +45,8 @@ jobs:
       - run: test -f supabase/config.toml || supabase init
       - name: Remove any stale local Supabase volumes before replay
         run: supabase stop --no-backup || true
+      - name: Remove persisted local Supabase database volumes
+        run: docker volume ls -q | grep '^supabase_db_' | xargs -r docker volume rm
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
       - name: Force a clean migration replay
         run: supabase db reset --local
