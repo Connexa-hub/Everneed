@@ -1200,3 +1200,9 @@ Next milestone is FIN-03 sandbox acceptance/reconciliation, then FIN-04 provider
 
 ## Staging Paystack handler mismatch — 22 Nov 2026
 Staging currently serves Edge Function `paystack` version 13. The deployed handler checks verified transaction/order/user context and calls the settlement RPC, but does not explicitly bind metadata `payment_attempt_id` via `get_payment_attempt_recovery_context` and `paymentContextMatches`. The feature branch source contains this check and its CI passed, but it has not been deployed. Migration 057 is applied in staging, so successful RPC settlement will journal atomically; nevertheless, no sandbox E2E acceptance is claimed until the branch handler is deliberately deployed to staging and verified. No deployment or charge occurred.
+
+
+## Staging-only Paystack deployment — 22 Nov 2026
+Owner-approved staging deployment: Paystack Edge Function ACTIVE v14. It includes strict persisted attempt context matching (metadata order/user/attempt IDs + verified amount/currency) before settlement. Staging-only; production untouched. SQL regressions 055 (FX/exponent), 056 (expiry), and 057 (verified settlement/journal) were re-run and passed in rollback-only transactions. No fixture residue; account seed and helper ACL checks passed.
+
+The available Supabase connector cannot invoke Edge Function HTTP requests and no Deno test runner is exposed in this session. Therefore v14's endpoint behavior and `payment-context.test.ts` have not been directly exercised here. No Paystack sandbox charge, signed webhook, verify redirect, replay, failed-payment/recovery or provider reconciliation has been performed. These are explicit acceptance gates, not completed tests.
