@@ -1,4 +1,4 @@
-# Seller workspace and admin console redesign: frontend report (WEB-X01)
+# Seller workspace and admin console redesign: frontend report (WEB-S22)
 
 **Branch:** `web-portal`, staging only. No database change, nothing deployed to production, PR #31 untouched, no plan price, limit or activation rule changed.
 **Design system:** `docs/PRODUCT/DESIGN_SYSTEM.md`. **Backend requests:** `SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md`, section "Seller and admin experience redesign" (R1 to R9).

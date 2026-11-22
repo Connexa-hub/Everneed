@@ -2,7 +2,7 @@
 
 **Files:** `web/assets/css/ds.css` (tokens and components, about 5.7 KB gzipped), `web/assets/js/ds.js` (runtime, about 14 KB gzipped), `tools/check-ds-contrast.mjs`.
 **Rules it follows:** dependency free, vanilla JS, no framework, no build step. Added JS and CSS stay far under the 60 KB gzipped budget. Staging only; the database is not touched.
-**Tracker row:** WEB-X01. Backend needs are in `docs/WORKFLOW/SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md` (R1 to R9).
+**Tracker row:** WEB-S22. Backend needs are in `docs/WORKFLOW/SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md` (R1 to R9).
 
 ## 1. Principles
 

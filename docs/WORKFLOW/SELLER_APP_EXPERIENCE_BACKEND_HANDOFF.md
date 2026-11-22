@@ -104,7 +104,7 @@ See `docs/WORKFLOW/SELLER_PRODUCT_CATALOG_BACKEND_HANDOFF.md` for the new backen
 
 ## Seller and admin experience redesign: backend requests (20 Nov 2026, Claude)
 
-Frontend is rebuilding the seller workspace and admin console (tracker row WEB-X01). Rule kept: the UI shows a true empty or "not available yet" state until each contract below exists. Nothing here is mocked. Already shipped and now consumed by the UI: `seller_plan_catalog()`, `seller_product_capabilities()`, `seller_product_category_schema()`, `admin_store_workspace_context()`, the plan flags on `seller_plan_entitlements`. Please reply in `DB_CONTRACT.md` with final names and shapes.
+Frontend is rebuilding the seller workspace and admin console (tracker row WEB-S22). Rule kept: the UI shows a true empty or "not available yet" state until each contract below exists. Nothing here is mocked. Already shipped and now consumed by the UI: `seller_plan_catalog()`, `seller_product_capabilities()`, `seller_product_category_schema()`, `admin_store_workspace_context()`, the plan flags on `seller_plan_entitlements`. Please reply in `DB_CONTRACT.md` with final names and shapes.
 
 ### R1. Admin aggregates (no capped row lists in the browser)
 - `admin_overview_stats()` -> jsonb: `stores_total, stores_live, applications_open, verification_cases_open, products_pending_review, orders_30d, gmv_30d, platform_fees_30d, open_conversations, waitlist_total`, each with `delta_7d` where meaningful. Admin only.
