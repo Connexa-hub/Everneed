@@ -48,6 +48,8 @@ function admin(opts){
       if(p.startsWith('staff_members'))return o.staff?Promise.resolve(o.staff):Promise.reject(new Error('relation "public.staff_members" does not exist'));
       return Promise.resolve([])};
     x.ctx.Supa.rpc=(f,a)=>{x.calls.push('RPC '+f+' '+JSON.stringify(a));if(f==='admin_store_workspace_context')return opts.noctx?Promise.reject(new Error('nope')):Promise.resolve(opts.ctxv||CTX);return Promise.resolve(null)};
+    const ls={v:opts.ctx||''};x.ctx.localStorage={getItem:()=>ls.v,setItem:(k,v)=>{ls.v=v}};x.ls=ls;
+    x.ctx.AX={shell:()=>'BASE',bell:()=>'<button></button>'};x.V.inbox=()=>({layout:'portal',html:'INBOX'});
     vm.runInContext(J('ds-admin.js'),x.ctx);
   });
 }
@@ -159,6 +161,27 @@ function admin(opts){
  await t('context switcher: Platform and Everneed Store, with the current one ticked',async()=>{
    const x=admin();assert.equal(typeof x.A['ds-ctx'],'function');const r=await x.V.admin([]);assert(r.html.includes('data-act="ds-ctx"')&&r.html.includes('<span>Platform</span>'));
    const s=await x.V.admin(['store']);assert(s.html.includes('<span>Everneed Store</span>'))});
+ await t('platform workspace: tabs include the Everneed Store; store pages and platform pages both open',async()=>{
+   const x=admin();const sh=x.ctx.AX.shell('admin','admin','X',{role:'admin',name:'Ada'});
+   assert(['/admin"','/admin/sellers','/admin/review','/admin/store"','/inbox'].every(h=>sh.includes('href="'+h.replace(/"$/,'')+(h.endsWith('"')?'"':''))));
+   assert((await x.V.admin(['store'])).layout==='admin');assert((await x.V.admin(['sellers'])).layout==='admin');assert(x.ctx.Core.adminCtx()==='platform')});
+ await t('store workspace: only store tabs, platform routes redirect, inbox goes to store messages',async()=>{
+   const x=admin({ctx:'store'});const sh=x.ctx.AX.shell('admin','admin/store','X',{role:'admin',name:'Ada'});
+   ['/admin/store"','/admin/store/products','/admin/store/orders','/admin/store/messages','/admin/store/staff'].forEach(h=>assert(sh.includes('href="'+h.replace(/"$/,''))));
+   ['/admin"','/admin/sellers','/admin/review','/inbox','/admin/waitlist'].forEach(h=>assert(!sh.includes('href="'+h.replace(/"$/,'')+(h.endsWith('"')?'"':'')),h));
+   assert(sh.includes('Everneed Store'));
+   for(const r of [[],['sellers'],['sellers','stores'],['review'],['waitlist'],['support'],['plans']])assert.equal((await x.V.admin(r)).redirect,'/admin/store',r.join('/'));
+   assert.equal((await x.V.admin(['store'])).layout,'admin');assert.equal((await x.V.admin(['store','products'])).layout,'admin');
+   assert.equal((await x.V.inbox([])).redirect,'/admin/store/messages');
+   const o=await x.V.admin(['store']);assert(!/href="\/admin\/(review|sellers)/.test(o.html),'no link into platform pages')});
+ await t('switching workspace is remembered and a non-admin is never redirected',async()=>{
+   const x=admin();let go=null;x.ctx.Core.go=p=>{go=p};
+   let items=null;x.ctx.DS.actions=o=>{items=o.items};x.A['ds-ctx']();assert.equal(items.length,2);items[1].run();
+   assert.equal(x.ls.v,'store');assert.equal(go,'/admin/store');assert.equal(x.ctx.Core.adminCtx(),'store');items[0].run();assert.equal(x.ls.v,'platform');assert.equal(go,'/admin');
+   const y=admin({ctx:'store',me:{role:'seller'}});assert.notEqual((await y.V.admin([])).redirect,'/admin/store')});
+ await t('reads are cached briefly and an action clears the cache',async()=>{
+   const x=admin();x.ctx.Event=function(){};x.ctx.window=x.ctx.window||x.ctx;x.ctx.window.dispatchEvent=()=>{};await x.V.admin([]);const n1=x.calls.filter(c=>c.startsWith('GET')).length;await x.V.admin([]);const n2=x.calls.filter(c=>c.startsWith('GET')).length;assert.equal(n2,n1,'second visit reads nothing');
+   x.A['ds-reload']();await x.V.admin([]);assert(x.calls.filter(c=>c.startsWith('GET')).length>n2,'reload refetches')});
  await t('action names added by this work are all prefixed ds- (no collisions)',async()=>{
    const x=admin();await x.V.admin([]);const base=make({}).A;Object.keys(x.A).forEach(k=>assert(k.startsWith('ds-'),k))});
  console.log(`${pass} passed, ${fail} failed`);

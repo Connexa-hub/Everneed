@@ -238,8 +238,6 @@ button.ds-chip{min-height:var(--ds-hit);cursor:pointer}
 @keyframes ds-in{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
 
 /* ---------- view transitions (progressive) ---------- */
-::view-transition-old(root),::view-transition-new(root){animation-duration:180ms;animation-timing-function:var(--ds-out)}
-::view-transition-group(ds-hero){animation-duration:280ms;animation-timing-function:var(--ds-out)}
 
 /* ---------- admin hero ---------- */
 .ds-hero{display:flex;align-items:center;gap:var(--ds-s4);padding:var(--ds-s5);border-radius:var(--ds-r5);background:linear-gradient(135deg,var(--brand-soft),var(--surface-2));border:1px solid var(--border);margin:0 0 var(--ds-s5);overflow:hidden}
@@ -271,7 +269,6 @@ button.ds-chip{min-height:var(--ds-hit);cursor:pointer}
   .ds-skel::after{animation:none;transform:none;opacity:.5}
   .ds-sheet,.ds-toast,.ds-scrim,.ds-tile .ds-art,.ds-tile .cnt,.ds-opt .tick,.ds-prog i{transition-duration:.01ms!important}
   .ds-press:active,.ds-card[href]:active,.ds-row:active,.ds-btn:active,.ds-opt:active{transform:none}
-  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
 }
 /* seller home and products (ds-seller.js) */
 .ds-actions{display:flex;flex-wrap:wrap;gap:var(--ds-s2);margin:var(--ds-s4) 0}
@@ -283,3 +280,15 @@ button.ds-chip{min-height:var(--ds-hit);cursor:pointer}
 .ds-acts .ds-btn,.ds-headrow .ds-btn.s,.ds-hero .ds-btn.s{min-height:var(--ds-hit)}
 .ds-rows+.ds-card,.ds-rows+.ds-ringcard,.ds-ringcard+.ds-h,.ds-chips+.ds-grid{margin-top:var(--ds-s3)}
 .ds-pf{margin-bottom:var(--ds-s3)}
+/* product workspace (ds-seller.js) */
+html.ds-hastabs .actbar{bottom:var(--ds-tabh)}
+[id^="ds-sec-"]{scroll-margin-top:var(--ds-s4)}
+.ds-h4{margin:var(--ds-s3) 0 var(--ds-s2);font-family:var(--font-display);font-size:var(--ds-t-m)}
+.ds-check{list-style:none;margin:0;padding:0;display:grid;gap:var(--ds-s2)}
+.ds-check li{display:flex;align-items:center;gap:var(--ds-s2);color:var(--text-2);font-size:var(--ds-t-s)}
+.ds-check li.ok{color:var(--text-1)}.ds-check li.ok .dsi{color:var(--success)}
+/* navigation feedback */
+html.ds-navbusy body::before{content:"";position:fixed;top:0;left:0;right:0;height:3px;z-index:1500;background:var(--brand);transform-origin:left;animation:dsnav 1.2s var(--ds-out) forwards}
+html.ds-navbusy #main{opacity:.72;transition:opacity var(--ds-d2)}
+@keyframes dsnav{from{transform:scaleX(.05)}to{transform:scaleX(.9)}}
+@media(prefers-reduced-motion:reduce){html.ds-navbusy body::before{animation:none;transform:scaleX(.6)}}

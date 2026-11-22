@@ -328,9 +328,10 @@
       if(el.hasAttribute("data-cd"))return;el.setAttribute("data-cd","1");
       var to=Number(el.getAttribute("data-count"))||0,money=el.getAttribute("data-fmt")==="money";
       function fmt(n){n=Math.round(n);return money?DS.money(n):(function(){try{return new Intl.NumberFormat().format(n)}catch(e){return String(n)}})()}
-      if(rm()||to===0){el.textContent=fmt(to);return}
+      el.textContent=fmt(0);var tn=el.firstChild;
+      if(rm()||to===0){tn.nodeValue=fmt(to);return}
       var t0=0,dur=Math.min(900,400+String(to).length*60);
-      function step(t){if(!t0)t0=t;var p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);el.textContent=fmt(to*e);if(p<1)requestAnimationFrame(step);else el.textContent=fmt(to)}
+      function step(t){if(!t0)t0=t;var p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);tn.nodeValue=fmt(to*e);if(p<1)requestAnimationFrame(step);else tn.nodeValue=fmt(to)}
       requestAnimationFrame(step);
     });
   }
@@ -345,25 +346,23 @@
   ["pointerup","pointercancel","scroll"].forEach(function(ev){doc.addEventListener(ev,function(){clearTimeout(lpT)},{passive:true,capture:true})});
   doc.addEventListener("pointermove",function(e){if(lpT&&(Math.abs(e.clientX-lpX)>8||Math.abs(e.clientY-lpY)>8))clearTimeout(lpT)},{passive:true});
 
-  /* shared-element navigation inside the app shell (View Transitions API); plain navigation everywhere else */
+  /* instant feedback on navigation: the tapped tab turns active at once and a thin progress bar runs until the next page is drawn.
+     (No page transition: it froze the screen while the next page loaded, which felt slow.) */
   doc.addEventListener("click",function(e){
-    if(!doc.startViewTransition||rm()||!C||!C.go||e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||!doc.querySelector(".ax"))return;
-    var a=e.target.closest&&e.target.closest("a[href]");if(!a)return;var h=a.getAttribute("href")||"";
-    if(h.charAt(0)!=="/"||h.charAt(1)==="/"||!/^\/(admin|portal|inbox|me)(\/|$|\?)/.test(h)||(a.target&&a.target!=="_self")||a.hasAttribute("download"))return;
-    if(h===location.pathname+location.search)return;
-    e.preventDefault();e.stopPropagation();
-    var hero=a.querySelector("[data-vt]")||(a.hasAttribute("data-vt")?a:null);if(hero)hero.style.viewTransitionName="ds-hero";
-    var t=doc.startViewTransition(function(){return new Promise(function(done){
-      var root=doc.getElementById("root"),to=setTimeout(function(){mo.disconnect();done()},900),mo=new MutationObserver(function(){mo.disconnect();clearTimeout(to);requestAnimationFrame(function(){var tg=root.querySelector("[data-vt-t]");if(tg&&hero)tg.style.viewTransitionName="ds-hero";done()})});
-      mo.observe(root,{childList:true});C.go(h)})});
-    var fin=function(){if(hero)hero.style.viewTransitionName="";var tg=doc.querySelector("[data-vt-t]");if(tg)tg.style.viewTransitionName=""};
-    if(t&&t.finished)t.finished.then(fin,fin);
+    if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+    var a=e.target.closest&&e.target.closest(".ax-tabs a[href],.ax-rail a[href]");if(!a||a.classList.contains("on"))return;
+    Array.prototype.forEach.call(doc.querySelectorAll(".ax-tabs a.on,.ax-rail a.on"),function(n){n.classList.remove("on");n.removeAttribute("aria-current")});
+    var href=a.getAttribute("href");
+    Array.prototype.forEach.call(doc.querySelectorAll('.ax-tabs a[href="'+href+'"],.ax-rail a[href="'+href+'"]'),function(n){n.classList.add("on");n.setAttribute("aria-current","page")});
+    var m=doc.getElementById("main");if(m)m.setAttribute("aria-busy","true");
+    html.classList.add("ds-navbusy");setTimeout(function(){html.classList.remove("ds-navbusy")},8000);
   },true);
 
   /* ---------- upgrade whatever the router just drew ---------- */
   var raf=0;
   function enhance(){
     raf=0;var root=doc.getElementById("root");if(!root)return;
+    if(html.classList.contains("ds-navbusy")&&!(doc.getElementById("main")||{getAttribute:function(){}}).getAttribute("aria-busy"))html.classList.remove("ds-navbusy");
     html.classList.toggle("ds-hastabs",!!doc.querySelector(".ax-tabs"));
     upgradeSelects(root);upgradeTabs(root);stagger(root);countUp(root);
   }
@@ -384,7 +383,7 @@
   function boot(){
     mountSprite();
     var root=doc.getElementById("root");
-    if(root&&window.MutationObserver)new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
+    if(root&&window.MutationObserver)new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var ad=ms[i].addedNodes;for(var k=0;k<ad.length;k++)if(ad[k].nodeType===1){schedule();return}}}).observe(root,{childList:true,subtree:true});
     schedule();
   }
   if(doc.body)boot();else doc.addEventListener("DOMContentLoaded",boot);

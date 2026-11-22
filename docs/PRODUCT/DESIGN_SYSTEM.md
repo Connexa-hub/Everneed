@@ -76,8 +76,8 @@ Class names use the `ds-` prefix. HTML builders live on `window.DS` (also `Core.
 - Allowed: `transform` and `opacity`. Shimmer, sheets, toasts, press, reveal and the shared-element transition all use only these.
 - Staggered reveal: children of `.ds-grid`, `.ds-rows`, `.ds-stats` fade up with a 40 ms step (max 10).
 - Count-up on `[data-count]` numbers (text update, 400 to 900 ms).
-- Shared-element transitions: in the app shell, links to `/admin`, `/portal`, `/inbox` and `/me` use `document.startViewTransition` when available; an element with `data-vt` morphs into the target's `data-vt-t`. Without the API, navigation is the plain router call.
-- `prefers-reduced-motion: reduce`: reveal, shimmer, press scale, sheet and toast travel, count-up and view transitions are all disabled.
+- Navigation feedback: the tapped tab turns active at once and a thin progress bar (`scaleX`) runs until the next page is drawn. Page transitions were removed (22 Nov 2026): they froze the screen while the next page loaded.
+- `prefers-reduced-motion: reduce`: reveal, shimmer, press scale, sheet and toast travel and count-up are all disabled.
 
 ## 6. Layout
 - App shell: bottom tab bar on phones, left rail on desktop (`appshell.css`). `ds-hastabs` on `<html>` lifts toasts above the tab bar.

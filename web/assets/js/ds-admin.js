@@ -7,25 +7,55 @@
 (function(){
   var C=window.Core,D=window.DS,esc=C.esc,V=C.V,A=C.A,old=V.admin,OFFICIAL="everneed-official";
   if(!D||!old)return;
-  var enc=encodeURIComponent,q=function(p){return Supa.get(p)},soft=function(){return[]};
+  var enc=encodeURIComponent,q=cached,soft=function(){return[]};
+  /* Short-lived read cache so hopping between tabs is instant. Any action or form submit, and the Try again button, clears it, so a change is never hidden. */
+  var MEMO={},TTL=20000;
+  function cached(p){var m=MEMO[p];if(m&&Date.now()-m.t<TTL)return m.p;var pr=Supa.get(p);MEMO[p]={t:Date.now(),p:pr};pr.catch(function(){if(MEMO[p]&&MEMO[p].p===pr)delete MEMO[p]});return pr}
+  function drop(){MEMO={}}
+  document.addEventListener("click",function(e){if(e.target.closest&&e.target.closest("[data-act]"))drop()},true);
+  document.addEventListener("submit",drop,true);
   function one(x){return Array.isArray(x)?x[0]||null:x||null}
   function num(n,capped){try{return new Intl.NumberFormat().format(n||0)+(capped?"+":"")}catch(e){return String(n||0)+(capped?"+":"")}}
   function snip(s,n){s=String(s||"").trim();return s.length>n?s.slice(0,n-1).trim()+"…":s}
   function place(s){return[s.city,s.state].filter(Boolean).join(", ")}
   function out(h,t,active){return{layout:"admin",active:active||"admin",html:h,title:t||"Admin"}}
   function fail(e){return D.banner("error","This page could not load",e&&e.message||"Please try again in a moment.",{label:"Try again",act:"ds-reload"})}
-  A["ds-reload"]=function(){window.dispatchEvent(new Event("hashchange"))};
+  A["ds-reload"]=function(){drop();window.dispatchEvent(new Event("hashchange"))};
 
   /* ---------- context switcher: Platform or the Everneed Store workspace ---------- */
-  function ctxBar(cur){
-    return'<div class="ds-ctxbar"><button type="button" class="ds-ctx" data-act="ds-ctx" aria-haspopup="dialog">'+D.icon(cur==="store"?"store":"globe",18)+"<span>"+(cur==="store"?"Everneed Store":"Platform")+"</span>"+D.icon("chevd",16)+"</button></div>";
+  function ctxBar(cur){cur=CTX==="store"?"store":cur;
+    return'<div class="ds-ctxbar"><button type="button" class="ds-ctx" data-act="ds-ctx" aria-haspopup="dialog">'+D.icon(cur==="store"?"store":"globe",18)+"<span>"+(CTX==="store"?"Everneed Store only":(cur==="store"?"Everneed Store":"Platform"))+"</span>"+D.icon("chevd",16)+"</button></div>";
   }
+  /* The chosen workspace is remembered. Platform can reach everything, including the Everneed Store. Everneed Store reaches only the store:
+     its tabs, its pages and its messages. Platform pages redirect to the store, and the tab bar shows no platform tab. */
+  var KEY="ev-admin-ctx";
+  function getCtx(){var v="";try{v=localStorage.getItem(KEY)||""}catch(e){}return v==="store"?"store":"platform"}
+  function setCtx(v){try{localStorage.setItem(KEY,v)}catch(e){}CTX=v}
+  var CTX=getCtx();
+  C.adminCtx=function(){return CTX};
   A["ds-ctx"]=function(){
-    var here=C.path().indexOf("/admin/store")===0?"store":"platform";
     D.actions({title:"Switch workspace",items:[
-      {label:"Platform",sub:"Marketplace-wide admin: sellers, review, messages",icon:here==="platform"?"check":"globe",run:function(){C.go("/admin")}},
-      {label:"Everneed Store",sub:"The official store: products, orders, messages, staff",icon:here==="store"?"check":"store",run:function(){C.go("/admin/store")}}]});
+      {label:"Platform",sub:"Marketplace-wide admin and the Everneed Store",icon:CTX==="platform"?"check":"globe",run:function(){setCtx("platform");C.go("/admin")}},
+      {label:"Everneed Store only",sub:"Only the official store: products, orders, messages, staff",icon:CTX==="store"?"check":"store",run:function(){setCtx("store");C.go("/admin/store")}}]});
   };
+  var NAVT={
+    platform:[["admin","Overview","chart","/admin"],["admin/sellers","Sellers","store","/admin/sellers"],["admin/review","Review","clip","/admin/review"],["admin/store","Store","box","/admin/store"],["inbox","Inbox","chat","/inbox",1]],
+    store:[["admin/store","Overview","chart","/admin/store"],["admin/store/products","Products","box","/admin/store/products"],["admin/store/orders","Orders","receipt","/admin/store/orders"],["admin/store/messages","Messages","chat","/admin/store/messages"],["admin/store/staff","Staff","users","/admin/store/staff"]]};
+  function tabKey(active){var a=String(active||"");if(CTX==="store")return a.indexOf("admin/store")===0?a:"";
+    if(a.indexOf("admin/store")===0)return"admin/store";if(a==="admin"||a==="inbox"||a==="admin/review"||a.indexOf("admin/sellers")===0)return a.indexOf("admin/sellers")===0?"admin/sellers":a;return""}
+  var baseShell=window.AX&&AX.shell;
+  if(baseShell)AX.shell=function(kind,active,inner,me){
+    if(kind!=="admin"||!me||me.role!=="admin")return baseShell.apply(this,arguments);
+    var items=NAVT[CTX],cur=tabKey(active),initial=(String(me.name||me.email||"E").trim().charAt(0)||"E").toUpperCase();
+    function link(n,sz){return'<a href="'+n[3]+'"'+(n[0]===cur?' class="on" aria-current="page"':"")+">"+D.icon(n[2],sz)+"<span>"+n[1]+"</span>"+(n[4]?'<span class="nbd" hidden>0</span>':"")+"</a>"}
+    return'<div class="ax" data-kind="admin" data-ctx="'+CTX+'"><header class="ax-top">'+'<a class="ax-brand" href="'+(CTX==="store"?"/admin/store":"/admin")+'"><img src="/favicon.svg" alt="" width="28" height="28"><span>Everneed</span></a>'+'<span class="ax-ctx">'+(CTX==="store"?"Everneed Store":"Platform")+'</span><span class="ax-sp"></span>'+AX.bell()
+      +'<a class="ax-me" href="/me" aria-label="Me">'+esc(initial)+"</a></header>"
+      +'<aside class="ax-rail"><nav aria-label="Sections">'+items.map(function(n){return link(n,22)}).join("")+"</nav></aside>"
+      +'<section class="main" id="main">'+inner+"</section>"
+      +'<nav class="ax-tabs" style="--n:'+items.length+'" aria-label="Sections">'+items.map(function(n){return link(n,24)}).join("")+"</nav></div>";
+  };
+  var oldInbox=V.inbox;
+  if(oldInbox)V.inbox=function(p){var me=C.me();if(me&&me.role==="admin"&&CTX==="store")return{redirect:"/admin/store/messages"};return oldInbox(p)};
 
   /* ---------- store state helpers ---------- */
   function state(s){
@@ -176,7 +206,7 @@
       var mods=cx.module_readiness||{};
       return h+'<div class="ds-h"><h2>Catalogue</h2></div><div class="ds-stats">'
         +D.stat({icon:"box",value:Number(cn.products||0),label:"Products",href:"/admin/store/products"})+D.stat({icon:"okc",value:Number(cn.published_products||0),label:"Published"})
-        +D.stat({icon:"clip",value:Number(cn.pending_review_products||0),label:"Pending review",tone:Number(cn.pending_review_products)?"hot":"",href:"/admin/review"})+D.stat({icon:"edit",value:Number(cn.draft_products||0),label:"Drafts"})+"</div>"
+        +D.stat({icon:"clip",value:Number(cn.pending_review_products||0),label:"Pending review",tone:Number(cn.pending_review_products)?"hot":"",href:CTX==="store"?"":"/admin/review"})+D.stat({icon:"edit",value:Number(cn.draft_products||0),label:"Drafts"})+"</div>"
         +'<div class="ds-h"><h2>Stock and orders</h2></div><div class="ds-stats">'
         +D.stat({icon:"layers",value:Number(cn.variants||0),label:"Variants"})+D.stat({icon:"alert",value:Number(cn.low_stock_variants||0),label:"Low stock variants",tone:Number(cn.low_stock_variants)?"bad":""})
         +D.stat({icon:"receipt",value:Number(cn.seller_orders||0),label:"Orders",href:"/admin/store/orders"})+D.stat({icon:"chat",value:"Open",label:"Messages",href:"/admin/store/messages"})+"</div>"
@@ -224,11 +254,12 @@
     var sub=p[0]||"",tab=p[1]||"";
     var me=C.me();
     if(!Supa.uid()||!me||me.role!=="admin")return old(p);
+    if(CTX==="store"&&sub!=="store")return{redirect:"/admin/store"};
     if(sub==="")return overview().then(function(h){return out(h,"Overview","admin")});
     if(sub==="sellers"&&tab==="")return applications().then(function(h){return out(h,"Seller operations","admin/sellers")});
     if(sub==="sellers"&&tab==="stores")return stores().then(function(h){return out(h,"Seller operations","admin/sellers")});
     if(sub==="review")return review().then(function(h){return out(h,"Product review","admin/review")});
-    if(sub==="store"){var t=STAB.some(function(x){return x[0]===tab})?tab:"";return storePage(t).then(function(h){return out(h,"Everneed Store","admin")})}
+    if(sub==="store"){var t=STAB.some(function(x){return x[0]===tab})?tab:"";return storePage(t).then(function(h){return out(h,"Everneed Store","admin/store"+(t?"/"+t:""))})}
     return old(p);
   };
 })();
