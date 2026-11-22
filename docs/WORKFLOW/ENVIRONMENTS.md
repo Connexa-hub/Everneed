@@ -59,7 +59,7 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
 - Android debug APK signing: CI no longer reads a keystore from the repository. Generate a replacement locally and add its base64-encoded contents as the GitHub Actions repository secret `ANDROID_DEBUG_KEYSTORE_BASE64`. The workflow writes it to `~/.android/debug.keystore` before building. Never commit the keystore or paste its contents into chat. After the new key is in place, uninstall older Everneed test APKs once before installing the newly signed build.
 
 ## The app
-The Android app still has its database hard-coded in `js/config.js` (live only). That is task `APP-08`. The plan, so the app and website always agree:
+ **Confirmed 22 Nov 2026:** root buyer app `js/config.js` hard-codes LIVE Supabase (`zpgasfweaixwsktlueje`). The root app does not automatically use `shared/config.js`; app checkout testing must be blocked until APP-08 is completed and proven. See `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. The plan, so the app and website always agree:
 - The app loads the same `shared/config.js` as the website.
 - Release builds from `main` use live. Test builds from `web-portal` use staging and show the same ribbon.
 - Until then, a seller who signs up on a staging website will not exist in the app, and the other way round. Staging and the app only line up after `APP-08`.
