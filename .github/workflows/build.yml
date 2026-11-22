@@ -120,6 +120,8 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/055_fin02a_fx_quote_currency_exponent_contract.sql
       - name: FIN-02A unpaid checkout expiry safety tests (056)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/056_fin02a_unpaid_checkout_expiry_worker_checks.sql
+      - name: FIN-03 verified settlement lifecycle tests (057)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/057_fin03_verified_settlement_lifecycle_checks.sql
       - name: Seller onboarding, plan entitlement and quota tests (034)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
 
