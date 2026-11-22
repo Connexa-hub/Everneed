@@ -347,3 +347,7 @@ Read-only inventory: staging Paystack Edge Function is ACTIVE v13 (`verify_jwt=f
 - Priority sequence: app inventory/design reconciliation → browse/search/store/product detail → multi-seller cart → delivery/address → server-backed quote → staging payment → confirmation/order tracking/account/support.
 - Finance/payment E2E acceptance depends on the mobile app checkout. Backend financial snapshots and payment settlement remain authoritative; no frontend parallel accounting/payment system.
 - App frontend development is resumed; APK build automation/testing remains paused until owner approval. Production untouched.
+
+
+## Buyer app inventory checkpoint — 22 Nov 2026
+Initial source inventory recorded in `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. Existing buyer UI is the root vanilla-JS SPA with Capacitor wrapper; Android project generated in CI, not committed. Immediate work: route/design inventory and APP-08 staging isolation proof before checkout testing. Existing product detail, cart, order and legacy payment UI must be audited and preserved where useful; checkout must be reconciled to authoritative quote/payment-attempt contracts. No APK builds resumed.
