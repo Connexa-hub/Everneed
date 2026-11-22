@@ -152,6 +152,21 @@ async function settle(tx: any) {
   if (v.metadata?.user_id !== o.user_id) return false;
   if (o.pm === "card_later") return await settleLegacyPayOnDelivery(v, o);
 
+  // The direct webhook/verify path must enforce the same metadata-to-attempt
+  // binding as the recovery worker before invoking settlement.
+  const { data: context, error: contextError } = await db.rpc("get_payment_attempt_recovery_context", {
+    p_provider_reference: String(v.reference),
+  });
+  if (contextError) throw new Error(contextError.message);
+  if (!context ||
+      String(v.metadata?.order_id || "") !== String(context.order_id || "") ||
+      String(v.metadata?.user_id || "") !== String(context.user_id || "") ||
+      String(v.metadata?.payment_attempt_id || "") !== String(context.attempt_id || "") ||
+      Number(v.amount) !== Number(context.amount_minor) ||
+      String(v.currency || "").toUpperCase() !== String(context.currency || "").toUpperCase()) {
+    return false;
+  }
+
   const { data: result, error } = await db.rpc("settle_verified_payment_attempt", {
     p_provider_reference: v.reference,
     p_provider_transaction_id: String(v.id),
