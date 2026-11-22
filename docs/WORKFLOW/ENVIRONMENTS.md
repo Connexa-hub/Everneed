@@ -58,6 +58,12 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
 
 - Android debug APK signing: CI no longer reads a keystore from the repository. Generate a replacement locally and add its base64-encoded contents as the GitHub Actions repository secret `ANDROID_DEBUG_KEYSTORE_BASE64`. The workflow writes it to `~/.android/debug.keystore` before building. Never commit the keystore or paste its contents into chat. After the new key is in place, uninstall older Everneed test APKs once before installing the newly signed build.
 
+## Persistent Android native project
+
+**Decision, 22 Nov 2026:** keep Capacitor's generated Android project in source control. The repository's `.gitignore` no longer excludes `android/`. A manual, confirmation-gated workflow `.github/workflows/initialize-android.yml` creates the native project once on a non-`main` feature branch and commits it. It requires the typed confirmation `INITIALIZE_ANDROID`; it is not a build/release workflow.
+
+After initialization, ordinary CI uses the committed `android/` files and runs `npx cap sync android` plus `tools/prepare-android.mjs`. Do not run `npx cap add android` again unless intentionally regenerating/replacing the native project under review. The Android manifest permissions and AdMob app ID are maintained idempotently by that script. APK workflow remains disabled and must not be enabled until APP-08 staging isolation, native project bootstrap, and owner approval are complete.
+
 ## The app
  **Confirmed 22 Nov 2026:** root buyer app `js/config.js` hard-codes LIVE Supabase (`zpgasfweaixwsktlueje`). The root app does not automatically use `shared/config.js`; app checkout testing must be blocked until APP-08 is completed and proven. See `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. The plan, so the app and website always agree:
 - The app loads the same `shared/config.js` as the website.
