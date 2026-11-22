@@ -299,3 +299,10 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 - Source-only migration 056 adds a service-role-only bounded expiry RPC using an explicit cutoff and batch size. It locks eligible orders with `SKIP LOCKED`, calls the existing cancellation core, and therefore keeps inventory restoration/campaign reservation release in the existing transaction.
 - Orders are limited to pending/awaiting-payment and awaiting-payment/awaiting-transfer states. Payment attempts in initializing, pending, processing, succeeded or reconciliation-required state block expiry; failed/cancelled attempts do not.
 - Test 056 is wired into database CI. Migration replay order was updated. CI must pass before staging apply; no scheduler or expiry timeout has been approved/enabled.
+
+
+## FIN-02A expiry worker staging checkpoint — 22 Nov 2026
+- Migration 056 `fin02a_unpaid_checkout_expiry_worker` applied to Everneed staging after migration validation and database CI passed on head `ff183bab391227512ccb5cd51e055008450b573e`.
+- Test 056 executed on staging successfully in a rollback-only transaction. Covers old unpaid/failed-attempt cancellation, recent and paid-order exclusions, unresolved/succeeded/reconciliation blockers, repeat-call idempotency and ACL.
+- Staging ACL verified: EXECUTE denied to anon/authenticated and granted to service_role.
+- No expiry duration/policy approved; no scheduler enabled. Production untouched. CI must rerun after this documentation checkpoint.
