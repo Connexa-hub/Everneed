@@ -709,3 +709,9 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 ## Staging Paystack deployment mismatch — 22 Nov 2026
 - Staging Edge Function `paystack` is ACTIVE v13. Its direct settlement path verifies provider transaction/order/user then calls the settlement RPC, but lacks explicit metadata `payment_attempt_id` binding. Branch code now adds persisted-attempt context matching; unit/full CI passed, but source not deployed.
 - FIN-03 journal migration 057 is applied in staging and posts atomically through the settlement RPC. No sandbox E2E accepted yet; deliberate staging function deployment and webhook/verify/replay tests are a gate. No deployment or charge.
+
+
+## FIN-03 staging deploy and retest — 22 Nov 2026
+- Staging-only approved Paystack deployment completed: `paystack` ACTIVE v14, attempt-context matching added. Production untouched.
+- SQL tests 055/056/057 rerun and passed (rollback fixtures); clean residue check; account seeds and helper ACL validated.
+- No Edge Function invocation/HTTP POST or Deno runner is available via current connector, so sandbox webhook/verify/replay/mismatch/failure/reconciliation E2E is still pending. No sandbox charge initiated; no payment-launch acceptance.
