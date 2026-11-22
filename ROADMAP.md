@@ -351,3 +351,6 @@ Read-only inventory: staging Paystack Edge Function is ACTIVE v13 (`verify_jwt=f
 
 ## Buyer app inventory checkpoint — 22 Nov 2026
 Initial source inventory recorded in `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. Existing buyer UI is the root vanilla-JS SPA with Capacitor wrapper; Android project generated in CI, not committed. Immediate work: route/design inventory and APP-08 staging isolation proof before checkout testing. Existing product detail, cart, order and legacy payment UI must be audited and preserved where useful; checkout must be reconciled to authoritative quote/payment-attempt contracts. No APK builds resumed.
+
+
+**Critical newly verified blocker:** root `js/config.js` points the buyer app directly at production Supabase (`zpgasfweaixwsktlueje`). Do not use the current app for checkout/payment testing. APP-08 staging-safe app configuration is the first implementation gate. Detailed evidence and requirements in `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`.
