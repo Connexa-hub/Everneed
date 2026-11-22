@@ -776,3 +776,7 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 ## FIN-02A expiry-worker design gate — 21 Nov 2026
 - Campaign holds are already released on unpaid cancellation via trigger 043; test 047 covers this lifecycle. No automatic expiry worker exists yet.
 - Before building/activating one: approve a configurable expiry period; block cancellation for initializing/pending/processing/succeeded/reconciliation-required payment attempts; use bounded `SKIP LOCKED` batches; ensure cancellation and hold release are atomic/idempotent; test concurrent workers and race conditions.
+
+
+## Finance implementation checkpoint — 22 Nov 2026
+FIN-02A unpaid-order expiry worker is now drafted as migration 056 with test 056 and CI wiring. It uses a caller-supplied cutoff (no unapproved timeout), a bounded batch and `SKIP LOCKED`; payment attempts that are unresolved, succeeded or reconciliation-required block cancellation. It routes cancellations through the existing cancellation core, so inventory and campaign holds retain their existing atomic lifecycle. Source branch only; CI re-run, staging validation and expiry policy approval remain gates. Scheduling stays disabled.
