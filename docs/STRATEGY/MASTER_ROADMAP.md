@@ -784,3 +784,6 @@ FIN-02A unpaid-order expiry worker is now drafted as migration 056 with test 056
 
 ## FIN-02A expiry worker staging checkpoint — 22 Nov 2026
 Migration 056 was applied to Everneed staging after the corrected database CI passed. Test 056 then passed on staging using rollback fixtures, including aged unpaid cancellation, failed-attempt eligibility, paid/recent exclusion, active/succeeded/reconciliation blockers, idempotency and ACL. Service-role-only access confirmed. Scheduling remains disabled until the owner approves expiry policy; production remains untouched. Re-run CI for this documentation update.
+
+## FIN-03 Paystack verification hardening — 22 Nov 2026
+Read the Paystack direct verification/webhook flow and migrations 026–031. Audit found direct settlement did not explicitly match the provider metadata payment_attempt_id to the persisted attempt (the recovery worker already performed that check). Edge Function source now enforces order/user/attempt identity and exact amount/currency before settlement. Not deployed; CI/type-check and sandbox acceptance remain open. No production payment activity.
