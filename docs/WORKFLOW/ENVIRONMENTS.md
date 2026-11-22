@@ -62,7 +62,9 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
 
 **Decision, 22 Nov 2026:** keep the Capacitor Android native project committed under `android/`; `.gitignore` no longer excludes it. The manual workflow `.github/workflows/initialize-android.yml` creates the project once on a non-`main` branch after the required typed confirmation `INITIALIZE_ANDROID`. It is not a release/build workflow.
 
-Once initialized, regular builds use the committed native project and `npx cap sync android`, then run `tools/prepare-android.mjs` to apply the required manifest permissions and AdMob metadata idempotently. Do not run `npx cap add android` again unless deliberately regenerating the native project as a reviewed change. APK generation remains paused; do not enable it until the native project is initialized, APP-08 staging isolation is complete, and the owner explicitly resumes testing.
+**Initialization completed successfully on 22 Nov 2026.** The workflow generated and committed the native project to `web-portal` in commit `0b1ab6f68f29776611227d5f5f276c62f1fb2c48` (`chore(android): persist Capacitor native project`). Verified committed files include `android/gradlew`, Gradle wrapper files, `android/settings.gradle`, `android/app/build.gradle`, `AndroidManifest.xml`, and `MainActivity.java` using package `com.everneed.store`. The permanent native project now exists in Git; it has not been built into a new APK as part of this initialization.
+
+Regular builds use the committed native project and `npx cap sync android`, then run `tools/prepare-android.mjs` to apply the required manifest permissions and AdMob metadata idempotently. Do not run `npx cap add android` again unless deliberately regenerating the native project as a reviewed change. APK generation remains paused until APP-08 staging isolation is complete and the owner explicitly resumes testing.
 
 ## The app
 The Android app still has its database hard-coded in `js/config.js` (live only). That is task `APP-08`. The plan, so the app and website always agree:
