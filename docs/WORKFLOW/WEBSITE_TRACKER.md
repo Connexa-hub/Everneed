@@ -675,3 +675,9 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 ## FIN-02A expiry-worker safety gate — 21 Nov 2026
 - Existing order cancellation trigger releases campaign reservations; test 047 covers lifecycle. Automatic expiry has not been implemented.
 - Design requirements documented in finance architecture: approved configurable cutoff, payment-attempt-aware block conditions, bounded `SKIP LOCKED` worker, atomic cancellation/reservation release, idempotent and concurrency regression tests. No worker scheduling until accepted.
+
+
+## FIN-02A expiry-worker implementation checkpoint — 22 Nov 2026
+- Migration 056 and SQL regression 056 added on `feature/variant-checkout`; CI step added. Worker uses explicit cutoff, bounded batch, row locking/`SKIP LOCKED`, service-only ACL and guarded existing cancellation core. Payment-attempt blockers: initializing/pending/processing/succeeded/reconciliation-required. Failed attempts may expire.
+- Migration replay order initially failed because 056 was missing from the explicit order list; list has now been corrected. Re-run CI is pending. Do not apply migration to staging until migration validation and database CI pass.
+- No expiry duration approved, no scheduled worker enabled, no production changes.
