@@ -681,3 +681,10 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Migration 056 and SQL regression 056 added on `feature/variant-checkout`; CI step added. Worker uses explicit cutoff, bounded batch, row locking/`SKIP LOCKED`, service-only ACL and guarded existing cancellation core. Payment-attempt blockers: initializing/pending/processing/succeeded/reconciliation-required. Failed attempts may expire.
 - Migration replay order initially failed because 056 was missing from the explicit order list; list has now been corrected. Re-run CI is pending. Do not apply migration to staging until migration validation and database CI pass.
 - No expiry duration approved, no scheduled worker enabled, no production changes.
+
+
+## FIN-02A expiry worker — staging verified (22 Nov 2026)
+- Corrected test fixture status constraint after CI surfaced invalid `pending` order status; test now uses a valid `awaiting_payment` order status for the paid exclusion.
+- Migration 056 applied to staging; test 056 executed successfully and rolled back fixtures.
+- Service-role-only ACL confirmed; anon/authenticated EXECUTE denied.
+- No expiry window decision, cron/scheduler, or production change. Documentation commits require fresh CI.
