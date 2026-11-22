@@ -11,7 +11,7 @@ Everneed has two separate Supabase databases. Staging is the development environ
 | Who uses it | real users | developers, owner and testers |
 | Data | real, never wiped | test data only; can be wiped any time |
 | Website served from | `main` (Cloudflare production, `everneed.pages.dev`) | `web-portal` and other previews (`*.everneed.pages.dev`), and `localhost` |
-| App builds | release builds from `main` | test builds from `web-portal` (not wired yet, see "The app") |
+| App builds | release builds from `main` use live | manually dispatched test APKs from `web-portal` use staging |
 | How migrations get there | manually, with explicit owner approval | manual `staging-db.yml` dispatch only; no push-triggered deployment |
 | Cost | existing | $0 (free tier) |
 
@@ -56,7 +56,7 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
 - Free Supabase projects pause after about a week of inactivity. If staging sleeps, resume it in the dashboard.
 - Public keys (the `anon` key) may sit in the repo. Database passwords, connection strings, service-role keys, Paystack keys and signing keys never do.
 
-- Android debug APK signing: CI no longer reads a keystore from the repository. Generate a replacement locally and add its base64-encoded contents as the GitHub Actions repository secret `ANDROID_DEBUG_KEYSTORE_BASE64`. The workflow writes it to `~/.android/debug.keystore` before building. Never commit the keystore or paste its contents into chat. After the new key is in place, uninstall older Everneed test APKs once before installing the newly signed build.
+- Android test APK signing: CI uses the stable repository secret `ANDROID_DEBUG_KEYSTORE_BASE64` when configured. If absent, it creates a temporary debug key for that run; uninstall any older Everneed test APK before installing a build signed with a different key. Never commit a keystore or paste its contents into chat.
 
 ## Persistent Android native project
 
@@ -64,20 +64,21 @@ Steps 1 and 2 are for the owner. Everything else is automatic or done by Claude.
 
 **Initialization completed successfully on 22 Nov 2026.** The workflow generated and committed the native project to `web-portal` in commit `0b1ab6f68f29776611227d5f5f276c62f1fb2c48` (`chore(android): persist Capacitor native project`). Verified committed files include `android/gradlew`, Gradle wrapper files, `android/settings.gradle`, `android/app/build.gradle`, `AndroidManifest.xml`, and `MainActivity.java` using package `com.everneed.store`. The permanent native project now exists in Git; it has not been built into a new APK as part of this initialization.
 
-Regular builds use the committed native project and `npx cap sync android`, then run `tools/prepare-android.mjs` to apply the required manifest permissions and AdMob metadata idempotently. Do not run `npx cap add android` again unless deliberately regenerating the native project as a reviewed change. APK generation remains paused until APP-08 staging isolation is complete and the owner explicitly resumes testing.
+Regular builds use the committed native project and `npx cap sync android`, then run `tools/prepare-android.mjs` to apply the required manifest permissions and AdMob metadata idempotently. Do not run `npx cap add android` again unless deliberately regenerating the native project as a reviewed change. Owner-approved test APK builds are now enabled only by manual dispatch on `web-portal`; PR and `main` builds do not produce test APKs.
 
 ## The app
-The Android app still has its database hard-coded in `js/config.js` (live only). That is task `APP-08`. The plan, so the app and website always agree:
-- The app loads the same `shared/config.js` as the website.
-- Release builds from `main` use live. Test builds from `web-portal` use staging and show the same ribbon.
-- Until then, a seller who signs up on a staging website will not exist in the app, and the other way round. Staging and the app only line up after `APP-08`.
+**Staging isolation for app test builds — partially implemented 22 Nov 2026.** `js/build.js` is stamped by CI before `js/config.js` loads. `js/config.js` now selects the staging Supabase project for every non-`main` build and live only when the stamped branch is `main`. Staging test builds display a visible `STAGING · TEST DATA ONLY` ribbon. This prevents a `web-portal` APK from writing to live customer data. It is a safe environment selector, but APP-08 remains PARTIAL until the app's config/client helpers are consolidated with the shared modules and verified end to end.
+
+The APK job in `.github/workflows/build.yml` runs only when manually dispatched on `web-portal`; it waits for the install/test and local database test jobs, syncs the committed native project, and publishes `everneed-apk` as a workflow artifact. `main` and ordinary pull-request runs do not build an APK. If the stable signing secret is absent, CI creates a temporary debug key; uninstall an older Everneed test APK before installing that build.
+
+A staging APK should show the staging ribbon and use project `vjiadqygpyebpisxslbx`. Do not use it for live customer operations.
 
 ## Where this is tracked
-`WEB-F07b` (replay proof), `WEB-ENV01` (steps 1 to 6 above), `APP-08` (app on shared config), `WEB-F08` (signing key) in `WEBSITE_TRACKER.md`.
+`WEB-F07b` (replay proof), `WEB-ENV01` (steps 1 to 6 above), `APP-08` (remaining shared-module consolidation and E2E verification), `APP-12` (persistent Android project), `WEB-F08` (signing key) in `WEBSITE_TRACKER.md`.
 
 
 ## Verified baseline — 16 Nov 2026
 
 A read-only Supabase migration-history check of `Everneed-staging` (`vjiadqygpyebpisxslbx`) confirms historical repository versions `000`–`033` and timestamped migrations `20261116201132` and `20261116201843` are applied. The latter add seller onboarding, plan entitlements, admin-configurable catalogue limits, daily listing enforcement and the secure quota-trigger execution context. Do not reapply them. Production is untouched. This is the staging database history, not proof that the matching Edge Function source is deployed. The staging Edge Function inventory reports `public-forms` ACTIVE v3 and `paystack` ACTIVE v1 (`verify_jwt=false`). The GitHub `web-portal` source has newer Paystack webhook retry handling; that source has **not** been deployed to staging. Do not deploy as part of documentation reconciliation.
 
-The latest completed CI results must be read from the linked PR and Actions runs; Phase 2 migration 030 and recovery-worker changes are currently undergoing verification. See [PR #31](https://github.com/Connexa-hub/Everneed/pull/31). `APP-08` remains open: the Android app is not yet wired to the shared staging/production environment configuration.
+The latest completed CI results must be read from the linked PR and Actions runs; Phase 2 migration 030 and recovery-worker changes are currently undergoing verification. See [PR #31](https://github.com/Connexa-hub/Everneed/pull/31). `APP-08` is PARTIAL: branch-based staging/live selection is now implemented in `js/config.js`; shared-module consolidation and end-to-end verification remain.
