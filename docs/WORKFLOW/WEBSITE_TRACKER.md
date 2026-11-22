@@ -715,3 +715,6 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Staging-only approved Paystack deployment completed: `paystack` ACTIVE v14, attempt-context matching added. Production untouched.
 - SQL tests 055/056/057 rerun and passed (rollback fixtures); clean residue check; account seeds and helper ACL validated.
 - No Edge Function invocation/HTTP POST or Deno runner is available via current connector, so sandbox webhook/verify/replay/mismatch/failure/reconciliation E2E is still pending. No sandbox charge initiated; no payment-launch acceptance.
+
+## Buyer app work resumed — 22 Nov 2026
+Initial source inventory is committed in `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`; detailed Claude handoff in `docs/WORKFLOW/MOBILE_BUYER_APP_RESUMPTION_HANDOFF.md`. Confirmed P0 blocker: root app config hard-codes production Supabase. Tracking issue [#34 APP-08 staging isolation](https://github.com/Connexa-hub/Everneed/issues/34) opened. No APK build or app checkout/payment test is authorized/attempted.
