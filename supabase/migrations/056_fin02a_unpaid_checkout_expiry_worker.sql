@@ -5,7 +5,7 @@ returns jsonb language plpgsql security definer set search_path='' as $$
 declare r record; n_cancelled integer:=0; n_errors integer:=0;
 begin
  if coalesce(auth.role(),'')<>'service_role' then raise exception 'Service role required.'; end if;
- if p_cutoff is null or p_cutoff>now() or p_batch_size not between 1 and 100 or p_reason is null or length(trim(p_reason)) not between 1 and 240 then raise exception 'Invalid unpaid checkout expiry request.'; end if;
+ if p_cutoff is null or p_cutoff>now() or p_batch_size is null or p_batch_size not between 1 and 100 or p_reason is null or length(trim(p_reason)) not between 1 and 240 then raise exception 'Invalid unpaid checkout expiry request.'; end if;
  for r in select o.id from public.orders o
   where o.status in ('pending','awaiting_payment') and o.payment_status in ('awaiting_payment','awaiting_transfer')
    and o.at<=(extract(epoch from p_cutoff)*1000)::bigint
