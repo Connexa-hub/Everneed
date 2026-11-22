@@ -38,6 +38,10 @@ Read these before making changes:
 5. [Current repository/product audit](docs/WORKFLOW/REPOSITORY_AND_PRODUCT_AUDIT_2026-11-12.md)
 6. [Design system](docs/DESIGN_SYSTEM.md)
 
+## Native mobile project and CI
+
+The Capacitor Android native project is intended to be committed under `android/` and maintained with the buyer app. CI must **not** recreate it using `npx cap add android` on each build. Normal builds run `npx cap sync android` to update web assets and plugins, then build the committed Gradle project. A guarded, manually dispatched initializer workflow is available to create the native directory once on a feature branch. APK builds remain paused until explicitly resumed.
+
 ## Supabase environments
 
 | Environment | Project | Reference | Purpose |
