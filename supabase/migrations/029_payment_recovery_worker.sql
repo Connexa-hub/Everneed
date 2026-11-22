@@ -4,6 +4,10 @@
 
 begin;
 
+-- Replay compatibility: older copies of 029 created the claim RPC with a return
+-- shape that 030 later expands. Remove that signature before redefining it.
+drop function if exists public.claim_provider_event_recovery(integer,integer,integer);
+
 alter table private.provider_event_inbox
   add column if not exists lease_token uuid,
   add column if not exists lease_expires_at timestamptz,
