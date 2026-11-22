@@ -796,3 +796,7 @@ Next finance gates: sandbox Paystack end-to-end/reconciliation; policy approval 
 
 ## FIN-04 refund lifecycle design gate — 22 Nov 2026
 Read-only audit found the legacy refund RPC still marks `processed` without a provider call, uses parent-order cumulative cap and pro-rata seller allocation; cancellation auto-creates `approved` refund rows, reverses seller-ledger entries before provider confirmation and sends a premature “on its way” message. The provider-refund schema is present but unintegrated. Proposed refund policy defaults are documented for approval in `docs/WORKFLOW/PAYMENT_REFUND_AUDIT.md`: frozen item/store allocations, pending-refund caps, Paystack-confirmed completion, funding-split reversal, delivery-fee/manual-payment rules, seller recovery and evidence controls. No refund API, migration or production action. FIN-04 coding begins only after policy approval; current next work is provider lifecycle, refund journal and reconciliation tests.
+
+
+## FIN-03 staging provider-handler gap — 22 Nov 2026
+Staging `paystack` Edge Function is active v13. Its deployed direct settlement checks verified provider/order/user context but lacks the explicit metadata-attempt binding added on the branch. Branch source and unit tests pass, but no deployment was performed. Migration 057 is applied to staging and settlement RPC journals atomically; sandbox webhook/verify/replay acceptance remains blocked until the staging function is intentionally updated and verified. No charge, deployment or production action.
