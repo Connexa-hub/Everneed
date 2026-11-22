@@ -25,6 +25,10 @@ The website/public portal in `web/` is a separate surface. The customer shopping
 | Tests | `tests/`, `tools/check.mjs`, workflow files | Inspect test coverage for buyer flows and add acceptance tests as features are made functional. Current inventory does not establish app E2E coverage. |
 | Web portal | `web/` | Separate public website/seller/admin portal; continue its roadmap in parallel. It does not replace app checkout. |
 
+## Native-project policy update — 22 Nov 2026
+
+The Android native directory will be version-controlled. The current branch contains a manually dispatched initializer workflow and an idempotent native-manifest setup script, while `.gitignore` no longer excludes `android/`. The APK job remains disabled. After the initializer is run and its generated project is reviewed/committed, ordinary builds should use `npx cap sync android`, never recreate the project each time. This configuration has been source-reviewed but the initializer has **not** been executed and no native directory has yet been generated in this branch.
+
 ## Critical risks and blockers to address before sandbox checkout
 
 1. **APP-08 environment split — CONFIRMED BLOCKER:** the inspected root `js/config.js` hard-codes the production Supabase URL/reference (`zpgasfweaixwsktlueje`). The buyer app loads this root config. Do not launch checkout, create test orders, or run payment tests from the current app until a staging-safe build configuration is implemented and proven. The separate `shared/config.js` environment switch is designed for the website/preview host and is not automatically used by the root app. Never test against production.
