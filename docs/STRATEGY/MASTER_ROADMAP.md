@@ -800,3 +800,7 @@ Read-only audit found the legacy refund RPC still marks `processed` without a pr
 
 ## FIN-03 staging provider-handler gap — 22 Nov 2026
 Staging `paystack` Edge Function is active v13. Its deployed direct settlement checks verified provider/order/user context but lacks the explicit metadata-attempt binding added on the branch. Branch source and unit tests pass, but no deployment was performed. Migration 057 is applied to staging and settlement RPC journals atomically; sandbox webhook/verify/replay acceptance remains blocked until the staging function is intentionally updated and verified. No charge, deployment or production action.
+
+
+## Mobile buyer app frontend resumption (22 Nov 2026)
+The founder approved resuming buyer-app frontend design and incremental implementation while web portal work continues. The web portal alone cannot validate shopping checkout or Paystack payment E2E. Claude should inventory existing app code and design, preserve existing features, and work through the buyer journey. Full handoff and acceptance checklist: `docs/WORKFLOW/MOBILE_BUYER_APP_RESUMPTION_HANDOFF.md`. This does **not** resume APK builds: APK workflow remains disabled pending explicit owner approval. Finance staging is not launch accepted; sandbox E2E must be exercised through the app.
