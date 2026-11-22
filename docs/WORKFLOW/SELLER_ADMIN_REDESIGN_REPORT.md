@@ -29,6 +29,10 @@
 - Per-store product and order counts, exact order totals, and message counts are not shown, because the aggregates (R1) do not exist yet. The pages say so.
 - Admin order totals are still limited to the latest 1,000 orders and say so.
 
+## Part 2 (22 Nov 2026): seller home and products list
+`web/assets/js/ds-seller.js` wraps `V.portal` after `seller-flow.js`. It draws the live-store home and the products list as cards and passes every other route (product editor, orders, plan, verification) to the existing pages untouched. Home: stat tiles, to-do rows (new orders, rejected, low stock, drafts), plan ring from `my_store_entitlements`, recent orders. Products: cards with photo or category art, status chips, filter chips with real counts, search, submit, duplicate, restore (existing `wsub`, `wdup`, `wrest`) and a confirm sheet before archive (`ds-arch`). Failures show a warning or an error with retry, never an empty or all-clear state. Growth tools and bulk tools are "Not available yet" cards, because `my_store_entitlements` does not return analytics, promotions or bulk flags and sellers cannot read `seller_plan_entitlements` (R10). The old multi-select bulk bar on the list is not carried over; it returns when R5 exists.
+Tests: `node tools/web-seller-tests/ds-seller.js` (12 pass). Browser: Chromium at 360 px, light and dark, stubbed data: no script errors, no sideways scroll, no control under 44 px. Not tested: a real signed-in seller on staging, real devices.
+
 ## Tests actually run
 - `node tools/web-seller-tests/ds.js`: **28 of 28 pass** (art mapping for all 22 categories, no unclassed SVG shape, no emoji in icons, money formatting, HTML escaping in every builder, banner roles, overview numbers, all-clear and failure behaviour, applications, stores filters and actions, review, Everneed Store tabs, staff honesty, switcher, action-name prefix).
 - `node tools/web-seller-tests/run.js` (existing): **22 of 22 pass**.
@@ -38,7 +42,7 @@
 - Size: ds.css about 6 KB, ds.js plus ds-admin.js about 22 KB gzipped, about 28 KB in total against the 60 KB budget.
 
 ## Not done (be clear before calling this finished)
-Seller side, not rebuilt yet: home overview, products list cards, the product workspace sections (basics, specs from `category_attributes`, variants, price tiers, stock, shipping, media, publishing), orders, the Messenger-style two-pane inbox, notifications panel, plan screen, Me and settings. They already get the new toasts, sheets, pickers, tab control and empty states automatically, but their layouts are the old ones (the add-product page still has its old sticky action bar overlapping the tab bar on a phone).
+Seller side, not rebuilt yet (home and products list are done, see Part 2): the product workspace sections (basics, specs from `category_attributes`, variants, price tiers, stock, shipping, media, publishing), orders, the Messenger-style two-pane inbox, notifications panel, plan screen, Me and settings. They already get the new toasts, sheets, pickers, tab control and empty states automatically, but their layouts are the old ones (the add-product page still has its old sticky action bar overlapping the tab bar on a phone).
 Admin side: the plan limits and verification cases tabs, waitlist, support settings and messages are still `admin.js` pages, only restyled. The platform plan-gated modules (`DS.gate`) exist but no seller screen uses them yet.
 Also not done: skeleton loaders are not yet shown while a route loads (the component exists, the router has no loading hook); swipe-to-reveal on cards (long-press is built); the Everneed Store workspace has no editing, because staff access and product workflow functions do not exist (R2, R5).
 
@@ -51,4 +55,4 @@ Also not done: skeleton loaders are not yet shown while a route loads (the compo
 R1 `admin_overview_stats()`, `admin_store_directory()`, activity feed, application queue. R2 `staff_members` and role RPCs, staff-scoped RLS for the official store. R3 `collections.icon_key` and `art_key`, category schema fields. R4 messaging and push items. R5 `bulk_update_products`, `duplicate_product`, `import_products`, `validate_product_for_review`, product workflow RPCs. R6 documented `seller_transition` and `my_seller_order`. R7 sales summary, top products, inventory alerts. R8 media storage with thumbnails. R9 notes (`approve_store` plan carry-over).
 
 ## Next steps for the frontend
-1. Seller home and products list as cards on the design system. 2. The product workspace sections. 3. Messenger-style inbox (needs R4 for urgent and needs-reply). 4. Loading skeletons through a router hook. 5. Rebuild plan limits and verification cases as cards once the owner has checked this on devices.
+1. (Done, Part 2.) 2. The product workspace sections. 3. Messenger-style inbox (needs R4 for urgent and needs-reply). 4. Loading skeletons through a router hook. 5. Rebuild plan limits and verification cases as cards once the owner has checked this on devices.

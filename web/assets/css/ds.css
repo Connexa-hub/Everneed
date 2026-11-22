@@ -273,3 +273,13 @@ button.ds-chip{min-height:var(--ds-hit);cursor:pointer}
   .ds-press:active,.ds-card[href]:active,.ds-row:active,.ds-btn:active,.ds-opt:active{transform:none}
   ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
 }
+/* seller home and products (ds-seller.js) */
+.ds-actions{display:flex;flex-wrap:wrap;gap:var(--ds-s2);margin:var(--ds-s4) 0}
+.ds-headrow{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s3);margin-bottom:var(--ds-s3)}.ds-headrow .ds-title{margin:0}
+.ds-acts{display:flex;flex-wrap:wrap;gap:var(--ds-s2);margin-top:var(--ds-s2)}
+.ds-pr small{display:block;color:var(--text-2);font-size:var(--ds-t-s);margin:2px 0 var(--ds-s2)}
+.ds-pr a{color:inherit;text-decoration:none}.ds-pr .ds-chips{margin-top:var(--ds-s1)}
+.ds-pr[hidden]{display:none}
+.ds-acts .ds-btn,.ds-headrow .ds-btn.s,.ds-hero .ds-btn.s{min-height:var(--ds-hit)}
+.ds-rows+.ds-card,.ds-rows+.ds-ringcard,.ds-ringcard+.ds-h,.ds-chips+.ds-grid{margin-top:var(--ds-s3)}
+.ds-pf{margin-bottom:var(--ds-s3)}

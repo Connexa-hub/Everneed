@@ -145,3 +145,6 @@ Private-write, public-read bucket for logos, covers and product media with owner
 ### R9. Notes from the frontend audit
 - `tokens.css` has 6 palettes x 3 modes (18 themes); frontend does not need new tokens from the backend.
 - `approve_store` still ignores `store_applications.plan_id` (carry-over, section 7).
+
+### R10. Seller-readable plan flags (added 22 Nov 2026, Claude)
+`my_store_entitlements()` returns only product limits and verification fields. `seller_plan_entitlements` is admin-read only by RLS. The seller home cannot tell whether analytics, promotions or bulk tools are included, so it shows "Not available yet" cards. Please add to `my_store_entitlements()` (or a new seller-safe function) the existing flags `analytics_level`, `promotions_enabled`, `bulk_tools_enabled`, `reports_export_enabled`, `inventory_alerts_enabled`, `team_seats`. When they arrive the cards become real modules or an upgrade card.
