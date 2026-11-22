@@ -387,3 +387,7 @@ These are decisions and validation tasks, not assumptions to be filled with inve
 ---
 
 *Internal working document. Update this register when implementation, deployment or test evidence changes. Do not use it as a public capability statement without a fresh verification pass.*
+
+
+## Mobile buyer app frontend resumption — 22 Nov 2026
+Status change: **frontend design and implementation resumed/planned**. The app is necessary for the buyer shopping journey and mobile checkout; the web portal cannot substitute for end-to-end customer shopping/payment acceptance. Claude's detailed handoff and acceptance checklist: `docs/WORKFLOW/MOBILE_BUYER_APP_RESUMPTION_HANDOFF.md`. App implementation is not yet verified complete. APK builds/testing remain paused, production untouched.
