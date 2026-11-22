@@ -7,7 +7,7 @@ declare
   v_uid uuid:=gen_random_uuid(); v_product text:=gen_random_uuid()::text; v_offer text:=gen_random_uuid()::text;
   v_order jsonb; v_order_id text; v_attempt jsonb; v_attempt_id uuid;
   v_ref text; v_amt bigint; v_result jsonb; v_txid text:=gen_random_uuid()::text;
-  v_journal uuid; v_debits numeric; v_credits numeric; v_order2 jsonb; v_attempt2 jsonb; v_result2 jsonb;
+  v_journal uuid; v_debits numeric; v_credits numeric; v_order2 jsonb; v_attempt2 jsonb; v_result2 jsonb; v_fail_closed boolean:=false;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
   values(v_uid,'authenticated','authenticated','fin03-settlement-'||v_uid::text||'@example.test','', '{}'::jsonb,'{}'::jsonb,now(),now());
@@ -28,6 +28,22 @@ begin
   v_attempt_id:=(v_attempt->>'attempt_id')::uuid; v_ref:=v_attempt->>'reference'; v_amt:=(v_attempt->>'amount_minor')::bigint;
   if v_amt<>8500 then raise exception 'Fixture buyer amount expected 8500 minor, got %',v_amt; end if;
   perform public.record_payment_attempt_initialization(v_attempt_id,true,'fixture initialization',null);
+  -- Missing required account must fail closed and roll back order/attempt settlement.
+  begin
+    delete from private.finance_accounts
+     where account_code='expense.platform_promotions' and currency='NGN';
+    perform public.settle_verified_payment_attempt(v_ref,v_txid,v_amt,'NGN');
+    raise exception 'Expected settlement to fail when platform promotion account is missing.';
+  exception when others then
+    if sqlerrm not like '%not configured for currency NGN%' then raise; end if;
+    v_fail_closed:=true;
+  end;
+  if not v_fail_closed then raise exception 'Missing finance account failure was not exercised.'; end if;
+  if exists(select 1 from public.orders where id=v_order_id and payment_status='paid')
+     or exists(select 1 from private.payment_attempts where id=v_attempt_id and status='succeeded')
+     or exists(select 1 from private.finance_journals where source_type='payment_settlement' and source_id=v_order_id) then
+    raise exception 'Settlement did not roll back fully after missing account failure.';
+  end if;
   v_result:=public.settle_verified_payment_attempt(v_ref,v_txid,v_amt,'NGN');
   if v_result->>'result' not in ('paid','already','already_settled') then raise exception 'Exact settlement failed: %',v_result; end if;
   if not exists(select 1 from public.orders where id=v_order_id and payment_status='paid') then raise exception 'Order was not marked paid'; end if;
