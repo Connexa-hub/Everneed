@@ -306,3 +306,8 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 - Test 056 executed on staging successfully in a rollback-only transaction. Covers old unpaid/failed-attempt cancellation, recent and paid-order exclusions, unresolved/succeeded/reconciliation blockers, repeat-call idempotency and ACL.
 - Staging ACL verified: EXECUTE denied to anon/authenticated and granted to service_role.
 - No expiry duration/policy approved; no scheduler enabled. Production untouched. CI must rerun after this documentation checkpoint.
+
+## FIN-03 verification binding hardening — 22 Nov 2026
+- Audit found the direct Paystack webhook/manual verify settlement path was not checking the provider transaction metadata `payment_attempt_id` against the persisted attempt context, although the recovery worker already did.
+- Updated `supabase/functions/paystack/index.ts` to require metadata order/user/attempt ID and exact amount/currency match with the persisted payment attempt before settlement.
+- This is source-only and not deployed. Deno type-check and full CI are pending. Legacy pay-on-delivery settlement remains separate.
