@@ -1196,3 +1196,7 @@ The helper revalidates snapshot v2 digest/identity, payment attempt and order re
 **Not yet accepted for launch:** provider sandbox collection/webhook/verify/reconciliation, Paystack-to-bank settlement and processing-fee journal, refund journal, seller payout integration, fulfilment-based revenue timing and delivery-fee allocation. No live charge, transfer, refund, payout, Edge Function deployment or scheduled task was run. Commission recognition remains a finance-policy review item.
 
 Next milestone is FIN-03 sandbox acceptance/reconciliation, then FIN-04 provider-confirmed refunds and frozen item/store refund allocations. Do not treat this as payment launch completion.
+
+
+## Staging Paystack handler mismatch — 22 Nov 2026
+Staging currently serves Edge Function `paystack` version 13. The deployed handler checks verified transaction/order/user context and calls the settlement RPC, but does not explicitly bind metadata `payment_attempt_id` via `get_payment_attempt_recovery_context` and `paymentContextMatches`. The feature branch source contains this check and its CI passed, but it has not been deployed. Migration 057 is applied in staging, so successful RPC settlement will journal atomically; nevertheless, no sandbox E2E acceptance is claimed until the branch handler is deliberately deployed to staging and verified. No deployment or charge occurred.
