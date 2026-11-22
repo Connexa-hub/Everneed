@@ -27,10 +27,10 @@ The website/public portal in `web/` is a separate surface. The customer shopping
 
 ## Critical risks and blockers to address before sandbox checkout
 
-1. **APP-08 environment split:** documentation says the Android app currently uses a live database configuration. Confirm exact current code and make staging explicit before app checkout testing. Never test against production.
+1. **APP-08 environment split — CONFIRMED BLOCKER:** the inspected root `js/config.js` hard-codes the production Supabase URL/reference (`zpgasfweaixwsktlueje`). The buyer app loads this root config. Do not launch checkout, create test orders, or run payment tests from the current app until a staging-safe build configuration is implemented and proven. The separate `shared/config.js` environment switch is designed for the website/preview host and is not automatically used by the root app. Never test against production.
 2. **Checkout contract:** the existing checkout UI/order/payment paths predate the newly hardened immutable quote/snapshot and verified payment journal work. Map and migrate the UI to the backend's authoritative quote/attempt contracts; do not assume the old client path is compatible.
 3. **Payment methods:** bank transfer, WhatsApp and saved-card “pay when delivered” exist in the code registry. Their operational state and policy must be individually verified. Hide or mark unavailable any path not fully backed by safe backend handling. Do not add wallet UI as if wallet funding/withdrawal/payment is complete.
-4. **Cart and price authority:** client-side cart totals and discounts may be presentation-only. Checkout must fetch/revalidate server-side totals, inventory, discounts, currency and quote identity before creating a payment attempt.
+4. **Cart and price authority — code observed:** the root app computes subtotal, offers/discount and delivery fee locally (`tot()` in `js/app.js`) for display. When Supabase is enabled, the checkout handler calls the Paystack Edge Function `action:"create"` with items, payment method, coupon, country and customer data, then uses the returned order. Verify that this server path now enforces the new immutable quote/snapshot contract and does not trust the client total. Never use the displayed client total as settlement authority.
 5. **Order states:** the existing app has legacy status labels/tracking logic. Reconcile these with current order/seller-order/hub/payment states; avoid showing paid or delivered based solely on client mutation.
 6. **Multi-seller checkout:** prove store-grouped cart, seller allocation, package/order identities and delivery quote before accepting a multi-store checkout.
 7. **Staging test accounts/data:** establish staging buyer account and safe seed products/stores; do not use real customer data.
@@ -82,7 +82,7 @@ The website/public portal in `web/` is a separate surface. The customer shopping
 
 ## Recommended immediate Claude task
 
-Start with APP-FE-01 and APP-FE-02 together: complete the route/screen inventory and inspect the current config environment selection. Produce a short findings summary and proposed small implementation PRs, then fix staging isolation before buyer checkout changes. Do not begin payment E2E until the staging app target is proven.
+**APP-FE-02 is the first hard blocker:** root app config currently targets production. Start by implementing safe explicit build-time/environment selection so staging app builds target `vjiadqygpyebpisxslbx`, visibly indicate staging and cannot silently fall back to live. Inspect CI packaging inputs and ensure staging configuration is injected/selected without adding secrets. Add tests/checks for staging vs release configuration and verify no production requests from the staging app. Then complete APP-FE-01 route/screen inventory and proceed with incremental buyer UI. Do not begin payment E2E until staging target is proven.
 
 ## Scope boundaries
 
