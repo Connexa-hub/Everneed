@@ -43,6 +43,10 @@ Everneed begins as a shared marketplace where independent sellers manage their o
 | EV-10 | Funding and strategic partnerships | PLANNED | Evidence-backed investor materials, financial assumptions, use of funds and accurately represented partnership status | Product and market evidence |
 | EV-11 | Ecosystem and geographic expansion | PROPOSED | Each new service/market has validated demand, operating owner, compliance, localisation and unit economics | Stable core marketplace |
 
+## Native Android project persistence checkpoint — 22 November 2026
+
+**Approved direction:** keep the Capacitor Android native project in Git. A one-time manual initializer workflow is now prepared on branch `feature/persist-capacitor-android`; it is confirmation-gated and refuses to run on `main`. The native project has not yet been generated/committed. The paused APK workflow is changed in this branch to require committed native project files and sync via `npx cap sync android` instead of regenerating with `npx cap add android`. The native manifest setup script is idempotent. Next acceptance: validate the scripts/workflow, dispatch the initializer on this feature branch when ready, review generated native files, and keep APK building paused. This improves Android upgrade stability and lays the groundwork for adding an iOS native project later. Production and Supabase remain untouched.
+
 ## Active engineering checkpoint — 19 November 2026
 
 ### Payment and variant checkout (EV-03)
