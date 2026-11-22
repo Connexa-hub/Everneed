@@ -18,7 +18,12 @@ declare
   currency text;
   exponent smallint;
   total_minor bigint;
+  gross_minor bigint;
+  net_minor bigint;
+  discount_minor bigint;
+  seller_discount bigint;
   delivery_minor bigint;
+  payload_hash text;
   platform_discount bigint;
   seller_payable bigint;
   commission bigint;
@@ -49,23 +54,28 @@ begin
     raise exception 'Snapshot v2 amounts or store allocations are missing.';
   end if;
   currency:=upper(s.currency); exponent:=s.currency_exponent;
+  payload_hash:=encode(extensions.digest(convert_to(s.payload::text,'UTF8'),'sha256'),'hex');
   total_minor:=(amounts->>'total_minor')::bigint;
+  gross_minor:=(amounts->>'gross_merchandise_minor')::bigint;
+  net_minor:=(amounts->>'net_merchandise_minor')::bigint;
+  discount_minor:=(amounts->>'discount_minor')::bigint;
+  seller_discount:=(amounts->>'seller_funded_discount_minor')::bigint;
   delivery_minor:=(amounts->>'delivery_fee_minor')::bigint;
   platform_discount:=(amounts->>'platform_funded_discount_minor')::bigint;
   seller_payable:=(amounts->>'seller_payable_minor')::bigint;
   commission:=(amounts->>'commission_minor')::bigint;
-  if total_minor<>a.amount_minor or total_minor<>round(o.total*100)::bigint
+  if payload_hash<>s.payload_hash
+     or a.checkout_snapshot_hash<>o.checkout_snapshot_hash
+     or a.checkout_snapshot_version<>o.checkout_snapshot_version
+     or total_minor<>a.amount_minor or total_minor<>round(o.total*100)::bigint
      or delivery_minor<>round(coalesce(o.delivery_fee,0)*100)::bigint
+     or gross_minor<=0 or net_minor<0 or discount_minor<0 or seller_discount<0
      or total_minor<=0 or delivery_minor<0 or platform_discount<0
      or seller_payable<0 or commission<0
-     or (amounts->>'gross_merchandise_minor')::bigint
-       - (amounts->>'net_merchandise_minor')::bigint
-       <> (amounts->>'discount_minor')::bigint
-     or (amounts->>'seller_funded_discount_minor')::bigint
-       + platform_discount <> (amounts->>'discount_minor')::bigint
-     or (amounts->>'net_merchandise_minor')::bigint+delivery_minor<>total_minor
-     or seller_payable+commission
-       <> (amounts->>'net_merchandise_minor')::bigint+platform_discount
+     or gross_minor-net_minor<>discount_minor
+     or seller_discount+platform_discount<>discount_minor
+     or net_minor+delivery_minor<>total_minor
+     or seller_payable+commission<>net_minor+platform_discount
      or total_minor+platform_discount<>seller_payable+commission+delivery_minor then
     raise exception 'Snapshot v2 financial totals do not reconcile with the paid attempt.';
   end if;
