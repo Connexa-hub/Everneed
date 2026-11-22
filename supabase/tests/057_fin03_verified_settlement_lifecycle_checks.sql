@@ -7,7 +7,7 @@ declare
   v_uid uuid:=gen_random_uuid(); v_product text:=gen_random_uuid()::text; v_offer text:=gen_random_uuid()::text;
   v_order jsonb; v_order_id text; v_attempt jsonb; v_attempt_id uuid;
   v_ref text; v_amt bigint; v_result jsonb; v_txid text:=gen_random_uuid()::text;
-  v_journal uuid; v_debits numeric; v_credits numeric; v_order2 jsonb; v_attempt2 jsonb; v_result2 jsonb; v_fail_closed boolean:=false;
+  v_journal uuid; v_debits numeric; v_credits numeric; v_order2 jsonb; v_attempt2 jsonb; v_result2 jsonb; v_fail_closed boolean:=false; v_platform_discount bigint; v_seller_payable bigint; v_commission bigint; v_delivery bigint;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
   values(v_uid,'authenticated','authenticated','fin03-settlement-'||v_uid::text||'@example.test','', '{}'::jsonb,'{}'::jsonb,now(),now());
@@ -50,15 +50,24 @@ begin
   if not exists(select 1 from private.payment_attempts where id=v_attempt_id and status='succeeded' and provider_transaction_id=v_txid) then raise exception 'Attempt was not marked succeeded'; end if;
   select id into v_journal from private.finance_journals where source_type='payment_settlement' and source_id=v_order_id and idempotency_key=v_ref;
   if v_journal is null then raise exception 'Verified settlement did not create finance journal'; end if;
+  select
+    (payload->'amounts'->>'platform_funded_discount_minor')::bigint,
+    (payload->'amounts'->>'seller_payable_minor')::bigint,
+    (payload->'amounts'->>'commission_minor')::bigint,
+    (payload->'amounts'->>'delivery_fee_minor')::bigint
+    into v_platform_discount,v_seller_payable,v_commission,v_delivery
+    from private.order_financial_snapshots_v2 where order_id=v_order_id;
   select coalesce(sum(case when direction='debit' then amount_minor else 0 end),0),
          coalesce(sum(case when direction='credit' then amount_minor else 0 end),0)
     into v_debits,v_credits from private.finance_journal_lines where journal_id=v_journal;
-  if v_debits<>10500 or v_credits<>10500 then raise exception 'Journal not balanced or amounts wrong: debit %, credit %',v_debits,v_credits; end if;
-  if not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='asset.paystack_clearing' and l.direction='debit' and l.amount_minor=8500)
-     or not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='expense.platform_promotions' and l.direction='debit' and l.amount_minor=2000)
-     or not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='liability.seller_payable' and l.direction='credit' and l.store_id='everneed-official' and l.amount_minor=9000)
-     or not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='revenue.platform_commission' and l.direction='credit' and l.amount_minor=1000)
-     or not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='liability.delivery_fee_held' and l.direction='credit' and l.amount_minor=500) then
+  if v_debits<>v_amt+v_platform_discount or v_credits<>v_seller_payable+v_commission+v_delivery then
+    raise exception 'Journal not balanced or amounts wrong: debit %, credit %, expected debit %, credit %',v_debits,v_credits,v_amt+v_platform_discount,v_seller_payable+v_commission+v_delivery;
+  end if;
+  if not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='asset.paystack_clearing' and l.direction='debit' and l.amount_minor=v_amt)
+     or (v_platform_discount>0 and not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='expense.platform_promotions' and l.direction='debit' and l.amount_minor=v_platform_discount))
+     or not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='liability.seller_payable' and l.direction='credit' and l.store_id='everneed-official' and l.amount_minor=v_seller_payable)
+     or (v_commission>0 and not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='revenue.platform_commission' and l.direction='credit' and l.amount_minor=v_commission))
+     or (v_delivery>0 and not exists(select 1 from private.finance_journal_lines l join private.finance_accounts a on a.id=l.account_id where l.journal_id=v_journal and a.account_code='liability.delivery_fee_held' and l.direction='credit' and l.amount_minor=v_delivery)) then
     raise exception 'Journal lines do not match immutable v2 allocation mapping.';
   end if;
   v_result:=public.settle_verified_payment_attempt(v_ref,v_txid,v_amt,'NGN');
