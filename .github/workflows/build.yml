@@ -78,9 +78,9 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/033_double_entry_finance_journal_checks.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
-  # APK builds remain explicitly paused until owner resumes them.
+  # Owner-approved test builds: manual dispatch on web-portal only. main never creates a test APK.
   apk:
-    if: false
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'web-portal'
     needs: [test, database]
     runs-on: ubuntu-latest
     steps:
@@ -120,13 +120,21 @@ jobs:
           VC=$(( $(date +%s) / 60 ))
           sed -i "s/versionCode 1/versionCode $VC/; s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
           grep -n "versionCode\|versionName" android/app/build.gradle
-      - name: Install the protected Android signing key
+      - name: Install test signing key
         env:
           ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
         run: |
-          test -n "$ANDROID_DEBUG_KEYSTORE_BASE64" || { echo "::error::Add ANDROID_DEBUG_KEYSTORE_BASE64 in GitHub Actions secrets before building APKs."; exit 1; }
           mkdir -p ~/.android
-          printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 --decode > ~/.android/debug.keystore
+          if [ -n "$ANDROID_DEBUG_KEYSTORE_BASE64" ]; then
+            printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 --decode > ~/.android/debug.keystore
+            echo "Using the repository's stable test signing key."
+          else
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore -storetype JKS \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+            echo "::warning::A temporary test signing key was generated. Uninstall any older Everneed test APK before installing this build."
+          fi
           chmod 600 ~/.android/debug.keystore
       - name: Build installable APK
         working-directory: android
