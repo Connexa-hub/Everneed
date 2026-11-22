@@ -91,3 +91,6 @@ The website/public portal in `web/` is a separate surface. The customer shopping
 - No production deployment, live payment, live migration or use of real customer data.
 - No framework/native rewrite without owner approval.
 - This document is an initial source-based inventory, not a full interactive app audit; files have not been executed on-device in this pass.
+
+
+**Tracking issue:** [#34 — APP-08 staging isolation](https://github.com/Connexa-hub/Everneed/issues/34) tracks the P0 environment separation implementation and tests.
