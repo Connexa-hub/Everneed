@@ -166,8 +166,7 @@ jobs:
           mkdir www
           cp -r index.html favicon.svg favicon.png css js data fonts www/
           # Stamp the real build into the app so Settings and Appearance show which build is installed.
-          echo "window.BUILD={n:${{ github.run_number }},sha:\\" ${GITHUB_SHA::7}\\",branch:\\"${{ github.ref_name }}\\"};" > www/js/build.js
-          echo "window.buildLabel=function(){var b=window.BUILD||{};return\\"Build \\"+b.n+\\" \\u00B7 \\"+b.sha+\\" \\u00B7 \\"+b.branch};" >> www/js/build.js
+          BUILD_NUMBER="$GITHUB_RUN_NUMBER" BUILD_SHA="${GITHUB_SHA::7}" BUILD_BRANCH="$GITHUB_REF_NAME" node -e 'const fs=require("fs");const b={n:Number(process.env.BUILD_NUMBER),sha:process.env.BUILD_SHA,branch:process.env.BUILD_BRANCH};fs.writeFileSync("www/js/build.js","window.BUILD="+JSON.stringify(b)+";window.buildLabel=function(){var b=window.BUILD||{};return \\"Build \\"+b.n+\\" · \\"+b.sha+\\" · \\"+b.branch};\\n")'
       - name: Require committed native Android project
         run: |
           test -f android/gradlew
@@ -193,7 +192,6 @@ jobs:
           mkdir -p ~/.android
           printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 --decode > ~/.android/debug.keystore
           chmod 600 ~/.android/debug.keystore
-      - run: npx cap sync android
       - name: Build installable APK
         working-directory: android
         run: |
