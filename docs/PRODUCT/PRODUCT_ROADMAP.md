@@ -389,3 +389,6 @@ The customer app's frontend design and implementation are back in the active roa
 
 ## Buyer app inventory and next gates — 22 Nov 2026
 Source inventory: `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. Existing root SPA and Capacitor wrapper should be extended, not replaced. Prioritize APP-08 staging configuration proof, screen inventory, discovery/store/product detail, then cart/delivery/authoritative quote/payment. Existing legacy payment choices need policy/backend validation. APK generation remains paused.
+
+
+**Critical blocker confirmed:** buyer app root `js/config.js` points to production Supabase. Do not test shopping checkout or payment with the current app build. First implement and verify staging-safe environment selection (APP-08). Details and proposed acceptance checks are in `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`.
