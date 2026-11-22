@@ -693,3 +693,8 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Audited webhook/manual verification against recovery-worker checks. Direct settlement path previously checked user/order and settlement RPC amount/currency but lacked explicit metadata attempt-ID binding.
 - Updated Paystack Edge Function to match persisted recovery context: order, user, payment-attempt ID, amount and currency. This is source-only; not deployed.
 - Await CI/Deno type-check. Sandbox webhook replay, mismatched metadata and duplicate-event E2E remain acceptance tests. No live charges or production changes.
+
+## FIN-03 verified settlement journal — 22 Nov 2026
+- Migration 057 source adds atomic verified-payment journal posting using immutable financial snapshot v2. Mapping separates clearing, platform-funded promo expense, store payable, commission and delivery-fee-held liability. Failures roll back settlement; duplicate settlement is idempotent.
+- Full database CI and migration validation passed at head `a7b0d3f576df03f78010b79926c003531beed2db`; staging migration `20261122140408` applied and test 057 passed with rollback-only fixtures. Read-only checks confirm six currency account seeds and no test rows/journal persisted. Helper EXECUTE denied to client/service roles.
+- Production untouched; no Edge Function deployment/live payment/provider settlement/refund/payout. FIN-03 sandbox acceptance and accounting recognition policy remain open; next FIN-04 refund provider lifecycle. PR draft; APK remains paused.
