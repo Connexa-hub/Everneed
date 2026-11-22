@@ -45,7 +45,7 @@ begin
   -- Construct a v1 checkout quote and v2 allocation fixture directly. This avoids
   -- cart availability checks while exercising the exact immutable settlement contract.
   v_v1:=jsonb_build_object(
-    'schema_version',1,'order_id',v_order_id,'currency','NGN','currency_exponent',2,
+    'schema_version',1,'order_id',v_order_id,'user_id',v_uid,'currency','NGN','currency_exponent',2,
     'pricing',jsonb_build_object('fx_rate',1,'fx_source','fixture','fx_fetched_at',now(),
       'markup_percent',0,'effective_rate',1,'pricing_policy_version','fixture-v1'),
     'amounts',jsonb_build_object('gross_merchandise_minor',10000,'net_merchandise_minor',8000,
@@ -132,7 +132,7 @@ begin
 
   -- A distinct order and attempt deliberately mismatch provider amount.
   v_v1_2:=jsonb_build_object(
-    'schema_version',1,'order_id',v_order2,'currency','NGN','currency_exponent',2,
+    'schema_version',1,'order_id',v_order2,'user_id',v_uid,'currency','NGN','currency_exponent',2,
     'pricing',jsonb_build_object('fx_rate',1,'fx_source','fixture','fx_fetched_at',now(),
       'markup_percent',0,'effective_rate',1,'pricing_policy_version','fixture-v1'),
     'amounts',jsonb_build_object('gross_merchandise_minor',10000,'net_merchandise_minor',10000,
