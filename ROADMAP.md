@@ -116,6 +116,7 @@ This section is deliberately explicit so other AI systems can safely continue th
 - [Project tracker and current engineering status](docs/WORKFLOW/WEBSITE_TRACKER.md)
 - [AI collaboration and repository protocol](docs/WORKFLOW/AI_PROTOCOL.md)
 - [Environment separation and release controls](docs/WORKFLOW/ENVIRONMENTS.md)
+- [Branch purposes and development workflow](docs/WORKFLOW/BRANCH_GUIDE.md)
 - [Database schema/security contract](docs/WORKFLOW/DB_CONTRACT.md)
 - [Variant checkout backend contract](docs/WORKFLOW/VARIANT_CHECKOUT_BACKEND_PHASE.md)
 - [Seller product catalogue backend handoff](docs/WORKFLOW/SELLER_PRODUCT_CATALOG_BACKEND_HANDOFF.md)
