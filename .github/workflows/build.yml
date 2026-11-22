@@ -78,10 +78,21 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/033_double_entry_finance_journal_checks.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
-  # Owner-approved test builds: manual dispatch on web-portal only. main never creates a test APK.
+
+      - name: Seller onboarding, plan entitlement and quota tests (034)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
+
+      - name: Seller message notification contract tests (036)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/036_seller_message_notification_contract_checks.sql
+      - name: Seller notification trigger ACL tests (037)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/037_chat_notification_trigger_acl_checks.sql
+
+      - name: Product catalogue foundation regression tests (038)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
+  # Staging test APK builds: web-portal pushes or manual dispatch only. main never creates a test APK.
   apk:
     if: github.ref_name == 'web-portal' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    # This is a manual staging-only packaging artifact. Database tests remain independent and visible; APK success is not backend-readiness approval.
+    # This staging-only packaging artifact depends on web checks, not database tests; APK success is not backend-readiness approval.
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -152,14 +163,3 @@ jobs:
           echo "### APK ready" >> "$GITHUB_STEP_SUMMARY"
           echo "Branch: \`${{ github.ref_name }}\`, build ${{ github.run_number }}." >> "$GITHUB_STEP_SUMMARY"
           echo "- Or this run's Artifacts section: **everneed-apk**." >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Seller onboarding, plan entitlement and quota tests (034)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
-
-      - name: Seller message notification contract tests (036)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/036_seller_message_notification_contract_checks.sql
-      - name: Seller notification trigger ACL tests (037)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/037_chat_notification_trigger_acl_checks.sql
-
-      - name: Product catalogue foundation regression tests (038)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
