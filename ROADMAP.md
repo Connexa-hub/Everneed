@@ -292,3 +292,9 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 ### FIN-02A unpaid-order expiry — design gate (21 Nov 2026)
 - Existing trigger 043 releases active campaign reservations on unpaid order cancellation; test 047 covers paid consumption and cancellation release.
 - Expiry worker is not implemented. Require configurable approved checkout timeout, payment-attempt-aware eligibility (active/succeeded/reconciliation attempts block), safe row locks/bounded batches, idempotency, atomic cancellation+reservation release and concurrency tests before activation.
+
+
+## FIN-02A unpaid checkout expiry worker — 22 Nov 2026
+- Source-only migration 056 adds a service-role-only bounded expiry RPC using an explicit cutoff and batch size. It locks eligible orders with `SKIP LOCKED`, calls the existing cancellation core, and therefore keeps inventory restoration/campaign reservation release in the existing transaction.
+- Orders are limited to pending/awaiting-payment and awaiting-payment/awaiting-transfer states. Payment attempts in initializing, pending, processing, succeeded or reconciliation-required state block expiry; failed/cancelled attempts do not.
+- Test 056 is wired into database CI. Migration replay order was updated. CI must pass before staging apply; no scheduler or expiry timeout has been approved/enabled.
