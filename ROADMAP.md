@@ -333,3 +333,10 @@ Migration 056 is applied to staging and test 056 passed with rollback-only fixtu
 
 ## FIN-03 staging Edge Function gap — 22 Nov 2026
 Read-only inventory: staging Paystack Edge Function is ACTIVE v13 (`verify_jwt=false` for webhook entry; user-token actions authenticate inside handler). Deployed direct settle handler checks verified transaction/order/user and invokes settlement RPC with reference, transaction ID, amount and currency, but does not explicitly bind metadata `payment_attempt_id` using the branch helper. Branch source now enforces that binding and has CI tests; not deployed. Migration 057's journal posting is active in staging RPC. No function deployment or charge; sandbox end-to-end acceptance remains blocked on explicit staging deployment and webhook/verify/replay tests.
+
+
+## FIN-03 staging deployment and retest — 22 Nov 2026
+- Owner-approved staging-only Paystack Edge Function deploy: v14 ACTIVE, with persisted payment-attempt metadata/amount/currency binding before settlement. Production untouched.
+- Re-ran staging rollback SQL tests 055/056/057: passed. No fixture rows remained; account catalog and private helper ACL checks passed.
+- Connector lacks Edge Function invoke/HTTP POST and Deno test execution, so actual webhook/verify HTTP behavior and `payment-context.test.ts` remain unrun. No sandbox transaction was initiated.
+- Next: execute the signed webhook + browser verify + duplicate/replay + mismatch + failed-payment + reconciliation matrix using a Paystack sandbox transaction. FIN-03 is not launch accepted.
