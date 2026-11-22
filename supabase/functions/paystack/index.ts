@@ -1,3 +1,4 @@
+import { paymentContextMatches } from "./payment-context.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
@@ -158,16 +159,7 @@ async function settle(tx: any) {
     p_provider_reference: String(v.reference),
   });
   if (contextError) throw new Error(contextError.message);
-  if (!context ||
-      !Number.isSafeInteger(Number(v.amount)) ||
-      !Number.isSafeInteger(Number(context.amount_minor)) ||
-      String(v.metadata?.order_id || "") !== String(context.order_id || "") ||
-      String(v.metadata?.user_id || "") !== String(context.user_id || "") ||
-      String(v.metadata?.payment_attempt_id || "") !== String(context.attempt_id || "") ||
-      Number(v.amount) !== Number(context.amount_minor) ||
-      String(v.currency || "").toUpperCase() !== String(context.currency || "").toUpperCase()) {
-    return false;
-  }
+  if (!paymentContextMatches(v.metadata, v.amount, v.currency, context)) return false;
 
   const { data: result, error } = await db.rpc("settle_verified_payment_attempt", {
     p_provider_reference: v.reference,
