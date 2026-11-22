@@ -311,3 +311,6 @@ Migration `034_finance_journal_input_hardening.sql` now bounds journal source id
 - Audit found the direct Paystack webhook/manual verify settlement path was not checking the provider transaction metadata `payment_attempt_id` against the persisted attempt context, although the recovery worker already did.
 - Updated `supabase/functions/paystack/index.ts` to require metadata order/user/attempt ID and exact amount/currency match with the persisted payment attempt before settlement.
 - This is source-only and not deployed. Deno type-check and full CI are pending. Legacy pay-on-delivery settlement remains separate.
+
+## Current checkpoint — 22 Nov 2026
+Migration 056 is applied to staging and test 056 passed with rollback-only fixtures. ACL is service-role-only. No expiry scheduling/policy approved. Direct Paystack metadata binding hardening has CI passed on commit 4764103; not deployed. Finance audit found double-entry posting is not wired into verified settlement. The next implementation phase is FIN-03 payment-to-journal atomic integration; accounting mapping and acceptance gates are documented in `docs/WORKFLOW/FINANCE_LEDGER_PHASE_3_AUDIT.md`. Production untouched; APK CI remains paused.
