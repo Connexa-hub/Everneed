@@ -98,3 +98,6 @@ The practical sequence is now:
 **Web portal foundations + finance staging hardening (ongoing) → buyer app frontend design/incremental implementation → staging app shopping/checkout integration → sandbox payment and finance E2E acceptance → refunds, reconciliation and seller payout gates → pilot readiness review.**
 
 This is a resumption of app frontend work, not a declaration that the app or checkout is finished.
+
+
+**Tracking issue:** [#34 — APP-08 staging isolation](https://github.com/Connexa-hub/Everneed/issues/34) is open. This is the first P0 app task and must be completed before checkout/payment testing.
