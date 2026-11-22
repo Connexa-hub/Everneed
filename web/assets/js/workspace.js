@@ -426,7 +426,19 @@
       stock=all?total:null;sizes=labs;axes=mode==="two"?[n1,n2]:[n1];
     }
     if(action==="review"&&need([[E.items.length>0,"Add at least one photo before sending this product for review."]]))return null;
-    return{name:name,col:d.col,price:price,old:old||0,stock:stock,descr:area(d.descr,3000)||null,
+    /* Category specifications (drawn by ds-seller.js as attr_<key> fields with attrt_ type and attrr_ required markers). Only sent when the form has them. */
+    var at=null,badAt=false;
+    Object.keys(d).forEach(function(k){
+      if(k.indexOf("attrt_")!==0||badAt)return;
+      var key=k.slice(6),raw=String(d["attr_"+key]==null?"":d["attr_"+key]).trim(),ty=d[k],lab=d["attrr_"+key]||key;at=at||{};
+      if(raw===""){if(action==="review"&&d["attrr_"+key]&&need([[false,"Fill in "+lab+" before sending for review."]]))badAt=true;return}
+      if(ty==="number"){var nv=Number(raw);if(need([[isFinite(nv),"Enter a number for "+lab+"."]])){badAt=true;return}at[key]=nv}
+      else if(ty==="boolean")at[key]=raw==="true";
+      else if(ty==="multiselect")at[key]=raw.split("|").filter(Boolean);
+      else at[key]=raw.slice(0,300);
+    });
+    if(badAt)return null;
+    return{attributes:at||undefined,name:name,col:d.col,price:price,old:old||0,stock:stock,descr:area(d.descr,3000)||null,
       sku:clean(d.sku,60)||null,code:clean(d.code,40)||null,weight_g:weight,dims:clean(d.dims,60)||null,material:clean(d.material,80)||null,
       maker:clean(d.maker,80)||null,maker_addr:clean(d.maker_addr,200)||null,origin:d.origin||null,ships_from:d.ships_from||null,chart:d.chart||null,
       sizes:sizes,stocks:stocks,axes:axes};

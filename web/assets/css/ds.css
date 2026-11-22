@@ -292,3 +292,6 @@ html.ds-navbusy body::before{content:"";position:fixed;top:0;left:0;right:0;heig
 html.ds-navbusy #main{opacity:.72;transition:opacity var(--ds-d2)}
 @keyframes dsnav{from{transform:scaleX(.05)}to{transform:scaleX(.9)}}
 @media(prefers-reduced-motion:reduce){html.ds-navbusy body::before{animation:none;transform:scaleX(.6)}}
+.actbar{flex-wrap:nowrap}.actbar .btn{white-space:nowrap;border-radius:var(--ds-r3);min-height:var(--ds-hit);padding-inline:var(--ds-s3)}
+@media(max-width:560px){.actbar .btn{flex:1 1 auto}.actbar a.btn.o{flex:0 0 auto}}
+@media(max-width:560px){.actbar{gap:var(--ds-s2)}.actbar .btn{padding-inline:var(--ds-s2);font-size:var(--ds-t-s);min-width:0}}

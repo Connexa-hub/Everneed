@@ -11,6 +11,12 @@ const PRODS=[
  {id:'p3',name:'Bad <img src=x onerror=alert(1)>',col:'Skincare',price:500,stock:1,status:'rejected'},
  {id:'p4',name:'Old hat',col:'Accessories',price:100,stock:5,status:'archived'}];
 const ENT={configured:true,plan_id:'growth',plan_name:'Growth',active_products:3,active_product_limit:10,active_products_unlimited:false,daily_new_products_used:1,daily_new_product_limit:5,daily_new_products_unlimited:false};
+const ATTRS=[{collection_id:'c-bags',attribute_key:'brand',label:'Brand',input_type:'text',required:false,options:[]},
+ {collection_id:'c-beauty',attribute_key:'skin_type',label:'Skin type',input_type:'multiselect',required:false,options:['Normal','Dry']},
+ {collection_id:'c-beauty',attribute_key:'volume',label:'Net content',input_type:'number',required:true,unit:'ml/g',options:[]},
+ {collection_id:'c-beauty',attribute_key:'expiry',label:'Expiry',input_type:'date',required:false,options:[]},
+ {collection_id:'c-beauty',attribute_key:'type',label:'Type',input_type:'select',required:false,options:['A','B']}];
+const EDITOR='<p class="sm">x</p><h1>Edit</h1><form data-form="wsprod" id="wsform"><div class="card"><h3>Product</h3></div><div class="card"><h3>Photos</h3></div><div class="card"><h3>Pricing</h3></div><div class="card"><h3>Inventory</h3></div><div class="card"><h3>Variants</h3></div><div class="card"><h3>Shipping and details</h3></div><div class="card"><h3>Status</h3><p>x</p></div></form>';
 function seller(o){
   o=o||{};
   const x=make({});
@@ -22,6 +28,9 @@ function seller(o){
   x.ctx.Supa.get=(p)=>{x.calls.push('GET '+p);
     if(o.fail&&o.fail(p))return Promise.reject(new Error('boom'));
     if(p.startsWith('stores?'))return Promise.resolve([o.store||STORE]);
+    if(p.startsWith('collections?'))return Promise.resolve([{id:'c-bags',name:'Bags',parent_id:null},{id:'c-beauty',name:'Beauty and Personal Care',parent_id:null}]);
+    if(p.startsWith('category_attributes?'))return o.noattr?Promise.reject(new Error('x')):Promise.resolve(ATTRS);
+    if(p.startsWith('products?select=col,attributes'))return Promise.resolve([{col:'Beauty and Personal Care',attributes:{skin_type:['Dry'],volume:50}}]);
     if(p.startsWith('products?'))return Promise.resolve(o.prods||PRODS);
     return Promise.resolve([])};
   x.ctx.Supa.rpc=(f)=>{x.calls.push('RPC '+f);
@@ -76,5 +85,21 @@ function seller(o){
    const r=await seller().V.portal(['products']);assert(r.html.includes('ds-gate')&&r.html.includes('See plans'));const b=await seller({cap:{bulk_tools_enabled:true}}).V.portal(['products']);assert(b.html.includes('Bulk actions are not available yet')&&!b.html.includes('See plans'))});
  await t('actions added are prefixed ds-',async()=>{
    const x=seller();const base=make({}).A;Object.keys(x.A).filter(k=>!(k in base)).forEach(k=>assert(k.startsWith('ds-'),k))});
+ await t('product editor: section nav, ids on every section, specs for the saved category with saved values, checklist',async()=>{
+   const r=await seller({orig:{layout:'portal',title:'Product',active:'portal/products',html:EDITOR.replace('</h1>','</h1>')}}).V.portal(['product','p1']);
+   ['basics','specs','photos','pricing','stock','variants','shipping','publish'].forEach(k=>{assert(r.html.includes('id="ds-sec-'+k+'"'),k);assert(r.html.includes('data-act="ds-jump" data-id="'+k+'"'),'nav '+k)});
+   assert(r.html.includes('name="attr_volume"')&&r.html.includes('value="50"')&&r.html.includes('Net content (ml/g) *')&&r.html.includes('name="attrr_volume" value="Net content"'));
+   assert(r.html.includes('name="attrt_skin_type" value="multiselect"')&&r.html.includes('name="attr_skin_type" value="Dry"')&&r.html.includes('aria-pressed="true">Dry'));
+   assert(!r.html.includes('name="attr_brand"'),'other categories specs do not leak in');
+   assert(r.html.includes('id="ds-check"')&&r.html.includes('Volume pricing')&&r.html.includes('not available yet'))});
+ await t('product editor: unsafe spec text is escaped; a failed spec load says so and the rest still works',async()=>{
+   const r=await seller({noattr:true,orig:{layout:'portal',title:'Product',active:'portal/products',html:EDITOR}}).V.portal(['product','new']);
+   assert(r.html.includes('Specifications could not load')&&r.html.includes('id="wsform"'))});
+ await t('product editor: plan without category specs gets an upgrade card instead of fields',async()=>{
+   const r=await seller({cap:{category_attributes_enabled:false},orig:{layout:'portal',title:'Product',active:'portal/products',html:EDITOR}}).V.portal(['product','p1']);
+   assert(r.html.includes('See plans')&&!r.html.includes('name="attrt_'))});
+ await t('product editor: other pages and non-editor html fall through untouched',async()=>{
+   assert.equal((await seller({orig:{layout:'portal',title:'Product',html:'Not found'}}).V.portal(['product','zz'])).html,'Not found')});
+
  console.log(`${pass} passed, ${fail} failed`);
 })();

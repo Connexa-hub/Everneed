@@ -36,6 +36,7 @@
       if(!res||res.layout!=="portal"||!Supa.uid())return res;
       if(sub===""&&res.title==="Dashboard")return home(res);
       if(sub==="products"&&res.title==="Products")return products(res);
+      if(sub==="product"&&res.html&&res.html.indexOf('id="wsform"')>-1)return product(res,p[1]);
       return res;
     });
   };
@@ -144,4 +145,87 @@
     D.confirm({title:"Archive this product?",text:"It leaves your store. You can restore it later from Archived.",ok:"Archive",danger:true}).then(function(y){if(y&&A.warch)A.warch(b)});
   };
   document.addEventListener("input",function(e){if(e.target&&e.target.hasAttribute&&e.target.hasAttribute("data-dsp"))apply()});
+  /* ---------- product workspace: section nav, specifications, publish checklist ---------- */
+  var SEC=[["basics","Basics"],["specs","Specs"],["photos","Photos"],["pricing","Pricing"],["stock","Stock"],["variants","Variants"],["shipping","Shipping"],["publish","Publish"]];
+  var CARD={"Product":"basics","Photos":"photos","Pricing":"pricing","Inventory":"stock","Variants":"variants","Shipping and details":"shipping","Status":"publish"};
+  var SP={defs:[],cols:[],vals:{},ok:false,on:false};
+  function defsFor(name){
+    var by={},c=SP.cols.filter(function(x){return x.name===name})[0],ids=[],g=0;
+    while(c&&g++<6){ids.push(c.id);c=SP.cols.filter(function(x){return x.id===c.parent_id})[0]}
+    return SP.defs.filter(function(d){return ids.indexOf(d.collection_id)>-1&&!by[d.attribute_key]&&(by[d.attribute_key]=1)});
+  }
+  function field(d,v){
+    var k=esc(d.attribute_key),lab=esc(d.label)+(d.unit?" ("+esc(d.unit)+")":"")+(d.required?" *":""),n='name="attr_'+k+'"',t=d.input_type,h="";
+    if(t==="select"||t==="boolean"){
+      var opts=t==="boolean"?[["true","Yes"],["false","No"]]:(d.options||[]).map(function(o){return[o,o]});
+      h='<label class="lb">'+lab+"<select "+n+'><option value="">Not stated</option>'+opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(String(v)===String(o[0])?" selected":"")+">"+esc(o[1])+"</option>"}).join("")+"</select></label>";
+    }else if(t==="multiselect"){
+      var cur=Array.isArray(v)?v:[];
+      h='<div class="lb"><span>'+lab+'</span><input type="hidden" '+n+' value="'+esc(cur.join("|"))+'"><div class="ds-chips" role="group" aria-label="'+esc(d.label)+'">'
+        +(d.options||[]).map(function(o){var on=cur.indexOf(o)>-1;return'<button type="button" class="ds-chip'+(on?" on":"")+'" data-act="ds-ms" data-v="'+esc(o)+'" aria-pressed="'+on+'">'+esc(o)+"</button>"}).join("")+"</div></div>";
+    }else{
+      h='<label class="lb">'+lab+"<input "+n+' type="'+(t==="date"?"date":t==="url"?"url":"text")+'"'+(t==="number"||t==="measurement"?' inputmode="decimal"':"")+' maxlength="300" value="'+esc(v==null?"":v)+'"></label>';
+    }
+    return h+'<input type="hidden" name="attrt_'+k+'" value="'+esc(t==="measurement"?"number":t)+'">'+(d.required?'<input type="hidden" name="attrr_'+k+'" value="'+esc(d.label)+'">':"");
+  }
+  function specsBody(col){
+    if(!SP.ok)return D.banner("warning","Specifications could not load","Product details above still save. Try again in a moment.",{label:"Try again",act:"ds-reload"});
+    if(!col)return'<p class="sm">Choose a category and its specifications appear here.</p>';
+    var l=defsFor(col);
+    if(!l.length)return'<p class="sm">This category has no extra specifications.</p>';
+    return'<div class="fgrid">'+l.map(function(d){return field(d,SP.vals[d.attribute_key])}).join("")+"</div>";
+  }
+  function keep(){
+    var f=document.getElementById("wsform");if(!f)return;
+    Array.prototype.forEach.call(f.querySelectorAll('[name^="attr_"]'),function(el){var k=el.name.slice(5),t=(f.querySelector('[name="attrt_'+k+'"]')||{}).value;SP.vals[k]=t==="multiselect"?(el.value?el.value.split("|"):[]):(t==="number"?(el.value===""?"":Number(el.value)):el.value)});
+  }
+  function drawSpecs(){
+    var b=document.getElementById("ds-specs-body"),f=document.getElementById("wsform");if(!b||!f)return;
+    keep();b.innerHTML=specsBody((f.querySelector('[name="col"]')||{}).value);checklist();
+  }
+  function checklist(){
+    var el=document.getElementById("ds-check"),f=document.getElementById("wsform");if(!el||!f)return;
+    var g=function(n){var e=f.querySelector('[name="'+n+'"]');return e?String(e.value||"").trim():""},col=g("col"),req=SP.ok&&col?defsFor(col).filter(function(d){return d.required}):[],
+      miss=req.filter(function(d){var e=f.querySelector('[name="attr_'+d.attribute_key+'"]');return!e||!String(e.value||"").trim()}).length,
+      items=[["Title",g("name").length>=2],["Category",!!col],["Price above zero",Number(g("price").replace(/,/g,""))>0],["At least one photo",!!document.querySelector("#wsmedia .it:not(.add) img")]];
+    if(req.length)items.push(["Required specifications"+(miss?" ("+miss+" missing)":""),miss===0]);
+    el.innerHTML=items.map(function(i){return'<li class="'+(i[1]?"ok":"")+'">'+D.icon(i[1]?"okc":"dot",16)+"<span>"+esc(i[0])+"</span></li>"}).join("");
+  }
+  function product(orig,id){
+    var isNew=!id||id==="new";
+    return Promise.all([
+      Supa.get("collections?select=id,name,parent_id").then(function(r){SP.cols=r||[];return Supa.get("category_attributes?select=*&active=eq.true&order=sort_order.asc")}).then(function(r){SP.defs=r||[];SP.ok=true},function(){SP.ok=false}),
+      isNew?Promise.resolve([]):Supa.get("products?select=col,attributes&id=eq."+enc(id)).catch(soft),
+      Supa.rpc("seller_product_capabilities",{}).then(unwrap).catch(function(){return null})
+    ]).then(function(a){
+      var x=a[1][0]||{},cap=a[2];SP.vals=x.attributes||{};
+      var html=orig.html;
+      Object.keys(CARD).forEach(function(t){html=html.replace('<div class="card"><h3>'+t+"</h3>",'<div class="card" id="ds-sec-'+CARD[t]+'"><h3>'+t+"</h3>")});
+      var nav=D.seg(SEC.map(function(t){return{act:"ds-jump",id:t[0],label:t[1]}}),"Product sections");
+      html=html.replace("</h1><form","</h1>"+nav+"<form");
+      var specs=cap&&cap.category_attributes_enabled===false
+        ?'<div id="ds-sec-specs">'+D.gate({icon:"lock",title:"Category specifications",text:"Add details like size, material or ingredients with a higher plan.",action:UP})+"</div>"
+        :'<div class="card" id="ds-sec-specs"><h3>Specifications</h3><div id="ds-specs-body">'+specsBody(x.col||"")+"</div></div>";
+      html=html.replace('<div class="card" id="ds-sec-photos">',specs+'<div class="card" id="ds-sec-photos">');
+      html=html.replace('<div class="card" id="ds-sec-stock">',D.gate({icon:"layers",title:"Volume pricing",text:"Price tiers by quantity are not available yet."})+'<div class="card" id="ds-sec-stock">');
+      html=html.replace('<h3>Status</h3>','<h3>Status</h3>').replace(/(<div class="card" id="ds-sec-publish">[\s\S]*?)<\/div>/,function(m,a){return a+'<h4 class="ds-h4">Ready to send for review?</h4><ul class="ds-check" id="ds-check" aria-live="polite"></ul></div>'});
+      orig.html=html;
+      var after=orig.after;
+      orig.after=function(){if(after)after();SP.on=true;checklist()};
+      return orig;
+    }).catch(function(){return orig});
+  }
+  A["ds-jump"]=function(b){
+    var el=document.getElementById("ds-sec-"+b.getAttribute("data-id"));if(!el)return;
+    var rm=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({behavior:rm?"auto":"smooth",block:"start"});
+  };
+  A["ds-ms"]=function(b){
+    var box=b.parentNode,inp=box.parentNode.querySelector('input[type="hidden"]'),v=b.getAttribute("data-v"),cur=inp.value?inp.value.split("|"):[],i=cur.indexOf(v);
+    if(i>-1)cur.splice(i,1);else cur.push(v);
+    inp.value=cur.join("|");b.classList.toggle("on",i<0);b.setAttribute("aria-pressed",i<0?"true":"false");checklist();
+  };
+  document.addEventListener("change",function(e){var t=e.target;if(!SP.on||!t||!t.name)return;if(t.name==="col")drawSpecs();else checklist()});
+  document.addEventListener("input",function(e){if(SP.on&&e.target&&e.target.closest&&e.target.closest("#wsform"))checklist()});
+  document.addEventListener("click",function(e){if(SP.on&&e.target.closest&&e.target.closest("#wsmedia"))setTimeout(checklist,300)});
 })();
