@@ -340,3 +340,10 @@ Read-only inventory: staging Paystack Edge Function is ACTIVE v13 (`verify_jwt=f
 - Re-ran staging rollback SQL tests 055/056/057: passed. No fixture rows remained; account catalog and private helper ACL checks passed.
 - Connector lacks Edge Function invoke/HTTP POST and Deno test execution, so actual webhook/verify HTTP behavior and `payment-context.test.ts` remain unrun. No sandbox transaction was initiated.
 - Next: execute the signed webhook + browser verify + duplicate/replay + mismatch + failed-payment + reconciliation matrix using a Paystack sandbox transaction. FIN-03 is not launch accepted.
+
+## Mobile buyer app frontend resumed — 22 Nov 2026
+- Founder decision: resume customer-app frontend design and implementation; web portal remains in parallel but cannot substitute for mobile buyer shopping/payment E2E.
+- Claude handoff and screen-by-screen sequence: `docs/WORKFLOW/MOBILE_BUYER_APP_RESUMPTION_HANDOFF.md`.
+- Priority sequence: app inventory/design reconciliation → browse/search/store/product detail → multi-seller cart → delivery/address → server-backed quote → staging payment → confirmation/order tracking/account/support.
+- Finance/payment E2E acceptance depends on the mobile app checkout. Backend financial snapshots and payment settlement remain authoritative; no frontend parallel accounting/payment system.
+- App frontend development is resumed; APK build automation/testing remains paused until owner approval. Production untouched.
