@@ -84,6 +84,15 @@ First perform a code/design inventory:
 - [ ] Order history/detail/tracking display accurate server state.
 - [ ] Regression tests, accessibility/performance review and staging end-to-end evidence documented.
 
+## Native Android project persistence decision (22 Nov 2026)
+
+- Commit the Capacitor native Android project under `android/`; do not ignore it in Git.
+- The one-time initializer is `.github/workflows/initialize-android.yml`, manual-only, typed-confirmation gated, and refuses the `main` branch. It generates and commits the native project on the selected feature branch; review the resulting PR before merge.
+- Normal build workflow must use the committed project and run `npx cap sync android`; do not run `npx cap add android` on each build.
+- `tools/prepare-android.mjs` maintains required manifest permissions and AdMob metadata idempotently.
+- iOS can later be added as a separately committed native project (`ios/`) using the same shared web frontend and Capacitor workflow.
+- APK generation remains paused. Do not dispatch the initializer yet unless native project bootstrap is the current agreed task; this change only installs the workflow and build configuration.
+
 ## Branch and release discipline
 
 - Continue the active PR #32 branch and review its scope before deciding whether buyer-app work belongs in that PR or a separate focused branch. Avoid mixing unrelated app redesign with risky finance migration changes without clear separation.
