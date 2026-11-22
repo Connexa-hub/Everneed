@@ -13,7 +13,7 @@ begin
  insert into public.orders(id,user_id,items,total,country,pm,cust,status,payment_status,at,currency,delivery_fee) values
  (oldid,u,'[]',1,'NG','card','{}','awaiting_payment','awaiting_payment',(extract(epoch from cut-interval '5 minutes')*1000)::bigint,'NGN',0),
  (recentid,u,'[]',1,'NG','card','{}','awaiting_payment','awaiting_payment',(extract(epoch from now())*1000)::bigint,'NGN',0),
- (paidid,u,'[]',1,'NG','card','{}','pending','paid',(extract(epoch from cut-interval '5 minutes')*1000)::bigint,'NGN',0),
+ (paidid,u,'[]',1,'NG','card','{}','awaiting_payment','paid',(extract(epoch from cut-interval '5 minutes')*1000)::bigint,'NGN',0),
  (initid,u,'[]',1,'NG','card','{}','awaiting_payment','awaiting_payment',(extract(epoch from cut-interval '5 minutes')*1000)::bigint,'NGN',0),
  (pendingid,u,'[]',1,'NG','card','{}','awaiting_payment','awaiting_payment',(extract(epoch from cut-interval '5 minutes')*1000)::bigint,'NGN',0),
  (processingid,u,'[]',1,'NG','card','{}','awaiting_payment','awaiting_payment',(extract(epoch from cut-interval '5 minutes')*1000)::bigint,'NGN',0),
