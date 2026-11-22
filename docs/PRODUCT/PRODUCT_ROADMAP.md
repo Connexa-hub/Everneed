@@ -385,3 +385,7 @@ These are priorities for investigation and delivery, not claims that the work is
 
 ## Mobile buyer app — frontend work resumed (22 Nov 2026)
 The customer app's frontend design and implementation are back in the active roadmap, in parallel with web portal work. Begin with a current code/design inventory and incremental screen plan; then deliver discovery, search, storefront, product details, cart, delivery, server-quoted checkout, staging payment, order confirmation/tracking and account/support. Keep design lightweight and mobile-first for lower-end Android devices and Nigeria-first network conditions. The detailed Claude handoff, dependencies and acceptance criteria are in `docs/WORKFLOW/MOBILE_BUYER_APP_RESUMPTION_HANDOFF.md`. APK generation remains paused.
+
+
+## Buyer app inventory and next gates — 22 Nov 2026
+Source inventory: `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. Existing root SPA and Capacitor wrapper should be extended, not replaced. Prioritize APP-08 staging configuration proof, screen inventory, discovery/store/product detail, then cart/delivery/authoritative quote/payment. Existing legacy payment choices need policy/backend validation. APK generation remains paused.
