@@ -1175,3 +1175,24 @@ Read the Paystack Edge Function and migrations 026–031. Existing design includ
 
 ## Current finance integration status — 22 Nov 2026
 Migration 056 and its rollback-only SQL test are applied/executed successfully on staging; the service-role-only ACL was verified. Scheduling is disabled pending approved expiry policy. Paystack direct settlement metadata-binding source hardening is committed and CI passed on commit `47641035022231d2027a22e00d5c8a96369fe59`; it is not deployed. Audit identified the next FIN-03 gap: successful verified payments are not yet posted to the double-entry journal. See `docs/WORKFLOW/FINANCE_LEDGER_PHASE_3_AUDIT.md` section 9 for proposed balanced v2-snapshot mapping and gates. No production or payout activity.
+
+
+## 47. FIN-03 verified settlement journal integration — 22 Nov 2026
+
+Migration 057 integrates a verified card settlement into the existing double-entry journal atomically. A newly-paid result from the trusted settlement core posts the journal in the same transaction; if posting fails, settlement/order/attempt changes roll back. Duplicate successful settlement returns idempotently without a second journal.
+
+**Frozen allocation mapping (staging checkpoint):**
+
+- Debit `asset.paystack_clearing`: exact verified buyer amount in integer minor units.
+- Debit `expense.platform_promotions`: platform-funded checkout discount only; seller-funded discounts are not platform expense.
+- Credit `liability.seller_payable`: each store's frozen v2 payable allocation.
+- Credit `revenue.platform_commission`: frozen commission total.
+- Credit `liability.delivery_fee_held`: delivery charge held until the fulfilment/service allocation policy is confirmed; it is not automatically Everneed delivery revenue.
+
+The helper revalidates snapshot v2 digest/identity, payment attempt and order reference, exact total/currency/exponent, delivery charge, gross/net/discount funding split, seller payable + commission arithmetic and store aggregates. New expense and delivery-held accounts are seeded for NGN/GHS/KES/ZAR/GBP/USD.
+
+**Validation and staging:** clean replay and full database CI passed at branch head `a7b0d3f576df03f78010b79926c003531beed2db`; test 057 covers a 10% seller commission, platform subsidy, delivery, balanced entries, duplicate settlement, mismatch quarantine, and missing-account rollback. Migration applied to staging as `20261122140408 / fin03_verified_payment_journal_posting`. Test 057 passed with rollback fixtures. Read-only checks found six currencies for both new accounts, no surviving test journal rows/fixtures, and no client/service-role EXECUTE on the private helper. Production untouched.
+
+**Not yet accepted for launch:** provider sandbox collection/webhook/verify/reconciliation, Paystack-to-bank settlement and processing-fee journal, refund journal, seller payout integration, fulfilment-based revenue timing and delivery-fee allocation. No live charge, transfer, refund, payout, Edge Function deployment or scheduled task was run. Commission recognition remains a finance-policy review item.
+
+Next milestone is FIN-03 sandbox acceptance/reconciliation, then FIN-04 provider-confirmed refunds and frozen item/store refund allocations. Do not treat this as payment launch completion.
