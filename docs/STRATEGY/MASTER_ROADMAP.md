@@ -780,3 +780,7 @@ Added forward-only migration 034 to harden the staged double-entry journal RPC a
 
 ## Finance implementation checkpoint — 22 Nov 2026
 FIN-02A unpaid-order expiry worker is now drafted as migration 056 with test 056 and CI wiring. It uses a caller-supplied cutoff (no unapproved timeout), a bounded batch and `SKIP LOCKED`; payment attempts that are unresolved, succeeded or reconciliation-required block cancellation. It routes cancellations through the existing cancellation core, so inventory and campaign holds retain their existing atomic lifecycle. Source branch only; CI re-run, staging validation and expiry policy approval remain gates. Scheduling stays disabled.
+
+
+## FIN-02A expiry worker staging checkpoint — 22 Nov 2026
+Migration 056 was applied to Everneed staging after the corrected database CI passed. Test 056 then passed on staging using rollback fixtures, including aged unpaid cancellation, failed-attempt eligibility, paid/recent exclusion, active/succeeded/reconciliation blockers, idempotency and ACL. Service-role-only access confirmed. Scheduling remains disabled until the owner approves expiry policy; production remains untouched. Re-run CI for this documentation update.
