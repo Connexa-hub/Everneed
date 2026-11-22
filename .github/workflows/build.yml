@@ -37,6 +37,8 @@ jobs:
         run: deno check --config supabase/deno.json supabase/functions/payment-recovery/index.ts
       - name: Type-check Paystack checkout and webhook function
         run: deno check --config supabase/deno.json supabase/functions/paystack/index.ts
+      - name: Paystack verified attempt-context binding unit tests
+        run: deno test --config supabase/deno.json supabase/functions/paystack/payment-context.test.ts
       - uses: supabase/setup-cli@v3
         with:
           version: 3.1.0
