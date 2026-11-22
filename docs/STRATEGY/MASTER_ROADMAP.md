@@ -808,3 +808,6 @@ The founder approved resuming buyer-app frontend design and incremental implemen
 
 ## Buyer app source inventory — 22 Nov 2026
 Initial source review found the customer frontend is the root vanilla-JS SPA wrapped by Capacitor, not a separate native source tree. The Android project is generated in CI. Existing product detail, cart, checkout, orders and legacy payment method code exists, but compatibility with the hardened checkout/settlement contract is unverified. See `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. Immediate gate: APP-08 staging configuration isolation, then screen inventory and incremental buyer UI work. APK workflow remains paused.
+
+
+**Critical APP-08 finding:** source review confirmed root `js/config.js` hard-codes the live Supabase project for the buyer app. Buyer checkout testing is unsafe until staging configuration is implemented and proven. This is now the first mobile frontend implementation gate; see `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`.
