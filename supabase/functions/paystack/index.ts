@@ -159,6 +159,8 @@ async function settle(tx: any) {
   });
   if (contextError) throw new Error(contextError.message);
   if (!context ||
+      !Number.isSafeInteger(Number(v.amount)) ||
+      !Number.isSafeInteger(Number(context.amount_minor)) ||
       String(v.metadata?.order_id || "") !== String(context.order_id || "") ||
       String(v.metadata?.user_id || "") !== String(context.user_id || "") ||
       String(v.metadata?.payment_attempt_id || "") !== String(context.attempt_id || "") ||
