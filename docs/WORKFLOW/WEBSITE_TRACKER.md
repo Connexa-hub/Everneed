@@ -698,3 +698,9 @@ Migration 034 and dedicated test 034 have been added on `feature/variant-checkou
 - Migration 057 source adds atomic verified-payment journal posting using immutable financial snapshot v2. Mapping separates clearing, platform-funded promo expense, store payable, commission and delivery-fee-held liability. Failures roll back settlement; duplicate settlement is idempotent.
 - Full database CI and migration validation passed at head `a7b0d3f576df03f78010b79926c003531beed2db`; staging migration `20261122140408` applied and test 057 passed with rollback-only fixtures. Read-only checks confirm six currency account seeds and no test rows/journal persisted. Helper EXECUTE denied to client/service roles.
 - Production untouched; no Edge Function deployment/live payment/provider settlement/refund/payout. FIN-03 sandbox acceptance and accounting recognition policy remain open; next FIN-04 refund provider lifecycle. PR draft; APK remains paused.
+
+
+## FIN-04 refund audit/design gate — 22 Nov 2026
+- Read-only staging review: legacy `refund` marks local `processed` without provider API confirmation; cap is order-total, allocation pro-rata; cancellation auto-creates `approved` rows and reverses ledger before provider confirmation, with premature buyer notification. Provider-refund schema is present but not wired to RPC/Edge/webhook/journal.
+- Recommended defaults (approval pending) documented in `docs/WORKFLOW/PAYMENT_REFUND_AUDIT.md`: snapshot item/store allocation, pending refund cap reservations, provider-confirmed status, promotion funding reversal, delivery fee/manual method/seller recovery policy, and evidence/notification rules.
+- FIN-04 implementation is gated on policy approval. No refund provider request, migration, payout or production action.
