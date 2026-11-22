@@ -79,3 +79,7 @@ Recommended baseline for the next implementation (not approved or active):
 - **Legacy orders/refunds:** missing immutable allocation or provider/payment evidence stays admin-review-only. Existing `approved`/`processed` rows are not backfilled as provider-confirmed success.
 
 Before coding FIN-04, owner/finance must approve delivery-fee policy, seller recovery, manual-refund controls, refund authorization thresholds and commission/tax handling. This proposal deliberately avoids an automatic provider call or journal posting.
+
+
+## FIN-03 testing checkpoint — 22 Nov 2026
+Staging Paystack function deployed v14 with explicit attempt context binding after owner approval. SQL regression tests 055, 056, 057 passed on staging with rollback-only fixtures. Production untouched. Actual sandbox HTTP tests are pending because this connector cannot invoke Edge Function endpoints or run Deno tests. No payment/refund request submitted.
