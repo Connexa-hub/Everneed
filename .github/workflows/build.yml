@@ -43,7 +43,11 @@ jobs:
         with:
           version: 3.1.0
       - run: test -f supabase/config.toml || supabase init
+      - name: Remove any stale local Supabase volumes before replay
+        run: supabase stop --no-backup || true
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
+      - name: Force a clean migration replay
+        run: supabase db reset --local
       - name: Apply legacy payment RPC search-path migration (032)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/migrations/032_legacy_payment_rpc_search_path.sql
       - name: Variant-aware checkout contract tests (039)
