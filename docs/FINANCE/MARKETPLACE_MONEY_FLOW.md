@@ -1165,3 +1165,7 @@ Migration 056 adds `public.expire_unpaid_checkout_orders(p_cutoff, p_batch_size,
 The worker excludes orders with payment attempts in `initializing`, `pending`, `processing`, `succeeded` or `reconciliation_required`. Attempt creation locks the order, and the worker rechecks attempts while holding its order lock to close the selection race. Failed/cancelled attempts do not block. Cancellation exceptions are isolated and reported in the JSON result rather than stopping the batch.
 
 Test 056 covers old unpaid cancellation, recent-order retention, paid-order exclusion, pending and reconciliation blockers, failed-attempt eligibility, repeat-call idempotency and least-privilege RPC ACL. Migration 056 and the regression are source-only on the draft feature branch; staging apply, worker scheduling and expiry policy approval are pending. Automatic activation remains disabled.
+
+
+## FIN-02A expiry worker staging evidence — 22 Nov 2026
+Migration 056 is applied to Everneed staging. Test 056 passed against staging with rollback-only fixtures. The test confirms that eligible aged unpaid orders and failed-attempt orders cancel; recent and paid orders remain; initializing, pending, processing, succeeded and reconciliation-required attempts block; repeated runs are idempotent. ACL verification confirms only service_role can execute the worker RPC. Migration validation and database CI passed before staging apply. This worker is not scheduled; no expiry policy was approved and production remains untouched. CI must rerun for later documentation commits.
