@@ -329,7 +329,6 @@ begin
 end
 $$;
 
-revoke all on function public.claim_provider_event_recovery(integer,integer,integer) from public, anon, authenticated;
 revoke all on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) from public, anon, authenticated;
 grant execute on function public.finish_provider_event_recovery(uuid,uuid,text,text,text,integer) to service_role;
 
