@@ -787,3 +787,8 @@ Migration 056 was applied to Everneed staging after the corrected database CI pa
 
 ## FIN-03 Paystack verification hardening — 22 Nov 2026
 Read the Paystack direct verification/webhook flow and migrations 026–031. Audit found direct settlement did not explicitly match the provider metadata payment_attempt_id to the persisted attempt (the recovery worker already performed that check). Edge Function source now enforces order/user/attempt identity and exact amount/currency before settlement. Not deployed; CI/type-check and sandbox acceptance remain open. No production payment activity.
+
+## FIN-03 verified settlement journal checkpoint — 22 Nov 2026
+The verified card settlement now atomically posts the immutable v2 financial allocation into the double-entry journal (migration 057). Clean replay/full DB CI and staging rollback test 057 passed at head `a7b0d3f576df03f78010b79926c003531beed2db`; migration `20261122140408` is applied to staging only. Mapping separates Paystack clearing, platform-funded promotions, seller payable, commission and delivery-fee-held. Duplicate settlement is idempotent and missing journal accounts fail closed. Six currency account seeds verified; rollback fixtures left no test journal rows. Production untouched; no live payments, Edge deployment, provider settlement, refund or payout.
+
+Next finance gates: sandbox Paystack end-to-end/reconciliation; policy approval for commission recognition and delivery allocation; FIN-04 provider-confirmed refunds and immutable item/store refund allocations; then seller settlement/payout integration. Keep draft PR, production and APK work paused.
