@@ -1,7 +1,7 @@
 name: Build Android app
 on:
   push:
-    branches: [main]
+    branches: [main, web-portal]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -80,7 +80,7 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
   # Owner-approved test builds: manual dispatch on web-portal only. main never creates a test APK.
   apk:
-    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'web-portal'
+    if: github.ref_name == 'web-portal' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     # This is a manual staging-only packaging artifact. Database tests remain independent and visible; APK success is not backend-readiness approval.
     needs: [test]
     runs-on: ubuntu-latest
