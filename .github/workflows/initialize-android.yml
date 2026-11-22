@@ -25,6 +25,10 @@ jobs:
           java-version: 17
       - name: Install dependencies
         run: npm install
+      - name: Prepare Capacitor web assets
+        run: |
+          mkdir -p www
+          cp -r index.html favicon.svg favicon.png css js data fonts www/
       - name: Generate Android project (one-time)
         run: npx cap add android
       - name: Apply Everneed native settings
