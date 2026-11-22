@@ -804,3 +804,7 @@ Staging `paystack` Edge Function is active v13. Its deployed direct settlement c
 
 ## Mobile buyer app frontend resumption (22 Nov 2026)
 The founder approved resuming buyer-app frontend design and incremental implementation while web portal work continues. The web portal alone cannot validate shopping checkout or Paystack payment E2E. Claude should inventory existing app code and design, preserve existing features, and work through the buyer journey. Full handoff and acceptance checklist: `docs/WORKFLOW/MOBILE_BUYER_APP_RESUMPTION_HANDOFF.md`. This does **not** resume APK builds: APK workflow remains disabled pending explicit owner approval. Finance staging is not launch accepted; sandbox E2E must be exercised through the app.
+
+
+## Buyer app source inventory — 22 Nov 2026
+Initial source review found the customer frontend is the root vanilla-JS SPA wrapped by Capacitor, not a separate native source tree. The Android project is generated in CI. Existing product detail, cart, checkout, orders and legacy payment method code exists, but compatibility with the hardened checkout/settlement contract is unverified. See `docs/WORKFLOW/MOBILE_BUYER_FRONTEND_INITIAL_INVENTORY.md`. Immediate gate: APP-08 staging configuration isolation, then screen inventory and incremental buyer UI work. APK workflow remains paused.
