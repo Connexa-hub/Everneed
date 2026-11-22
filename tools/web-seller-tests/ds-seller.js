@@ -78,9 +78,9 @@ function seller(o){
  await t('products: filter chips carry real counts (archived excluded from All)',async()=>{
    const r=await seller().V.portal(['products']);
    assert(/data-id="all"[^>]*>All <span class="n">3<\/span>/.test(r.html)&&/data-id="archived"[^>]*>Archived <span class="n">1<\/span>/.test(r.html))});
- await t('products: empty store gets an empty state and no filters; failure is an error with retry',async()=>{
+ await t('products: empty store gets an empty state and no filters; a failing query falls back to the original page',async()=>{
    const e=await seller({prods:[]}).V.portal(['products']);assert(e.html.includes('No products yet')&&!e.html.includes('ds-pf'));
-   const f=await seller({fail:p=>p.startsWith('products?')}).V.portal(['products']);assert(f.html.includes('could not load')&&f.html.includes('data-act="ds-reload"'))});
+   const f=await seller({fail:p=>p.startsWith('products?')}).V.portal(['products']);assert.equal(f.html,'OLD products','a failing redesign falls back to the original page, never an error screen')});
  await t('products: bulk tools are a gate, not a button that does nothing',async()=>{
    const r=await seller().V.portal(['products']);assert(r.html.includes('ds-gate')&&r.html.includes('See plans'));const b=await seller({cap:{bulk_tools_enabled:true}}).V.portal(['products']);assert(b.html.includes('Bulk actions are not available yet')&&!b.html.includes('See plans'))});
  await t('actions added are prefixed ds-',async()=>{
@@ -97,7 +97,8 @@ function seller(o){
    assert(r.html.includes('Specifications could not load')&&r.html.includes('id="wsform"'))});
  await t('product editor: plan without category specs gets an upgrade card instead of fields',async()=>{
    const r=await seller({cap:{category_attributes_enabled:false},orig:{layout:'portal',title:'Product',active:'portal/products',html:EDITOR}}).V.portal(['product','p1']);
-   assert(r.html.includes('See plans')&&!r.html.includes('name="attrt_'))});
+   assert(r.html.includes('See plans')&&!r.html.includes('name="attrt_skin_type"')&&!r.html.includes('name="attrt_volume"'));
+   assert(r.html.includes('name="attr_ds_rest" value="{&quot;skin_type&quot;:[&quot;Dry&quot;],&quot;volume&quot;:50}"'),'existing values are carried through untouched, never wiped')});
  await t('product editor: other pages and non-editor html fall through untouched',async()=>{
    assert.equal((await seller({orig:{layout:'portal',title:'Product',html:'Not found'}}).V.portal(['product','zz'])).html,'Not found')});
 

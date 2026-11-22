@@ -31,7 +31,7 @@
   function pill(label,cls){return'<span class="pill '+(cls||"")+'">'+esc(label)+"</span>"}
   function byId(id){for(var i=0;i<W.prods.length;i++){if(W.prods[i].id===id)return W.prods[i]}return null}
   function photos(p){return p.images&&p.images.length?p.images:(p.img?[p.img]:[])}
-  function splitLabel(l){var m=String(l).split("-");if(m.length<2)return null;var last=m[m.length-1],head=m.slice(0,-1).join("-");if(SIZE.test(last)&&!SIZE.test(head))return[head,last];var first=m[0],rest=m.slice(1).join("-");if(SIZE.test(first)&&!SIZE.test(rest))return[rest,first];return null}
+  function splitLabel(l,axes){var m=String(l).split("-");if(m.length<2)return null;if(axes&&axes.length===2)return[m.slice(0,-1).join("-"),m[m.length-1]];var last=m[m.length-1],head=m.slice(0,-1).join("-");if(SIZE.test(last)&&!SIZE.test(head))return[head,last];var first=m[0],rest=m.slice(1).join("-");if(SIZE.test(first)&&!SIZE.test(rest))return[rest,first];return null}
   function again(){C.go(location.pathname,true)}
 
   /* ---------- data ---------- */
@@ -220,7 +220,7 @@
   function startEditor(x){
     var sizes=x&&x.sizes||[],axes=x&&x.axes||[],E0={id:x?x.id:"",mode:"none",n1:"Size",v1:"",n2:"Size",v2:"",stocks:Object.assign({},x&&x.stocks||{}),items:photos(x||{}).map(function(u){return{url:u}}),timer:null};
     if(sizes.length){
-      var sp=sizes.map(splitLabel);
+      var sp=sizes.map(function(l){return splitLabel(l,axes)});
       if(sp.every(Boolean)){
         var cs=[],ss=[];sp.forEach(function(s){if(cs.indexOf(s[0])<0)cs.push(s[0]);if(ss.indexOf(s[1])<0)ss.push(s[1])});
         E0.mode="two";E0.n1=axes[0]||"Color";E0.v1=cs.join(", ");E0.n2=axes[1]||"Size";E0.v2=ss.join(", ");
@@ -299,7 +299,7 @@
   function drawMedia(){
     var box=$("#wsmedia");if(!box)return;
     box.innerHTML=E.items.map(function(it,i){
-      return'<div class="it"><img alt="" src="'+esc(it.url||it.preview)+'">'+(i===0?'<span class="cover">Cover</span>':'<button type="button" class="mk" data-mk="'+i+'" aria-label="Make this the cover">★</button>')+'<button type="button" class="rm" data-rm="'+i+'" aria-label="Remove this photo">✕</button></div>';
+      return'<div class="it"><img alt="" src="'+esc(it.url||it.preview)+'">'+(i===0?'<span class="cover">Cover</span>':'<button type="button" class="mk" data-mk="'+i+'" aria-label="Make this the cover">'+(window.DS?DS.icon("star",14):"★")+'</button>')+'<button type="button" class="rm" data-rm="'+i+'" aria-label="Remove this photo">✕</button></div>';
     }).join("")+(E.items.length<MAX_PHOTOS?'<label class="it add"><input type="file" id="wsfile" accept="image/*" multiple hidden><span>+ Add photos</span></label>':"");
   }
   function drawVariants(){
@@ -413,8 +413,8 @@
       var n1=clean(E.n1,30),n2=clean(E.n2,30);
       if(need([[n1,"Give the option a name, for example Size."],[mode!=="two"||n2,"Give the second option a name."],[labs.length>0,"Add at least one option value."],[labs.length<=MAX_VARIANTS,"That makes too many variants. The limit is "+MAX_VARIANTS+"."]]))return null;
       if(mode==="two"){
-        var bad=list2(E.v2).filter(function(s){return !SIZE.test(s)});
-        if(need([[list2(E.v1).length>0,"Add at least one colour."],[bad.length===0,"These are not sizes: "+bad.join(", ")+". Use S, M, L, XL or numbers like 42, or choose One option."]]))return null;
+        var bad=list2(E.v2).filter(function(s){return/-/.test(s)});
+        if(need([[list2(E.v1).length>0,"Add at least one value for the first option."],[bad.length===0,"Remove the dash from: "+bad.join(", ")+"."]]))return null;
       }
       var all=true,total=0;
       for(var i=0;i<labs.length;i++){
@@ -435,9 +435,11 @@
       if(ty==="number"){var nv=Number(raw);if(need([[isFinite(nv),"Enter a number for "+lab+"."]])){badAt=true;return}at[key]=nv}
       else if(ty==="boolean")at[key]=raw==="true";
       else if(ty==="multiselect")at[key]=raw.split("|").filter(Boolean);
+      else if(ty==="json"){try{var jo=JSON.parse(raw);if(jo&&typeof jo==="object")at[key]=jo}catch(x){}}
       else at[key]=raw.slice(0,300);
     });
     if(badAt)return null;
+    if(at&&at.ds_rest&&typeof at.ds_rest==="object"){var rest=at.ds_rest;delete at.ds_rest;Object.keys(rest).forEach(function(k){if(!(k in at))at[k]=rest[k]})}
     return{attributes:at||undefined,name:name,col:d.col,price:price,old:old||0,stock:stock,descr:area(d.descr,3000)||null,
       sku:clean(d.sku,60)||null,code:clean(d.code,40)||null,weight_g:weight,dims:clean(d.dims,60)||null,material:clean(d.material,80)||null,
       maker:clean(d.maker,80)||null,maker_addr:clean(d.maker_addr,200)||null,origin:d.origin||null,ships_from:d.ships_from||null,chart:d.chart||null,

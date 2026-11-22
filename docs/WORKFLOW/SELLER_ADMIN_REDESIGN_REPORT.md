@@ -39,6 +39,15 @@ Tests: `node tools/web-seller-tests/ds-seller.js` (12 pass). Browser: Chromium a
 - **Product editor.** Section nav (Basics, Specs, Photos, Pricing, Stock, Variants, Shipping, Publish), specifications from `category_attributes` for the chosen category (inherits parents), saved into `products.attributes` with the types the database trigger checks (number, boolean, multiselect array, string); required specifications block "Submit for review" with a message; plans without `category_attributes_enabled` see an upgrade card; publish checklist; volume pricing shown as not available (no schema). Small edit to `collect()` in `workspace.js`. Verified in Chromium: choosing Beauty shows its fields, saving a draft sent `{"skin_type":["Dry"],"volume":50}`.
 - Tests: ds.js 32, ds-seller.js 17, existing 22 all pass.
 
+## Part 4 (22 Nov 2026): editor overhaul (owner feedback)
+- **Options in bottom sheets.** Add an option (Colour, Size, Type, Material, Storage, Pack size, Scent, Flavour, Volume, or a custom name), choose values from presets or type your own, up to two options; every combination becomes a variant, with stock per variant and a "set stock for all" shortcut. The old radio and four text boxes stay hidden in the form so `workspace.js` saving is unchanged.
+- **Colour.** Swatch grid, "Mix a colour with RGB" (sliders, numbers, hex, the phone's own picker) with an automatic name from the nearest of 30 named colours (Brown, Light Brown, Dark Brown, Navy and so on, editable). The name is the variant value shoppers see; the exact hex is stored as `attributes.variant_colours` (name to hex).
+- **Specification lists** (single and multiple choice) use the same choose-or-type-your-own sheet.
+- **Bottom bar.** Close icon, Save draft, Send for review (rectangles, one primary), a readiness bar, and "Save changes" for published products.
+- **Safety.** Saving never wipes attributes it did not render (`ds_rest`); every redesigned page falls back to the original page on any failure.
+- **Not possible yet (backend, request R10 below):** price, photo and SKU per variant. The editor says so.
+- Verified in Chromium at 360 px: colour mixer, size sheet with a custom value, 9 variants, stock for all, save sent sizes, axes, stocks and `variant_colours`. Tests: ds-editor.js 6, ds-seller.js 17, ds.js 32, existing 22.
+
 ## Tests actually run
 - `node tools/web-seller-tests/ds.js`: **28 of 28 pass** (art mapping for all 22 categories, no unclassed SVG shape, no emoji in icons, money formatting, HTML escaping in every builder, banner roles, overview numbers, all-clear and failure behaviour, applications, stores filters and actions, review, Everneed Store tabs, staff honesty, switcher, action-name prefix).
 - `node tools/web-seller-tests/run.js` (existing): **22 of 22 pass**.

@@ -148,3 +148,7 @@ Private-write, public-read bucket for logos, covers and product media with owner
 
 ### R10. Withdrawn (22 Nov 2026, Claude)
 I first asked for seller-readable plan flags. They already exist: `seller_product_capabilities()` returns `analytics_level`, `promotions_enabled`, `bulk_tools_enabled`, `reports_export_enabled`, `inventory_alerts_enabled`, `team_seats` and the editor mode for the signed-in seller. The seller screens now use it. No backend work is needed for the flags; the modules' data contracts are still R5 and R7.
+
+### R10. Per-variant price, photos and SKU (22 Nov 2026, Claude)
+The editor now creates every option combination (Colour x Size and so on) in one go, with stock per variant. Variants are still stored as `products.sizes` (labels such as `Brown-M`), `products.stocks` and `products.axes`, and the exact colour as `products.attributes.variant_colours`. For per-variant price, photos and SKU the storefront and checkout need a contract: either extend `product_variants` (price, compare-at price, SKU, image, active flag, stock) with seller RLS and make the cart and `place_order` read it, or confirm that the label scheme stays. Until then the editor says these are not available yet. Please also say whether `variant_colours` may be read by the storefront for swatches.
+

@@ -27,17 +27,20 @@
     return'<span class="ds-thumb'+(cls?" "+cls:"")+'">'+(im?'<img alt="" loading="lazy" src="'+esc(im)+'">':D.art(k,cls?28:40))+"</span>";
   }
   function out(h,t,active){return{layout:"portal",active:active||"portal",html:h,title:t}}
-  function fail(e){return D.banner("error","This page could not load",e&&e.message||"Please try again in a moment.",{label:"Try again",act:"ds-reload"})}
   A["ds-reload"]=A["ds-reload"]||function(){C.go(location.pathname,true)};
 
+  /* Any problem inside the redesigned pages falls back to the original page, never to an error screen. */
   V.portal=function(p){
     var sub=p[0]||"";
     return Promise.resolve(old(p)).then(function(res){
-      if(!res||res.layout!=="portal"||!Supa.uid())return res;
-      if(sub===""&&res.title==="Dashboard")return home(res);
-      if(sub==="products"&&res.title==="Products")return products(res);
-      if(sub==="product"&&res.html&&res.html.indexOf('id="wsform"')>-1)return product(res,p[1]);
-      return res;
+      try{
+        if(!res||res.layout!=="portal"||!Supa.uid())return res;
+        var r=null;
+        if(sub===""&&res.title==="Dashboard")r=home(res);
+        else if(sub==="products"&&res.title==="Products")r=products(res);
+        else if(sub==="product"&&res.html&&res.html.indexOf('id="wsform"')>-1)r=product(res,p[1]);
+        return r?Promise.resolve(r).then(function(x){return x||res},function(){return res}):res;
+      }catch(e){return res}
     });
   };
 
@@ -130,7 +133,7 @@
         F.tab="all";F.q="";
         return out(html,"Products","portal/products");
       });
-    }).catch(function(e){return{layout:"portal",active:"portal/products",title:"Products",html:fail(e)}});
+    }).catch(function(){return orig});
   }
   function apply(){
     var q=((document.querySelector("[data-dsp]")||{}).value||"").trim().toLowerCase(),shown=0;
@@ -149,6 +152,7 @@
   var SEC=[["basics","Basics"],["specs","Specs"],["photos","Photos"],["pricing","Pricing"],["stock","Stock"],["variants","Variants"],["shipping","Shipping"],["publish","Publish"]];
   var CARD={"Product":"basics","Photos":"photos","Pricing":"pricing","Inventory":"stock","Variants":"variants","Shipping and details":"shipping","Status":"publish"};
   var SP={defs:[],cols:[],vals:{},ok:false,on:false};
+  D.spVals=function(){return SP.vals};D.spOk=function(){return SP.ok};
   function defsFor(name){
     var by={},c=SP.cols.filter(function(x){return x.name===name})[0],ids=[],g=0;
     while(c&&g++<6){ids.push(c.id);c=SP.cols.filter(function(x){return x.id===c.parent_id})[0]}
@@ -157,12 +161,12 @@
   function field(d,v){
     var k=esc(d.attribute_key),lab=esc(d.label)+(d.unit?" ("+esc(d.unit)+")":"")+(d.required?" *":""),n='name="attr_'+k+'"',t=d.input_type,h="";
     if(t==="select"||t==="boolean"){
-      var opts=t==="boolean"?[["true","Yes"],["false","No"]]:(d.options||[]).map(function(o){return[o,o]});
-      h='<label class="lb">'+lab+"<select "+n+'><option value="">Not stated</option>'+opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(String(v)===String(o[0])?" selected":"")+">"+esc(o[1])+"</option>"}).join("")+"</select></label>";
+      var opts=t==="boolean"?["Yes","No"]:(d.options||[]),cv=t==="boolean"?(v===true||v==="true"?"Yes":v===false||v==="false"?"No":""):(v==null?"":String(v));
+      h='<div class="lb"><span>'+lab+'</span><button type="button" class="ds-pick-btn" data-act="ds-sp-pick" data-t="'+esc(d.label)+'" data-o="'+esc(JSON.stringify(opts))+'" data-bool="'+(t==="boolean"?1:0)+'"><span class="v'+(cv?"":" ph")+'">'+esc(cv||"Not stated")+"</span>"+D.icon("chevd",18)+'</button><input type="hidden" '+n+' value="'+esc(t==="boolean"?(cv==="Yes"?"true":cv==="No"?"false":""):cv)+'"></div>';
     }else if(t==="multiselect"){
       var cur=Array.isArray(v)?v:[];
       h='<div class="lb"><span>'+lab+'</span><input type="hidden" '+n+' value="'+esc(cur.join("|"))+'"><div class="ds-chips" role="group" aria-label="'+esc(d.label)+'">'
-        +(d.options||[]).map(function(o){var on=cur.indexOf(o)>-1;return'<button type="button" class="ds-chip'+(on?" on":"")+'" data-act="ds-ms" data-v="'+esc(o)+'" aria-pressed="'+on+'">'+esc(o)+"</button>"}).join("")+"</div></div>";
+        +(d.options||[]).concat(cur.filter(function(c){return(d.options||[]).indexOf(c)<0})).map(function(o){var on=cur.indexOf(o)>-1;return'<button type="button" class="ds-chip'+(on?" on":"")+'" data-act="ds-ms" data-v="'+esc(o)+'" aria-pressed="'+on+'">'+esc(o)+"</button>"}).join("")+'<button type="button" class="ds-chip add" data-act="ds-ms-add">'+D.icon("plus",14)+" Other</button></div></div>";
     }else{
       h='<label class="lb">'+lab+"<input "+n+' type="'+(t==="date"?"date":t==="url"?"url":"text")+'"'+(t==="number"||t==="measurement"?' inputmode="decimal"':"")+' maxlength="300" value="'+esc(v==null?"":v)+'"></label>';
     }
@@ -177,7 +181,7 @@
   }
   function keep(){
     var f=document.getElementById("wsform");if(!f)return;
-    Array.prototype.forEach.call(f.querySelectorAll('[name^="attr_"]'),function(el){var k=el.name.slice(5),t=(f.querySelector('[name="attrt_'+k+'"]')||{}).value;SP.vals[k]=t==="multiselect"?(el.value?el.value.split("|"):[]):(t==="number"?(el.value===""?"":Number(el.value)):el.value)});
+    Array.prototype.forEach.call(f.querySelectorAll('[name^="attr_"]'),function(el){var k=el.name.slice(5);if(k==="ds_rest"||k==="variant_colours")return;var t=(f.querySelector('[name="attrt_'+k+'"]')||{}).value;SP.vals[k]=t==="multiselect"?(el.value?el.value.split("|"):[]):(t==="number"?(el.value===""?"":Number(el.value)):el.value)});
   }
   function drawSpecs(){
     var b=document.getElementById("ds-specs-body"),f=document.getElementById("wsform");if(!b||!f)return;
@@ -190,6 +194,7 @@
       items=[["Title",g("name").length>=2],["Category",!!col],["Price above zero",Number(g("price").replace(/,/g,""))>0],["At least one photo",!!document.querySelector("#wsmedia .it:not(.add) img")]];
     if(req.length)items.push(["Required specifications"+(miss?" ("+miss+" missing)":""),miss===0]);
     el.innerHTML=items.map(function(i){return'<li class="'+(i[1]?"ok":"")+'">'+D.icon(i[1]?"okc":"dot",16)+"<span>"+esc(i[0])+"</span></li>"}).join("");
+    if(D.barUpdate)D.barUpdate();
   }
   function product(orig,id){
     var isNew=!id||id==="new";
@@ -203,10 +208,13 @@
       Object.keys(CARD).forEach(function(t){html=html.replace('<div class="card"><h3>'+t+"</h3>",'<div class="card" id="ds-sec-'+CARD[t]+'"><h3>'+t+"</h3>")});
       var nav=D.seg(SEC.map(function(t){return{act:"ds-jump",id:t[0],label:t[1]}}),"Product sections");
       html=html.replace("</h1><form","</h1>"+nav+"<form");
+      var known={variant_colours:1},gated=!!(cap&&cap.category_attributes_enabled===false);if(!gated)SP.defs.forEach(function(d2){known[d2.attribute_key]=1});
+      var rest={};Object.keys(SP.vals||{}).forEach(function(k){if(!known[k])rest[k]=SP.vals[k]});
+      var keep2=SP.ok?'<input type="hidden" name="attrt_ds_rest" value="json"><input type="hidden" name="attr_ds_rest" value="'+esc(Object.keys(rest).length?JSON.stringify(rest):"")+'">':"";
       var specs=cap&&cap.category_attributes_enabled===false
         ?'<div id="ds-sec-specs">'+D.gate({icon:"lock",title:"Category specifications",text:"Add details like size, material or ingredients with a higher plan.",action:UP})+"</div>"
         :'<div class="card" id="ds-sec-specs"><h3>Specifications</h3><div id="ds-specs-body">'+specsBody(x.col||"")+"</div></div>";
-      html=html.replace('<div class="card" id="ds-sec-photos">',specs+'<div class="card" id="ds-sec-photos">');
+      html=html.replace('<div class="card" id="ds-sec-photos">',keep2+specs+'<div class="card" id="ds-sec-photos">');
       html=html.replace('<div class="card" id="ds-sec-stock">',D.gate({icon:"layers",title:"Volume pricing",text:"Price tiers by quantity are not available yet."})+'<div class="card" id="ds-sec-stock">');
       html=html.replace('<h3>Status</h3>','<h3>Status</h3>').replace(/(<div class="card" id="ds-sec-publish">[\s\S]*?)<\/div>/,function(m,a){return a+'<h4 class="ds-h4">Ready to send for review?</h4><ul class="ds-check" id="ds-check" aria-live="polite"></ul></div>'});
       orig.html=html;
