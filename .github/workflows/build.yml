@@ -166,7 +166,7 @@ jobs:
           mkdir www
           cp -r index.html favicon.svg favicon.png css js data fonts www/
           # Stamp the real build into the app so Settings and Appearance show which build is installed.
-          BUILD_NUMBER="$GITHUB_RUN_NUMBER" BUILD_SHA="${GITHUB_SHA::7}" BUILD_BRANCH="$GITHUB_REF_NAME" node -e 'const fs=require("fs");const b={n:Number(process.env.BUILD_NUMBER),sha:process.env.BUILD_SHA,branch:process.env.BUILD_BRANCH};fs.writeFileSync("www/js/build.js", `window.BUILD=${JSON.stringify(b)};window.buildLabel=function(){var b=window.BUILD||{};return "Build "+b.n+" · "+b.sha+" · "+b.branch};\\n`)'
+          BUILD_NUMBER="$GITHUB_RUN_NUMBER" BUILD_SHA="${GITHUB_SHA::7}" BUILD_BRANCH="$GITHUB_REF_NAME" node -e 'const fs=require("fs");const b={n:Number(process.env.BUILD_NUMBER),sha:process.env.BUILD_SHA,branch:process.env.BUILD_BRANCH};fs.writeFileSync("www/js/build.js", `window.BUILD=${JSON.stringify(b)};window.buildLabel=function(){var b=window.BUILD||{};return "Build "+b.n+" · "+b.sha+" · "+b.branch};`)'
       - name: Require committed native Android project
         run: |
           test -f android/gradlew
