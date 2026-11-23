@@ -107,7 +107,7 @@ create or replace function public.support_tier(p_store text) returns text langua
     where s.store_id=p_store and s.status not in ('cancelled','canceled','expired','ended') order by s.current_period_end desc nulls last limit 1),'none') $$;
 create or replace function public.support_sla_minutes(p_tier text) returns int
 language sql stable security definer set search_path=''
-as $
+as $function$
   -- Keep the helper safe under the final empty-search_path hardening pass.
   select coalesce(
     (select (ss.value->'minutes'->>coalesce(p_tier,'none'))::int
@@ -116,7 +116,7 @@ as $
        from public.support_settings ss where ss.key='sla'),
     480
   )
-$;
+$function$;
 
 -- ===== message guard: never let a delivery code sit in chat =====
 create or replace function public.chat_guard() returns trigger language plpgsql as $$
