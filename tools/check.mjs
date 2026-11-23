@@ -13,8 +13,7 @@ for (const f of jsFiles('js')) {
     execFileSync(process.execPath, ['--check', f], { stdio: 'pipe' });
     console.log('ok  ' + f);
   } catch (e) {
-    fail(f + '
-' + e.stderr);
+    fail(f + '\n' + e.stderr);
   }
 }
 
@@ -138,8 +137,7 @@ if (existsSync(stagingWorkflowPath)) {
 const BAN = /\b(cj|cjdropshipping|eprolo|sup_[a-z]+)\b/i;
 const SKIP = new Set(['node_modules', '.git', 'assets', 'keystore', 'android']);
 const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'docs/WORKFLOW/REPOSITORY_AND_PRODUCT_AUDIT_2026-11-12.md', 'tools/check.mjs']);
-const MANIFEST = existsSync('MANIFEST.txt') ? new Set(readFileSync('MANIFEST.txt', 'utf8').split('
-').filter(Boolean)) : null;
+const MANIFEST = existsSync('MANIFEST.txt') ? new Set(readFileSync('MANIFEST.txt', 'utf8').split('\n').filter(Boolean)) : null;
 // A second copy of the project inside the repository means a zip was unpacked one level too deep.
 for (const n of readdirSync('.')) {
   if (SKIP.has(n) || !statSync(n).isDirectory()) continue;
@@ -159,8 +157,7 @@ for (const r of ['supabase/functions/cj', 'supabase/schema.sql']) {
     if (statSync(p).isDirectory()) { scan(p); continue; }
     if (HISTORY.has(p) || !/\.(js|ts|json|md|html|css|sql|yml)$/.test(p)) continue;
     const hits = [];
-    readFileSync(p, 'utf8').split('
-').forEach((line, i) => {
+    readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
       if (/"(key|apikey)"|key:"eyJ/.test(line)) return;
       if (BAN.test(line)) hits.push(i + 1);
     });
@@ -181,8 +178,7 @@ for (const m of readFileSync('css/fonts.css', 'utf8').matchAll(/url\(\.\.\/(font
   try { statSync(m[1]); } catch { fail('css/fonts.css references missing font ' + m[1]); }
 }
 try { execFileSync(process.execPath, ['tools/check-contrast.mjs'], { stdio: 'pipe' }); console.log('ok  contrast (18 themes)'); }
-catch (e) { fail('contrast check failed
-' + e.stdout + e.stderr); }
+catch (e) { fail('contrast check failed\n' + e.stdout + e.stderr); }
 
 if (failed) {
   console.error(failed + ' check(s) failed');
