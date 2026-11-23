@@ -30,7 +30,7 @@ for (const ext of [".html", ".css", ".js"]) {
     else if (p.endsWith(ext)) {
       let t = p === sellerHtml ? html : fs.readFileSync(p, "utf8");
       t = t.replace(/(["'(\\])\/?assets\//g, "$1/seller/assets/")
-           .replace(/(["'])\/?favicon\.(?:svg|png)/g, "$1/seller/favicon.$2");
+           .replace(/(["\'])\/?favicon\.(svg|png)/g, "$1/seller/favicon.$2");
       if (p === sellerHtml) html = t;
       fs.writeFileSync(p, t);
     }
