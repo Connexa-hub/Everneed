@@ -32,5 +32,14 @@ function shell(o){o=o||{};const x=make({});const store={};
    const hm=x.ctx.AX.shell('portal','portal','<h1 class="ds-title">My shop</h1>',{});assert(!hm.includes('ds-asw'));
    assert(typeof x.ctx.Core.A['ds-amenu']==='function'&&typeof x.ctx.Core.A['ds-asw']==='function')});
 
+ await t('admin: Platform reaches platform and store links; Everneed Store workspace shows only store links',()=>{
+   const x=shell({search:'?shell=app'});const me={role:'admin',name:'Ada'};
+   x.ctx.Core.adminCtx=()=>'platform';const p=x.ctx.AX.shell('admin','admin/sellers','<p/>',me);
+   assert(p.includes('href="/admin/sellers" class="on"')&&p.includes('href="/admin/review"')&&p.includes('href="/inbox"')&&p.includes('data-act="ds-ctx"'));
+   x.ctx.Core.adminCtx=()=>'store';const s=x.ctx.AX.shell('admin','admin/store/orders','<p/>',me);
+   assert(s.includes('href="/admin/store/orders" class="on"')&&s.includes('href="/admin/store/messages"')&&!s.includes('href="/admin/sellers"')&&!s.includes('href="/admin/review"')&&!s.includes('href="/inbox"'));
+   assert.equal(x.ctx.AX.shell('admin','admin','','' ),'<prev/>');
+   assert.equal(x.ctx.AX.shell('admin','admin','',{role:'merchant'}),'<prev/>')});
+
  console.log(`${pass} passed, ${fail} failed`);
 })();

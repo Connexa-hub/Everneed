@@ -447,3 +447,5 @@ html.ds-appsh .actbar{bottom:0}
 .ds-ckl a:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
 .ds-ts{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0;background:none;border:0;color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer}
 .ds-ts:focus-visible{outline:2px solid var(--brand);outline-offset:4px;border-radius:8px}
+button.ds-st{background:none;border:0;font:inherit;cursor:pointer;padding:0}
+.ds-appsh-w .ds-ctxbar{display:none}

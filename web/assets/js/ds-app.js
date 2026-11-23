@@ -33,10 +33,28 @@
     el.hidden=false;el.querySelector("i").textContent=d+(d===1?" day left":" days left");
   }
   function cur(a){a=String(a||"");return a==="portal"?"home":a==="portal/orders"?"orders":a.indexOf("portal/product")===0?"products":a==="inbox"?"msg":""}
+  /* Admin: Platform reaches everything, the Everneed Store workspace reaches only the store (same rule as ds-admin.js). */
+  var KIND="portal",ST3=[["Overview","/admin/store","chart"],["Products","/admin/store/products","box"],["Orders","/admin/store/orders","receipt"],["Messages","/admin/store/messages","chat"],["Staff","/admin/store/staff","users"]];
+  function ctx(){return C.adminCtx?C.adminCtx():"platform"}
+  function adm(){return ctx()==="store"?{tabs:ST3.slice(0,3),msg:"/admin/store/messages",items:ST3.concat([["Account","/me","user"]])}
+    :{tabs:[["Overview","/admin","chart"],["Sellers","/admin/sellers","store"],["Review","/admin/review","clip"]],msg:"/inbox",items:[["Overview","/admin","chart"],["Sellers","/admin/sellers","store"],["Review","/admin/review","clip"],["Everneed Store","/admin/store","store",ST3.map(function(x){return[x[0],x[1]]})],["Inbox","/inbox","chat"],["Account","/me","user"]]}}
+  function items(){return KIND==="admin"?adm().items:ITEMS}
+  function acur(a,h){a=String(a||"");if(ctx()==="store")return a.indexOf("admin/store")===0&&("/"+a)===h?"on":"";return h==="/admin"?(a==="admin"?"on":""):(a.indexOf(h.slice(1))===0?"on":"")}
   var prev=AX.shell;
   AX.shell=function(kind,active,inner,me){
-    var app=kind==="portal"&&on();html.classList.toggle("ds-appsh",app);
-    if(!app)return prev.apply(this,arguments);
+    var isA=kind==="admin"&&me&&me.role==="admin",app=(kind==="portal"||isA)&&on();html.classList.toggle("ds-appsh",app);
+    if(!app)return prev.apply(this,arguments);KIND=isA?"admin":"portal";
+    if(isA){
+      var M=adm(),st=ctx()==="store";setTimeout(function(){},0);
+      if(String(active||"")!=="admin")inner=String(inner).replace(/<h1 class="ds-title">([^<]*)<\/h1>/,function(m,t){return'<h1 class="ds-title"><button type="button" class="ds-ts" data-act="ds-asw" aria-haspopup="dialog">'+t+D.icon("chevd",18)+"</button></h1>"});
+      return'<div class="ax ds-appsh-w" data-kind="admin" data-ctx="'+ctx()+'"><header class="ds-ah"><a class="ds-av" href="/me" aria-label="Account and settings">'+esc(initial(me.name||me.email))+'</a>'
+        +'<button type="button" class="ds-st" data-act="ds-ctx" aria-haspopup="dialog">'+D.icon(st?"store":"globe",22)+"<b>"+(st?"Everneed Store":"Platform")+"</b>"+D.icon("chevd",18)+"</button>"+AX.bell()+"</header>"
+        +'<section class="main" id="main">'+inner+"</section>"
+        +'<nav class="ds-ab" aria-label="Admin navigation"><button type="button" class="ds-abc" data-act="ds-ctx" aria-label="Switch workspace">'+D.icon(st?"store":"globe",24)+"</button>"
+        +'<div class="ds-abp">'+M.tabs.map(function(t){return'<a href="'+t[1]+'"'+(acur(active,t[1])?' class="on" aria-current="page"':"")+' aria-label="'+t[0]+'">'+D.icon(t[2],24)+"</a>"}).join("")
+        +'<button type="button" data-act="ds-amenu" aria-label="Menu" aria-haspopup="dialog">'+D.icon("menu",24)+"</button></div>"
+        +'<a class="ds-abc'+(acur(active,M.msg)?" on":"")+'" href="'+M.msg+'" aria-label="'+(st?"Messages":"Inbox")+'">'+D.icon("chat",24)+'<span class="nbd" hidden>0</span></a></nav></div>';
+    }
     var c=cur(active),focus=String(active||"").indexOf("portal/product")===0&&/^\/portal\/product\//.test(location.pathname);
     function it(k,href,icon,label){return'<a href="'+href+'"'+(c===k?' class="on" aria-current="page"':"")+' aria-label="'+label+'">'+D.icon(icon,24)+"</a>"}
     setTimeout(load,0);
@@ -53,7 +71,7 @@
 
   /* ---------- full-screen menu ---------- */
   var ITEMS=[["Home","/portal","home"],["Orders","/portal/orders","receipt"],["Products","/portal/products","box",[["All products","/portal/products"],["Add product","/portal/product/new"]]],["Messages","/inbox","chat"],["Plan","/portal/plan","crown"],["Store settings","/portal/settings","gear"],["Account","/me","user"]];
-  A["ds-asw"]=function(){D.actions({title:"Go to",items:ITEMS.map(function(i){return{label:i[0],icon:i[2],run:function(){C.go(i[1])}}})})};
+  A["ds-asw"]=function(){D.actions({title:"Go to",items:items().map(function(i){return{label:i[0],icon:i[2],run:function(){C.go(i[1])}}})})};
   function overlay(cls,label,inner){
     var el=doc.createElement("div");el.className=cls;el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label",label);el.innerHTML=inner;
     var last=doc.activeElement,root=doc.getElementById("root");doc.body.appendChild(el);html.classList.add("ds-lock");if(root)root.setAttribute("inert","");
@@ -64,13 +82,13 @@
     return{el:el,close:close};
   }
   A["ds-amenu"]=function(){
-    var rows=ITEMS.map(function(i,n){
+    var rows=items().map(function(i,n){
       var kids=i[3];
       if(!kids)return'<a class="ds-mi" href="'+i[1]+'">'+D.icon(i[2],24)+"<b>"+i[0]+"</b></a>";
       return'<button type="button" class="ds-mi" data-act="ds-mg" aria-expanded="false" aria-controls="ds-mg'+n+'">'+D.icon(i[2],24)+"<b>"+i[0]+'</b><span class="ds-chv">'+D.icon("chevd",20)+'</span></button><div class="ds-mk" id="ds-mg'+n+'" hidden>'
         +kids.map(function(k){return'<a href="'+k[1]+'">'+k[0]+"</a>"}).join("")+"</div>";
     }).join("");
-    var o=overlay("ds-am","Menu",'<nav class="ds-ml" aria-label="Seller menu">'+rows+'</nav><div class="ds-mf"><a class="ds-mb" href="/portal/settings" aria-label="Store settings">'+D.icon("gear",22)+'</a><a class="ds-mpill" href="/portal/product/new">'+D.icon("plus",20)+' Add product</a><button type="button" class="ds-mb" data-x aria-label="Close menu">'+D.icon("x",22)+"</button></div>");
+    var o=overlay("ds-am","Menu",'<nav class="ds-ml" aria-label=(KIND==="admin"?"Admin menu":"Seller menu")>'+rows+'</nav><div class="ds-mf"><a class="ds-mb" href="'+(KIND==="admin"?"/me":"/portal/settings")+'" aria-label="Settings">'+D.icon("gear",22)+'</a>'+(KIND==="admin"?'<button type="button" class="ds-mpill" data-act="ds-ctx" data-x>'+D.icon(ctx()==="store"?"store":"globe",20)+" Switch workspace</button>":'<a class="ds-mpill" href="/portal/product/new">'+D.icon("plus",20)+" Add product</a>")+'<button type="button" class="ds-mb" data-x aria-label="Close menu">'+D.icon("x",22)+"</button></div>");
     var f=o.el.querySelector("a,button");if(f)f.focus();
   };
   A["ds-mg"]=function(b){var k=doc.getElementById(b.getAttribute("aria-controls")),open=b.getAttribute("aria-expanded")!=="true";b.setAttribute("aria-expanded",String(open));if(k)k.hidden=!open};

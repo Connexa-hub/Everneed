@@ -24,6 +24,12 @@ Customers list, Growth, Discounts, Content, Markets, Credit, Analytics reports, 
 ## Slice 2 (done)
 Screen titles are a tap target that opens a "Go to" sheet (Home, Orders, Products, Messages, Plan, Store settings, Account). Home has a "Get ready to sell" checklist (also on the normal layout) built only from what the store record really holds: first product, logo, cover, about or tagline, opening hours, returns, pickup address; it disappears when complete. The menu now has Store settings (the existing `/portal/settings` sections) and Account.
 
+## Admin and the official store (done, same shell)
+On phone width with `?shell=app`, signed-in admins get the same frame. Header: avatar, a workspace button (Platform or Everneed Store) and the bell. Bar: workspace circle, pill with three tabs and Menu, messages circle.
+- **Platform:** tabs Overview, Sellers, Review; menu adds the Everneed Store group (Overview, Products, Orders, Messages, Staff) and Inbox.
+- **Everneed Store only:** tabs Overview, Products, Orders; menu Messages, Staff, Account. No platform link anywhere, and platform routes still redirect to the store (the rule from `ds-admin.js`). This is front-end separation only; real store-scoped staff access needs backend request R2.
+- Menu footer has a Switch workspace button instead of Add product.
+
 ## Next slices
 1. Product rows in the recording's style (variants count, available stock, status dot, actions sheet) and product detail as stacked cards.
 2. Settings screen split into App settings (push notifications, biometric unlock: needs native plugins) and Store settings (General, Plan, Billing).
