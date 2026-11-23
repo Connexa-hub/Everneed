@@ -42,9 +42,10 @@ window.Cards=(function(){
   function start(o){q().catch(function(){return[]}).then(function(l){
     sheet(X+'<h3>Pay by card</h3><p class="m">Order total '+A.fmt(o.total)+'. Paystack handles your card securely.</p>'+l.map(function(c){return'<button class="btn w" data-act="cpay" data-o="'+o.id+'" data-id="'+c.id+'">Pay with '+esc(nm(c))+"</button>"}).join("")+'<button class="btn '+(l.length?"o ":"")+'w" data-act="cnew" data-o="'+o.id+'">'+(l.length?"Use a different card or bank":"Continue to payment")+"</button>")})}
   function pop(r){
-    if(r.access_code&&window.PaystackPop){new window.PaystackPop().resumeTransaction(r.access_code,{onSuccess:function(){check(false)},onCancel:function(){sheet(null);notify("Payment cancelled. Your cart is safe.");A.toCart()}});return}
-    if(r.url){var w=window.open(r.url,"_blank","noopener");if(!w)notify("Open the secure Paystack checkout link from your browser's popup notice.","err");return}
-    wait(pend.order,pend.ref,"initializing",false)
+    var go=function(){if(r.access_code&&window.PaystackPop){new window.PaystackPop().resumeTransaction(r.access_code,{onSuccess:function(){check(false)},onCancel:function(){sheet(null);notify("Payment cancelled. Your cart is safe.");A.toCart()}});return}if(r.url){var w=window.open(r.url,"_blank","noopener");if(!w)notify("Open the secure Paystack checkout link from your browser's popup notice.","err");return}wait(pend.order,pend.ref,"initializing",false)};
+    if(window.PaystackPop)return go();
+    if(r.access_code){var s=document.createElement("script");s.src="https://js.paystack.co/v2/inline.js";s.onload=go;s.onerror=function(){go()};document.head.appendChild(s);return}
+    go()
   }
   function act(k,d){
     if(k==="cnew"){launch(d.o,false);return true}
