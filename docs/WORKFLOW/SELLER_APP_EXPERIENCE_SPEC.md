@@ -29,3 +29,16 @@ Customers list, Growth, Discounts, Content, Markets, Credit, Analytics reports, 
 
 ## Needs the owner
 Real-device check of the floating bar, safe areas and the Android back button; those cannot be tested here.
+
+## Session hand-over contract (shopper app to bundled seller workspace)
+Agreed direction (owner, 23 Nov 2026): the shopper signs in once in the app, shops, taps Seller / My store, and the bundled seller workspace opens already signed in. It works whichever sign-in method was used (email code, password, or ChatGPT's native Google flow, PKCE through Capacitor Browser and the `com.everneed.store://auth/callback` return), because they all end as the same stored session.
+
+1. **One stored session.** The app's session (`en_sess`: `access_token`, `refresh_token`, `expires_at`, `uid`) is the single source of truth. The seller workspace is bundled into the app build and served from the same origin, so it can read it directly. No token travels in a URL.
+2. **Web side (done, WEB-S22):** `shared/supa.js` now honours `window.EV_SESSION_KEY`. The app build sets `window.EV_SESSION_KEY="en_sess"` before loading it. It also takes the newest stored session before using or refreshing, since refresh tokens are single use and two clients refreshing separate copies would log each other out. Tested in `supa-session.js`.
+3. **App side (ChatGPT, not done):**
+   - Bundle `web/` into `www/seller/` in the app build (staging config for non-main builds), set the native flag so `ds-app.js` is on by default, and open it from the "Seller" entry.
+   - The app's own `js/supa.js` must do the same before refreshing: re-read `en_sess` and use the newest, and re-read it when returning from the seller workspace to shopping.
+   - Sign out must clear `en_sess` once, which signs out both.
+   - Show "Seller" only for an account that owns a store; otherwise route to the open-a-store flow.
+   - Android back button: inside the seller workspace go back within it, and from its Home return to the shopping experience.
+4. **Not changed:** the app's Google sign-in itself, redirect URLs, or any production setting.

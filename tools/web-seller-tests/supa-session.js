@@ -23,5 +23,10 @@ function env(script){
    let err=null;try{await e.Supa.get('x')}catch(x){err=x}assert(err);assert.equal(e.calls.filter(c=>c[0].includes('refresh_token')).length,1);assert.equal(e.events.length,0);assert.equal(e.Supa.uid(),'u1')});
  await t('other errors (403, 400, 500) are untouched',async()=>{
    for(const s of [400,403,500]){const e=env(()=>({s,b:{message:'m'+s}}));let err=null;try{await e.Supa.get('x')}catch(x){err=x}assert.equal(err.message,'m'+s);assert.equal(e.calls.length,1);assert.equal(e.events.length,0)}});
+ await t('shared session: a key set by the app is used, and a newer stored session is adopted before refreshing',async()=>{
+   const e=env((u)=>({s:200,b:[{ok:1}]}));e.store.en_web_sess=JSON.stringify({access_token:'newer',refresh_token:'r9',expires_at:Date.now()+7200e3,uid:'u1'});
+   await e.Supa.get('x');assert.equal(e.calls[0][1],'Bearer newer');
+   const ctx2={};const src=fs.readFileSync(path.join(__dirname,'../../shared/supa.js'),'utf8');assert(/window\.EV_SESSION_KEY/.test(src))});
+
  console.log(`${pass} passed, ${fail} failed`);
 })();

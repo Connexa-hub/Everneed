@@ -1,6 +1,6 @@
 /* Small Supabase client (Auth, REST, Storage) for the website. Same project and same rules as the app. */
 (function(){
-  var C=CFG.supabase,U=C.url.replace(/\/$/,""),K=C.key,sess=null,KEY="en_web_sess";
+  var C=CFG.supabase,U=C.url.replace(/\/$/,""),K=C.key,sess=null,KEY=(typeof window!=="undefined"&&window.EV_SESSION_KEY)||"en_web_sess";
   try{sess=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){}
   function save(j){if(j&&j.access_token){var uid=(j.user&&j.user.id)||(sess&&sess.uid);if(!uid){try{uid=JSON.parse(atob(j.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||null}catch(e){}}sess={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,uid:uid};try{localStorage.setItem(KEY,JSON.stringify(sess))}catch(e){}}return j}
   function saveHashSession(){
@@ -22,12 +22,15 @@
   function raw(path,o){o=o||{};var h={apikey:K,"Content-Type":"application/json",Authorization:"Bearer "+((!o.anon&&sess&&sess.access_token)||K)};for(var k in (o.h||{}))h[k]=o.h[k];
     return fetch(U+path,{method:o.m||"GET",headers:h,body:o.b===undefined?undefined:JSON.stringify(o.b)}).then(function(r){return r.text().then(function(t){var j=null;try{j=t?JSON.parse(t):null}catch(e){}
       if(!r.ok){var er=new Error((j&&(j.msg||j.message||j.error_description||j.error))||"Request failed ("+r.status+")");er.status=r.status;throw er}return j})})}
-  function ready(){if(!sess||sess.expires_at-Date.now()>60000)return Promise.resolve();
+  /* When the seller workspace is bundled in the app, both share one stored session (set window.EV_SESSION_KEY before this file loads).
+     Another part of the app may have refreshed it, and refresh tokens are single use, so take the newest stored copy before using or refreshing ours. */
+  function adopt(){try{var s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.access_token&&(!sess||(s.expires_at||0)>(sess.expires_at||0)))sess=s}catch(e){}}
+  function ready(){adopt();if(!sess||sess.expires_at-Date.now()>60000)return Promise.resolve();
     return raw("/auth/v1/token?grant_type=refresh_token",{m:"POST",b:{refresh_token:sess.refresh_token},anon:1}).then(save).catch(function(){sess=null;try{localStorage.removeItem(KEY)}catch(e){}})}
   /* A stale or revoked access token makes every call fail with 401 and a reload never fixes it. Refresh once and retry; if the session cannot be
      refreshed, drop it and tell the page (event "en:session-lost") so the person is sent to sign in instead of seeing a dead error page. */
   function lost(){sess=null;try{localStorage.removeItem(KEY)}catch(e){}try{window.dispatchEvent(new Event("en:session-lost"))}catch(e){}}
-  function refreshNow(){if(!sess||!sess.refresh_token)return Promise.reject(new Error("no session"));
+  function refreshNow(){adopt();if(!sess||!sess.refresh_token)return Promise.reject(new Error("no session"));
     return raw("/auth/v1/token?grant_type=refresh_token",{m:"POST",b:{refresh_token:sess.refresh_token},anon:1}).then(save)}
   function api(p,o){return ready().then(function(){return raw(p,o)}).catch(function(e){
     if(!e||e.status!==401||!sess||(o&&o._r))throw e;

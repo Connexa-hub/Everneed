@@ -155,3 +155,6 @@ The editor now creates every option combination (Colour x Size and so on) in one
 
 ### R12. Seller order actions (23 Nov 2026, Claude) - WITHDRAWN, my mistake
 I first wrote that no seller order action existed. That was wrong: `seller_transition(p_so, p_to, p_payload)` exists (my search had matched only function names containing "order"). The Orders screen now calls it for accept, decline (reason required), start preparing, mark ready, send out for delivery (direct route, optional courier) and hand over to hub. Remaining small asks: (a) `accept_by` deadline and race hardening noted by ChatGPT; (b) document the `items` json shape (the screen reads `name|title`, `qty|quantity`, `price|unit_price`, `variant|size`).
+
+### App packaging (frontend, for ChatGPT), 23 Nov 2026, Claude
+Not a database request. The shopper app should open the bundled seller workspace on the same stored session, so a seller never signs in twice. The web side is ready (`window.EV_SESSION_KEY`, newest-session adoption in `shared/supa.js`); the app-side steps are in `SELLER_APP_EXPERIENCE_SPEC.md`, "Session hand-over contract".
