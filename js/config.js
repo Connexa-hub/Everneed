@@ -3,10 +3,10 @@
 function C(n,s,l,d,tz,auth,cur){return{name:n,symbol:s,locale:l,dial:d,tz:tz,auth:auth,cur:cur,fee:0,freeFrom:0,whatsapp:"",bank:{name:"",number:"",holder:""},terms:"",privacy:""}}
 var LIVE={url:"https://zpgasfweaixwsktlueje.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwZ2FzZndlYWl4d3NrdGx1ZWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMDE5NjQsImV4cCI6MjEwODc3Nzk2NH0.X6bf9sp2RC5q_icqcN3BUQyJVmIKF9H5pglpYeqPMZM"};
 var STAGING={url:"https://vjiadqygpyebpisxslbx.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqaWFkcXlncHllYnBpc3hzbGJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0ODMzNzksImV4cCI6MjExMDA1OTM3OX0.DKdQaz5TKu5I2Le9m4Bq40h3_q9J5oYqXEn3IZZsKIU"};
-/* build.js is stamped by CI before this file is loaded. Unknown/local branches fail safely to staging. */
 var branch=(window.BUILD&&window.BUILD.branch)||"local",env=branch==="main"?"live":"staging";
 window.CFG={
   name:"EverNeed",adminEmail:"",minAge:18,env:env,
+  googleWebClientId:"", /* Set to the Google OAuth Web client ID; shared by native Credential Manager and Supabase. */
   ads:{enabled:false,test:true,appId:"ca-app-pub-3940256099942544~3347511713",bannerId:"ca-app-pub-3940256099942544/6300978111"},
   baseCurrency:"NGN",emailCodes:false,supabase:env==="live"?LIVE:STAGING,defaultCountry:"NG",
   collections:["Groceries","Electricals","Accessories","Skincare"],
@@ -19,7 +19,6 @@ window.CFG={
     US:C("United States","$","en-US","+1",["America/New_York","America/Chicago","America/Denver","America/Los_Angeles"],["email"],"USD")
   }
 };
-/* A test APK must visibly identify itself so testers do not confuse staging with live. */
 if(env==="staging"&&typeof document!=="undefined"){
   var tag=function(){
     if(document.getElementById("env-ribbon"))return;
