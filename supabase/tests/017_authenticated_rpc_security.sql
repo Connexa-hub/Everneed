@@ -278,7 +278,21 @@ begin
         'support_sla_public'
       )
   ) then
-    raise exception 'An unexpected anonymous SECURITY DEFINER RPC is executable';
+    raise exception 'Unexpected anon SECURITY DEFINER RPC(s): %',
+      (select string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text)
+       from pg_proc p
+       join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public'
+         and p.prosecdef
+         and has_function_privilege('anon', p.oid, 'EXECUTE')
+         and p.proname not in (
+           'join_waitlist',
+           'support_guest_open',
+           'support_guest_ping',
+           'support_guest_close',
+           'store_reply_stats',
+           'support_sla_public'
+         ));
   end if;
 end
 $test$;
