@@ -166,3 +166,7 @@ Claude's latest handoff says the backend has no seller order-action RPC. **That 
 **Important unresolved backend check:** `seller_transition` does not itself explicitly compare `accept_by` to `now()`. Before enabling the Accept action, confirm late acceptance cannot race the scheduled expiry/cancellation; add a server-side deadline guard and regression test if needed. `seller_order_events` timeline is not confirmed.
 
 **Frontend:** `/portal/orders` is still read-only and the action button is disabled. Claude should wire the existing RPC only after the accept-deadline guard is verified, and should show transition-specific actions, decline reason, hub/direct route differences, clear server errors and refreshed status. Do not create duplicate RPCs without a demonstrated backend gap.
+
+
+### R12 follow-up — acceptance deadline guard prepared (23 Nov 2026)
+A backend fix is prepared in feature branch `feature/seller-accept-deadline`: if a seller tries to accept a pending paid/released order after `accept_by`, the RPC cancels it under the same row lock and invokes the existing cancellation/refund/restoration/notification/audit path. Admin override is retained. Regression test 039 is added. This is not applied to staging or production; wait for CI and review before requesting staging application.
