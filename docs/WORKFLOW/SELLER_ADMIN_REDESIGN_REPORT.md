@@ -56,7 +56,7 @@ Tests: `node tools/web-seller-tests/ds-seller.js` (12 pass). Browser: Chromium a
 
 ## Part 6 (23 Nov 2026): seller Orders
 - New Orders tab (5th seller tab) and `/portal/orders` for live stores: filter chips (All, New, In progress, Delivered, Closed) with counts, search by name, city or order, tiles for new, in progress and earned from delivered orders, a detail sheet (totals, commission, what you earn, address, tap-to-call phone, items).
-- **Read-only on purpose:** there is no seller order action in the database (request R12). The sheet shows a disabled "Accept order" with the reason; nothing pretends to succeed.
+- **Read-only pending wiring/hardening:** staging already has authenticated `seller_transition(p_so,p_to,p_payload)` with ownership, payment, legal-transition checks, notifications and audit. The UI action is disabled while frontend wiring and explicit `accept_by` deadline/race hardening are verified; no new action RPC is currently required.
 - True empty state and a retry state; verified at 360 px, no sideways scroll. Tests: ds-seller.js now 19.
 
 ## Part 7 (23 Nov 2026): seller Messages restyle
