@@ -88,6 +88,7 @@ begin
   perform public.zz_anon();
   r := r || public.zz_ok('anon sees approved stores (3 incl. official)', public.zz_n('select count(*) from public.public_stores') = 3);
   r := r || public.zz_ok('official EverNeed store remains public without seller subscription', public.zz_n($q$select count(*) from public.public_stores where id='everneed-official'$q$) = 1);
+  r := r || public.zz_ok('official store fixture has no seller subscription', public.zz_n($q$select count(*) from public.store_subscriptions where store_id='everneed-official'$q$) = 0);
   r := r || public.zz_ok('anon cannot read store_private (pickup address, phone)', public.zz_try('select * from public.store_private') like 'ERR%');
   r := r || public.zz_ok('anon cannot read owner_id', public.zz_try('select owner_id from public.stores') like 'ERR%');
   r := r || public.zz_ok('anon cannot read applications (ID and bank details)', public.zz_try('select * from public.store_applications') like 'ERR%');
@@ -122,6 +123,7 @@ begin
   perform public.zz_as(ua); perform public.review_product(p1, 'publish'); perform public.zz_back();
   perform public.zz_anon();
   r := r || public.zz_ok('anon sees published products only', public.zz_n('select count(*) from public.public_products') = 4);
+  r := r || public.zz_ok('official EverNeed product is publicly visible', public.zz_n(format($q$select count(*) from public.public_products where id=%L$q$, p3)) = 1);
   r := r || public.zz_ok('anon cannot read review notes', public.zz_try('select * from public.product_private') like 'ERR%');
   perform public.zz_back();
   -- unpublished (draft) hidden from anon
