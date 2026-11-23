@@ -64,6 +64,10 @@ Tests: `node tools/web-seller-tests/ds-seller.js` (12 pass). Browser: Chromium a
 - Still blocked on backend request R4: real "awaiting reply" and urgency fields, buyer names for sellers, order context card, attachments, quick replies, receipts. Nothing is faked meanwhile.
 - Not done: swipe actions on conversations (needs mute/archive/pin fields, R4 item 7).
 
+## Part 8 (23 Nov 2026): notifications panel
+- Small edit in `notify.js` (others' file): icon chosen by notification kind (message, store, order, payment, product), and an All / Unread filter above the list; styles in `ds.css`. Messages, mark-all-read, permissions note and live polling are unchanged. Checked at 360 px.
+- Not done: grouping by day and per-notification actions; deep links depend on `data.url` being set by the backend (R1 in the handoff).
+
 ## Tests actually run
 - `node tools/web-seller-tests/ds.js`: **28 of 28 pass** (art mapping for all 22 categories, no unclassed SVG shape, no emoji in icons, money formatting, HTML escaping in every builder, banner roles, overview numbers, all-clear and failure behaviour, applications, stores filters and actions, review, Everneed Store tabs, staff honesty, switcher, action-name prefix).
 - `node tools/web-seller-tests/run.js` (existing): **22 of 22 pass**.

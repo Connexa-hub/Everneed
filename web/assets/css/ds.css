@@ -373,3 +373,9 @@ html.ds-navbusy #main{opacity:.72;transition:opacity var(--ds-d2)}
 @media(max-width:900px){.ax .ibx{grid-template-columns:minmax(0,1fr)}}
 .ax .cv.un p{padding-right:30px}
 @media(max-width:900px){.ax .main:has(.ibx.sel) .ds-lnk,.ax .main:has(.ibx.sel) .ibh{display:none}.ax .main:has(.ibx.sel) .ibx{height:calc(100dvh - 140px)}}
+
+/* Notifications panel filter */
+.nt-f{display:flex;gap:var(--ds-s2);padding:var(--ds-s3) 18px 0}
+.nt-f button{min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:var(--ds-r3,12px);background:transparent;color:var(--text-2);font:inherit;font-weight:600;font-size:.85rem;cursor:pointer}
+.nt-f button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--text-on-brand)}
+.nt-f button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
