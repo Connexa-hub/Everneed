@@ -6,7 +6,7 @@ var STAGING={url:"https://vjiadqygpyebpisxslbx.supabase.co",key:"eyJhbGciOiJIUzI
 /* build.js is stamped by CI before this file is loaded. Unknown/local branches fail safely to staging. */
 var branch=(window.BUILD&&window.BUILD.branch)||"local",env=branch==="main"?"live":"staging";
 window.CFG={
-  name:"EverNeed",adminEmail:"",minAge:18,env:env,
+  name:"EverNeed",adminEmail:"",minAge:18,env:env,googleWebClientId:"",
   ads:{enabled:false,test:true,appId:"ca-app-pub-3940256099942544~3347511713",bannerId:"ca-app-pub-3940256099942544/6300978111"},
   baseCurrency:"NGN",emailCodes:false,supabase:env==="live"?LIVE:STAGING,defaultCountry:"NG",
   collections:["Groceries","Electricals","Accessories","Skincare"],
