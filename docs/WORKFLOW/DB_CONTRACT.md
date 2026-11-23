@@ -312,3 +312,9 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+
+## Seller acceptance deadline hardening — proposed migration 20261123021500
+
+Migration `20261123021500_seller_order_accept_deadline_guard.sql` updates `seller_transition` so that an authenticated seller attempting to accept a pending, released order after `accept_by` cannot win a race against the scheduled expiry worker. Under the existing seller-order row lock, it calls `private.cancel_so` to cancel and perform existing refund/stock-restoration/notification/audit handling, then returns. Admin override is retained. Regression test `039_seller_order_accept_deadline_checks.sql` covers an expired deadline and a valid future deadline. **Prepared on a feature branch only; not applied to staging or production.** CI replay/test is pending.
