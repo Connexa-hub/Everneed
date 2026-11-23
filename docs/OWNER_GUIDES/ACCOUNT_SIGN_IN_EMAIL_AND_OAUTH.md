@@ -123,7 +123,7 @@ Do this in staging first. Google sign-in requires a Google OAuth client and matc
 7. Test in a fresh private browser session and a staging Android build.
 
 ### Android app note
-The Android login screen now offers **Continue with Google**. On Android, the app opens Google's/Supabase's hosted OAuth flow in the system browser and returns to Everneed through `com.everneed.store://auth/callback`. The app restores the Supabase session after the deep link. First-time Google users are asked to finish the existing profile step, including date of birth, before entering the marketplace; the app does not bypass the 18+ age gate. The native OAuth flow is not usable until the Google provider is enabled in the staging Supabase project and its redirect URI is allow-listed.
+The Android login screen now offers **Continue with Google** using the PKCE authorization-code flow. The app creates a short-lived verifier/challenge and exchanges the returned code; tokens are not delivered in the redirect fragment. On Android, the app opens Google's/Supabase's hosted OAuth flow in the system browser and returns to Everneed through `com.everneed.store://auth/callback`. The app restores the Supabase session after the deep link. First-time Google users are asked to finish the existing profile step, including date of birth, before entering the marketplace; the app does not bypass the 18+ age gate. The native OAuth flow is not usable until the Google provider is enabled in the staging Supabase project and its redirect URI is allow-listed.
 
 ### C. Test before production
 
