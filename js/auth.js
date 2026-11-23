@@ -5,9 +5,10 @@ window.Auth=(function(){
   var back='<button class="lnk" data-act="aback">Use a different email</button>';
   function googleButton(){return'<button type="button" class="btn o w" data-act="google" style="display:flex;align-items:center;justify-content:center;gap:10px"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5h6.7c3.9-3.6 6-8.9 6-14.9z"/><path fill="#34A853" d="M24 44c5.6 0 10.3-1.9 13.7-5.1l-6.7-5c-1.9 1.3-4.2 2.1-7 2.1-5.4 0-10-3.7-11.6-8.7H3.5v5.2C7 39.4 15 44 24 44z"/><path fill="#FBBC05" d="M12.4 27.3a12 12 0 0 1 0-6.6v-5.2H3.5a20 20 0 0 0 0 17z"/><path fill="#EA4335" d="M24 12.1c3 0 5.7 1 7.8 3.1l5.9-5.9C34.2 5.8 29.5 4 24 4 15 4 7 8.6 3.5 15.5l8.9 5.2c1.6-5 6.2-8.6 11.6-8.6z"/></svg>Continue with Google</button><div class="or"><span>or continue with email</span></div>'}
   function b64url(bytes){var s="";for(var i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
-  var socialReady=false;
+  var socialReady=false,nativeBusy=false;
   function hex(bytes){return Array.prototype.map.call(bytes,function(b){return("0"+b.toString(16)).slice(-2)}).join("")}
   function nativeGoogle(){
+    if(nativeBusy)return Promise.resolve();nativeBusy=true;
     var P=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SocialLogin,webId=CFG.googleWebClientId;
     if(!P||!P.initialize||!P.login){notify("Native Google sign-in isn't installed in this build. Please update the app.","err");return Promise.reject(new Error("SocialLogin plugin unavailable"))}
     if(!webId){notify("Native Google sign-in needs Everneed's Google Web client ID configured.","err");return Promise.reject(new Error("Google Web client ID missing"))}
@@ -16,7 +17,7 @@ window.Auth=(function(){
       var nonceBytes=new Uint8Array(32);crypto.getRandomValues(nonceBytes);var rawNonce=b64url(nonceBytes);
       return crypto.subtle.digest("SHA-256",new TextEncoder().encode(rawNonce)).then(function(hash){
         var hashedNonce=hex(new Uint8Array(hash));
-        return P.login({provider:"google",options:{scopes:["email","profile"],nonce:hashedNonce,style:"bottom"}}).then(function(res){
+        return P.login({provider:"google",options:{scopes:["email","profile"],nonce:hashedNonce}}).then(function(res){
           var result=res&&res.result||res,idToken=result&&result.idToken;
           if(!idToken)throw new Error("Google didn't return a valid ID token. Try again.");
           return Supa.signInWithGoogleIdToken(idToken,rawNonce).then(function(){
@@ -32,7 +33,7 @@ window.Auth=(function(){
           });
         });
       });
-    }).catch(function(e){if(/cancel|dismiss|user cancelled|user canceled/i.test(String(e&&e.message||e))){notify("Google sign-in cancelled.");return}A.netErr(e)});
+    }).catch(function(e){if(/cancel|dismiss|user cancelled|user canceled/i.test(String(e&&e.message||e))){notify("Google sign-in cancelled.");return}A.netErr(e)}).then(function(){nativeBusy=false},function(){nativeBusy=false});
   }
   function google(){if(A.oauthReset)A.oauthReset();if(!Supa.on()){notify("Sign-in is unavailable while offline.","err");return}
     var native=window.Capacitor&&Capacitor.getPlatform&&Capacitor.getPlatform()!=="web";
