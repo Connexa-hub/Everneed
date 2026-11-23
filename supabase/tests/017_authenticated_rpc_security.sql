@@ -235,7 +235,7 @@ begin
   perform public.zz_f17_back();
 
   -- Every authenticated-callable public SECURITY DEFINER function must have an empty path
-  -- and no implicit PUBLIC EXECUTE. Anonymous access is limited to the six intended public RPCs.
+  -- and no implicit PUBLIC EXECUTE. Anonymous access is limited to the seven intended public RPCs.
   if exists (
     select 1
     from pg_proc p
@@ -275,7 +275,8 @@ begin
         'support_guest_ping',
         'support_guest_close',
         'store_reply_stats',
-        'support_sla_public'
+        'support_sla_public',
+        'seller_plan_catalog'
       )
   ) then
     raise exception 'Unexpected anon SECURITY DEFINER RPC(s): %',
@@ -291,7 +292,8 @@ begin
            'support_guest_ping',
            'support_guest_close',
            'store_reply_stats',
-           'support_sla_public'
+           'support_sla_public',
+        'seller_plan_catalog'
          ));
   end if;
 end
