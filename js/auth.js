@@ -10,8 +10,8 @@ window.Auth=(function(){
   function nativeGoogle(){
     if(nativeBusy)return Promise.resolve();nativeBusy=true;
     var P=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SocialLogin,webId=CFG.googleWebClientId;
-    if(!P||!P.initialize||!P.login){notify("Native Google sign-in isn't installed in this build. Please update the app.","err");return Promise.reject(new Error("SocialLogin plugin unavailable"))}
-    if(!webId){notify("Native Google sign-in needs Everneed's Google Web client ID configured.","err");return Promise.reject(new Error("Google Web client ID missing"))}
+    if(!P||!P.initialize||!P.login){nativeBusy=false;notify("Native Google sign-in isn't installed in this build. Please update the app.","err");return Promise.resolve()}
+    if(!webId){nativeBusy=false;notify("Native Google sign-in needs Everneed's Google Web client ID configured.","err");return Promise.resolve()}
     var init=socialReady?Promise.resolve():P.initialize({google:{webClientId:webId,mode:"online"}}).then(function(){socialReady=true});
     return init.then(function(){
       var nonceBytes=new Uint8Array(32);crypto.getRandomValues(nonceBytes);var rawNonce=b64url(nonceBytes);
