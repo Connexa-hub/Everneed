@@ -48,6 +48,12 @@ Tests: `node tools/web-seller-tests/ds-seller.js` (12 pass). Browser: Chromium a
 - **Not possible yet (backend, request R10 below):** price, photo and SKU per variant. The editor says so.
 - Verified in Chromium at 360 px: colour mixer, size sheet with a custom value, 9 variants, stock for all, save sent sizes, axes, stocks and `variant_colours`. Tests: ds-editor.js 6, ds-seller.js 17, ds.js 32, existing 22.
 
+## Part 5 (23 Nov 2026): stale sign-ins and the seller "error code" report
+- Owner report: some seller accounts open to an error code, reload does not help, dashboard empty. **Not reproduced.** Checked with the database: both seller accounts have live stores, RLS and `my_store_entitlements()`, `seller_product_capabilities()`, `my_seller_orders()` all return correctly; API logs show no seller errors. Auth logs show `bad_oauth_state` (Google sign-in callback, a Supabase-hosted page the site cannot intercept) and one stale-token 401.
+- **Hardening shipped** (`shared/supa.js`, `ds.js`): a 401 now refreshes the token once and retries; if that fails the session is dropped and the person is sent to sign in with a clear message, instead of a dead error page. This is a hypothesis fix, not a confirmed cause.
+- **Needed from the owner:** the exact error text or a screenshot, and whether those accounts signed in with Google, email code or password.
+- The same `shared/supa.js` is copied into the app build, so the app gets this recovery too.
+
 ## Tests actually run
 - `node tools/web-seller-tests/ds.js`: **28 of 28 pass** (art mapping for all 22 categories, no unclassed SVG shape, no emoji in icons, money formatting, HTML escaping in every builder, banner roles, overview numbers, all-clear and failure behaviour, applications, stores filters and actions, review, Everneed Store tabs, staff honesty, switcher, action-name prefix).
 - `node tools/web-seller-tests/run.js` (existing): **22 of 22 pass**.
