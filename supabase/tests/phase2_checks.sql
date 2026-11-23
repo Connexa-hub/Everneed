@@ -85,10 +85,10 @@ begin
   perform public.zz_as(um2); perform public.request_store_activation(sB); perform public.zz_back();
   r := r || public.zz_ok('approval makes the owner a merchant', (select role from public.profiles where id = um1) = 'merchant');
   r := r || public.zz_ok('approval starts a trial subscription', (select status from public.store_subscriptions where store_id = sA) = 'trialing');
+  r := r || public.zz_ok('official store fixture has no seller subscription', public.zz_n($q$select count(*) from public.store_subscriptions where store_id='everneed-official'$q$) = 0);
   perform public.zz_anon();
   r := r || public.zz_ok('anon sees approved stores (3 incl. official)', public.zz_n('select count(*) from public.public_stores') = 3);
   r := r || public.zz_ok('official EverNeed store remains public without seller subscription', public.zz_n($q$select count(*) from public.public_stores where id='everneed-official'$q$) = 1);
-  r := r || public.zz_ok('official store fixture has no seller subscription', public.zz_n($q$select count(*) from public.store_subscriptions where store_id='everneed-official'$q$) = 0);
   r := r || public.zz_ok('anon cannot read store_private (pickup address, phone)', public.zz_try('select * from public.store_private') like 'ERR%');
   r := r || public.zz_ok('anon cannot read owner_id', public.zz_try('select owner_id from public.stores') like 'ERR%');
   r := r || public.zz_ok('anon cannot read applications (ID and bank details)', public.zz_try('select * from public.store_applications') like 'ERR%');
