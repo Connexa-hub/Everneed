@@ -131,6 +131,18 @@ function login(why,next){after=next||null;au={step:"email"};location.hash="#/log
 function loginPage(){return user?meBody():Auth.page()}
 var busy=false,netErr=function(er){if(/fetch|network|load failed/i.test(er.message))offline();else notify(er.message,"err")};
 function authed(){return Supa.profile().then(function(p){user={id:Supa.uid(),name:p.name||p.phone||"Customer",email:p.email||"",phone:p.phone||"",photo:p.photo||"",country:p.country,since:Date.parse(p.created)||Date.now(),admin:p.role==="admin"};S.set("user",user);if(window.Theme)Theme.fromProfile(p);if(user.country)Ctx.set(user.country);return S.load()}).then(function(){var n=after;after=null;au={step:"email"};notify("Welcome, "+user.name.split(" ")[0]);if(user.admin){location.hash="#/a";return}if(cur()[0]==="login"){if(n){history.back();setTimeout(n,350)}else location.hash="#/"}else{refresh();if(n)n()}})}
+function oauthComplete(url){if(!url)return;var h="",q="",u;try{u=new URL(url);h=u.hash.replace(/^#/,"");q=u.search.replace(/^\?/,"")}catch(e){var z=String(url).split("#");h=z[1]||""}
+var p=new URLSearchParams(h||q),err=p.get("error_description")||p.get("error");if(err){notify("Google sign-in failed: "+decodeURIComponent(err.replace(/\+/g," ")),"err");return}
+var tokens={access_token:p.get("access_token"),refresh_token:p.get("refresh_token"),expires_in:Number(p.get("expires_in")||3600)};
+if(!tokens.access_token||!tokens.refresh_token)return;
+if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Browser&&Capacitor.getPlatform&&Capacitor.getPlatform()!=="web")Capacitor.Plugins.Browser.close().catch(function(){});
+Supa.oauthSession(tokens).then(function(g){return Supa.profile().then(function(pr){var nm=pr.name||g.user_metadata&&((g.user_metadata.full_name)||g.user_metadata.name)||g.email||"Customer";
+if(!pr.dob){if(!pr.name)Supa.patchProfile({name:nm,email:g.email||"",photo:(g.user_metadata&&g.user_metadata.avatar_url)||""}).catch(function(){});A.au({step:"profile",email:g.email||"",name:nm,country:pr.country||Ctx.get().code});refresh();notify("One last step: confirm your date of birth.");return}
+return authed()})}).catch(netErr)}
+function setupOAuthLinks(){var AP=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.App;if(!AP)return;
+if(AP.addListener)AP.addListener("appUrlOpen",function(e){if(e&&e.url)oauthComplete(e.url)});
+if(AP.getLaunchUrl)AP.getLaunchUrl().then(function(r){if(r&&r.url)oauthComplete(r.url)}).catch(function(){});
+}
 function remoteSignin(f,d,sb){var up=!(sb&&sb.value==="in");
 if(miss(d,up?["name","email","password"]:["email","password"]))return;
 if(!/.+@.+\..+/.test(d.email)){notify("Enter a valid email address.","err");return}
@@ -216,5 +228,6 @@ document.addEventListener("touchend",function(){if(y0==null)return;var go=pull>1
 ind.className="spin";ind.style.transform="translate(-50%,52px)";reload(true).then(reset)});
 })();
 window.A={card:card,grid:grid,cart:function(){return cart},setLine:setLine,removeLine:removeLine,optText:optText,clearCart:clearCart,toCart:toCart,byId:byId,addCart:addCart,base:function(n){return Ctx.money(n,Ctx.base())},cmoney:function(n){return Ctx.money(n,(CFG.countries[ctx().code]||{}).cur)},$:$,esc:esc,fmt:fmt,tint:tint,ico:ico,notify:notify,sheet:sheet,field:field,fileBtn:fileBtn,shrink:shrink,withImg:withImg,ctx:ctx,cols:cols,refresh:refresh,bar:bar,empty:empty,legal:legal,authed:authed,netErr:netErr,cur:cur,user:function(){return user},au:function(v){if(v)au=v;return au},signout:function(){user=null;S.set("user",null);Supa.out();S.load();location.hash="#/hello";route();notify("Signed out")}};
+setupOAuthLinks();if(location.hash.indexOf("access_token=")>-1){var oh=location.hash;history.replaceState(null,"",location.pathname+location.search);oauthComplete(location.href.split("#")[0]+"#"+oh.slice(1))}
 theme();var first=!S.get("onb",0)&&!location.hash.replace(/^#\/?/,"");if(first){history.replaceState(null,"","#/welcome");refresh()}else{$("#app").innerHTML=skel()}permPending().then(function(p){pend=p});Promise.all([S.load(),Promise.race([Ctx.loadRates(),new Promise(function(r){setTimeout(r,4000)})])]).then(function(){if(user&&Supa.on()&&!Supa.sess()){user=null;S.set("user",null)}return user&&Supa.on()?Supa.profile().then(function(p){user.admin=p.role==="admin";S.set("user",user)}).catch(function(){}):0}).then(function(){ready=true;Busy.mute=false;if(first&&cur()[0]==="welcome")return;route()});
 })();
