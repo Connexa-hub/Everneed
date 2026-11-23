@@ -21,10 +21,18 @@
   captureAuthCallback();
   function raw(path,o){o=o||{};var h={apikey:K,"Content-Type":"application/json",Authorization:"Bearer "+((!o.anon&&sess&&sess.access_token)||K)};for(var k in (o.h||{}))h[k]=o.h[k];
     return fetch(U+path,{method:o.m||"GET",headers:h,body:o.b===undefined?undefined:JSON.stringify(o.b)}).then(function(r){return r.text().then(function(t){var j=null;try{j=t?JSON.parse(t):null}catch(e){}
-      if(!r.ok)throw new Error((j&&(j.msg||j.message||j.error_description||j.error))||"Request failed ("+r.status+")");return j})})}
+      if(!r.ok){var er=new Error((j&&(j.msg||j.message||j.error_description||j.error))||"Request failed ("+r.status+")");er.status=r.status;throw er}return j})})}
   function ready(){if(!sess||sess.expires_at-Date.now()>60000)return Promise.resolve();
     return raw("/auth/v1/token?grant_type=refresh_token",{m:"POST",b:{refresh_token:sess.refresh_token},anon:1}).then(save).catch(function(){sess=null;try{localStorage.removeItem(KEY)}catch(e){}})}
-  function api(p,o){return ready().then(function(){return raw(p,o)})}
+  /* A stale or revoked access token makes every call fail with 401 and a reload never fixes it. Refresh once and retry; if the session cannot be
+     refreshed, drop it and tell the page (event "en:session-lost") so the person is sent to sign in instead of seeing a dead error page. */
+  function lost(){sess=null;try{localStorage.removeItem(KEY)}catch(e){}try{window.dispatchEvent(new Event("en:session-lost"))}catch(e){}}
+  function refreshNow(){if(!sess||!sess.refresh_token)return Promise.reject(new Error("no session"));
+    return raw("/auth/v1/token?grant_type=refresh_token",{m:"POST",b:{refresh_token:sess.refresh_token},anon:1}).then(save)}
+  function api(p,o){return ready().then(function(){return raw(p,o)}).catch(function(e){
+    if(!e||e.status!==401||!sess||(o&&o._r))throw e;
+    var had=sess.access_token;
+    return refreshNow().then(function(){var o2={};for(var k in (o||{}))o2[k]=o[k];o2._r=1;return raw(p,o2)},function(){lost();throw e})})}
   var REP={Prefer:"return=representation"};
   window.Supa={
     uid:function(){return sess&&sess.uid||null},

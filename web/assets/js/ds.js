@@ -347,6 +347,12 @@
   ["pointerup","pointercancel","scroll"].forEach(function(ev){doc.addEventListener(ev,function(){clearTimeout(lpT)},{passive:true,capture:true})});
   doc.addEventListener("pointermove",function(e){if(lpT&&(Math.abs(e.clientX-lpX)>8||Math.abs(e.clientY-lpY)>8))clearTimeout(lpT)},{passive:true});
 
+  /* The saved sign-in could not be refreshed (revoked, expired elsewhere, another account signed in): send the person to sign in with a clear note. */
+  window.addEventListener("en:session-lost",function(){
+    try{C.reset&&C.reset()}catch(e){}
+    var p=location.pathname;if(p==="/sign-in"||p==="/create-account"||p==="/"||p==="/login")return;
+    DS.toast("Your sign-in expired. Please sign in again.",{kind:"warn",duration:6000});C.go("/sign-in")});
+
   /* instant feedback on navigation: the tapped tab turns active at once and a thin progress bar runs until the next page is drawn.
      (No page transition: it froze the screen while the next page loaded, which felt slow.) */
   doc.addEventListener("click",function(e){
