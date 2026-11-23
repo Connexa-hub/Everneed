@@ -61,7 +61,8 @@ To enable Google:
    `https://zpgasfweaixwsktlueje.supabase.co/auth/v1/callback`
 4. Copy the Google client ID and client secret into **Supabase → Authentication → Sign In / Providers → Google**. Enable Google and save.
 5. Add the production and preview return URLs to Supabase's Auth redirect allow list. Keep the production Site URL set to the production website.
-6. Test a fresh Google account and an existing email/password account before enabling the provider on the production project.
+6. Add the native Android return URI to Supabase Redirect URLs: `com.everneed.store://auth/callback` (exact URI; no wildcard).
+7. Test a fresh Google account and an existing email/password account before enabling the provider on the production project.
 
 Google setup guide: https://supabase.com/docs/guides/auth/social-sign-in/auth-google  
 Supabase redirect URL guide: https://supabase.com/docs/guides/auth/redirect-urls
@@ -82,3 +83,8 @@ Apple, Facebook, and other providers each require their own developer-console cr
 ## 5. Production database caution
 
 At the time this checklist was added, staging had migrations through `018`, while the live `Everneed01` project had migrations through `015`. Migrations `016`–`018` are security and public-form boundary changes. Review their code and staging test results, then prepare a separately approved live migration plan. Do not replay or reset the live database as a shortcut.
+
+
+### Android app implementation status
+
+The app now has a Google OAuth button, Supabase OAuth session exchange, Capacitor Browser launch, and an Android deep-link receiver for `com.everneed.store://auth/callback`. A first-time Google account is routed through the existing profile completion screen so date of birth is collected and the 18+ rule is enforced. Implementation is on the feature branch awaiting staging CI and Android build/device verification. Provider credentials are not stored in source code; enable Google in staging Auth settings before testing.
