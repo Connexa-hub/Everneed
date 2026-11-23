@@ -11,7 +11,7 @@ window.Supa=(function(){
     on:on,ready:ready,sess:function(){return sess},uid:function(){return sess&&sess.uid||null},
     signUp:function(e,p,meta){return raw("/auth/v1/signup",{m:"POST",b:{email:e,password:p,data:meta},anon:true}).then(function(j){if(j&&j.access_token){setSess(j);return j}return{confirm:true}})},
     signIn:function(e,p){return raw("/auth/v1/token?grant_type=password",{m:"POST",b:{email:e,password:p},anon:true}).then(setSess)},
-    oauthUrl:function(provider,redirect){return U+"/auth/v1/authorize?provider="+encodeURIComponent(provider)+"&redirect_to="+encodeURIComponent(redirect)+"&response_type=token"},
+    oauthUrl:function(provider,redirect){return U+"/auth/v1/authorize?provider="+encodeURIComponent(provider)+"&redirect_to="+encodeURIComponent(redirect)+""},
     oauthSession:function(tokens){if(!tokens||!tokens.access_token||!tokens.refresh_token) return Promise.reject(new Error("Google sign-in did not return a valid session."));setSess(tokens);return raw("/auth/v1/user",{m:"GET",anon:true,h:{Authorization:"Bearer "+tokens.access_token}}).then(function(u){setSess({access_token:tokens.access_token,refresh_token:tokens.refresh_token,expires_in:tokens.expires_in||3600,user:u});return u})},
     otp:function(phone){return raw("/auth/v1/otp",{m:"POST",b:{phone:phone},anon:true})},
     verify:function(phone,code){return raw("/auth/v1/verify",{m:"POST",b:{type:"sms",phone:phone,token:code},anon:true}).then(setSess)},
