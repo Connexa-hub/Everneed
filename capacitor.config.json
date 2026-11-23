@@ -2,5 +2,15 @@
   "appId": "com.everneed.store",
   "appName": "EverNeed",
   "webDir": "www",
-  "backgroundColor": "#F1F6F4"
+  "backgroundColor": "#F1F6F4",
+  "plugins": {
+    "SocialLogin": {
+      "providers": {
+        "google": true,
+        "apple": false,
+        "facebook": false,
+        "twitter": false
+      }
+    }
+  }
 }
