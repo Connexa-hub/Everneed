@@ -60,7 +60,7 @@ if (paystackSource.includes('return json({ ok: true, queued: true });')) {
 
 // 4c. Checkout client must reuse an idempotency key for session recovery and never launch a blank Paystack session.
 const cardsSource = readFileSync('js/cards.js', 'utf8');
-for (const required of ['function makeKey(order,fresh)', 'idempotency_key:idem', 'if(r.url&&r.access_code)', 'function wait(order,ref,status,retry)', 'data-act="cretry"', 'action:"verify"']) {
+for (const required of ['function makeKey(order,fresh)', 'idempotency_key:idem', 'if(r.url&&r.access_code)', 'function wait(order,ref,status,retry)', 'data-act="cretry"', 'action:"verify"', 'B.open({url:r.url})']) {
   if (!cardsSource.includes(required)) fail('js/cards.js is missing payment-recovery guard: ' + required);
 }
 if (!cardsSource.includes('S.set(keyName(order),k)')) fail('js/cards.js must persist its per-order idempotency key');
