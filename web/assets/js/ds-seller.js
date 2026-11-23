@@ -297,4 +297,19 @@
     if(on)h=h.replace(/(<a href="\/me")\s+class="on" aria-current="page"/g,"$1");
     return h;
   }}
+
+  /* ---------- messages: compact chat-link card (the list and chips are restyled in ds.css) ---------- */
+  var inb=V.inbox;
+  V.inbox=function(p){
+    return Promise.resolve(inb(p)).then(function(r){
+      try{
+        if(!r||r.redirect||r.layout!=="portal"||typeof r.html!=="string")return r;
+        var m=/<button class="btn s" data-act="copylink" data-l="([^"]*)"/.exec(r.html);if(!m)return r;
+        var a=r.html.indexOf('<div class="note"'),b=r.html.indexOf('<div class="ibx"');if(a<0||b<a)return r;
+        r.html=r.html.slice(0,a)+'<div class="ds-lnk"><span class="ds-ico">'+D.icon("link",20)+'</span><span class="ds-grow"><b>Your store chat link</b><small>Share it with customers</small></span>'
+          +'<button type="button" class="ds-btn s o" data-act="copylink" data-l="'+m[1]+'">Copy link</button></div>'+r.html.slice(b);
+        return r;
+      }catch(e){return r}
+    });
+  };
 })();

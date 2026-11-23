@@ -59,6 +59,11 @@ Tests: `node tools/web-seller-tests/ds-seller.js` (12 pass). Browser: Chromium a
 - **Read-only on purpose:** there is no seller order action in the database (request R12). The sheet shows a disabled "Accept order" with the reason; nothing pretends to succeed.
 - True empty state and a retry state; verified at 360 px, no sideways scroll. Tests: ds-seller.js now 19.
 
+## Part 7 (23 Nov 2026): seller Messages restyle
+- `inbox.js` already had the two panes, Customers / Everneed tabs and Urgent / Needs reply / Ongoing sorting from existing fields, so its logic is untouched. Restyled on the design system: compact store chat-link card, four sort chips that fit at 360 px (no clipped "Ongoing"), soft-square avatars, one-line previews, unread rows bold, the header and link card hide while a thread is open on a phone.
+- Still blocked on backend request R4: real "awaiting reply" and urgency fields, buyer names for sellers, order context card, attachments, quick replies, receipts. Nothing is faked meanwhile.
+- Not done: swipe actions on conversations (needs mute/archive/pin fields, R4 item 7).
+
 ## Tests actually run
 - `node tools/web-seller-tests/ds.js`: **28 of 28 pass** (art mapping for all 22 categories, no unclassed SVG shape, no emoji in icons, money formatting, HTML escaping in every builder, banner roles, overview numbers, all-clear and failure behaviour, applications, stores filters and actions, review, Everneed Store tabs, staff honesty, switcher, action-name prefix).
 - `node tools/web-seller-tests/run.js` (existing): **22 of 22 pass**.

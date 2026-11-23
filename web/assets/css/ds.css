@@ -349,3 +349,27 @@ html.ds-navbusy #main{opacity:.72;transition:opacity var(--ds-d2)}
 .ds-kv span{color:var(--text-2)}.ds-kv b{text-align:right;font-weight:600;overflow-wrap:anywhere}.ds-kv a{color:var(--brand)}
 .ds-note{color:var(--text-2);font-size:var(--ds-t-s);margin:var(--ds-s2) 0 0}
 .ds-od .ds-ico{width:40px;height:40px;border-radius:var(--ds-r2);background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:none}
+
+/* Messages: Messenger-style list on the design system (logic stays in inbox.js) */
+.ds-lnk{display:flex;align-items:center;gap:var(--ds-s3);padding:var(--ds-s3) var(--ds-s4);margin:0 0 var(--ds-s3);background:var(--surface-1);border:1px solid var(--border);border-radius:var(--ds-r4)}
+.ds-lnk .ds-grow{flex:1;min-width:0}.ds-lnk b,.ds-lnk small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-lnk small{color:var(--text-2);font-size:var(--ds-t-s)}
+.ds-lnk .ds-ico{width:40px;height:40px;border-radius:var(--ds-r2);background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:none}
+.ax .ibx{border-radius:var(--ds-r4);box-shadow:none}
+.ax .ibf{gap:var(--ds-s2);padding:var(--ds-s3)}
+.ax .ibf button{min-height:44px;border-radius:var(--ds-r3,12px)}
+.ax .ibs{display:flex;gap:6px;overflow:visible;padding:var(--ds-s3) var(--ds-s3) 0}
+.ax .ibs button{flex:1 1 auto;min-width:0;padding:0 6px;border-radius:var(--ds-r3,12px);white-space:nowrap;font-size:.82rem}
+.ax .ibs em{margin-left:4px}
+.ax .ibl .cws{margin:var(--ds-s3);width:auto;box-sizing:border-box}
+.ax .sg{padding:var(--ds-s3) var(--ds-s4) var(--ds-s1,4px);margin:0}
+.ax .cv{padding:var(--ds-s3) var(--ds-s4);min-height:72px;transition:background-color .15s}
+.ax .cv .av2{border-radius:var(--ds-r3,14px);width:46px;height:46px}
+.ax .cv p{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.ax .cv.un p{color:var(--text-1);font-weight:600}
+.ax .cvm{flex-wrap:nowrap;overflow:hidden}.ax .cvm .pill{flex:none}
+.ax .cv:active{background:var(--surface-2)}
+@media(prefers-reduced-motion:reduce){.ax .cv{transition:none}}
+.ax .ibl,.ax .ibt{min-width:0}
+@media(max-width:900px){.ax .ibx{grid-template-columns:minmax(0,1fr)}}
+.ax .cv.un p{padding-right:30px}
+@media(max-width:900px){.ax .main:has(.ibx.sel) .ds-lnk,.ax .main:has(.ibx.sel) .ibh{display:none}.ax .main:has(.ibx.sel) .ibx{height:calc(100dvh - 140px)}}

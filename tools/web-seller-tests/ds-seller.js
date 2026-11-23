@@ -113,5 +113,13 @@ function seller(o){
    const orig={layout:'portal',title:'Dashboard',html:'orig'};
    assert.equal((await seller({store:Object.assign({},STORE,{activation_status:'pending'}),orig}).V.portal(['orders'])).html,'orig')});
 
+ await t('messages: the chat-link card is replaced by a compact one; other inbox html is untouched; admin layout is left alone',async()=>{
+   const note='<div class="note" style="x"><span>y</span><button class="btn s" data-act="copylink" data-l="https://e.ng/#/chat/ada">Copy</button></div>';
+   const x=seller({});x.V.inbox=()=>({layout:'portal',html:'<h1>Messages</h1>'+note+'<div class="ibx" id="ibx"></div>'});
+   vm.runInContext(J('ds-seller.js'),x.ctx);
+   const r=await x.V.inbox([]);assert(r.html.includes('ds-lnk')&&r.html.includes('data-l="https://e.ng/#/chat/ada"')&&!r.html.includes('class="note"')&&r.html.includes('<div class="ibx" id="ibx">'));
+   const y=seller({});y.V.inbox=()=>({layout:'admin',html:note+'<div class="ibx"></div>'});vm.runInContext(J('ds-seller.js'),y.ctx);
+   assert((await y.V.inbox([])).html.includes('class="note"'))});
+
  console.log(`${pass} passed, ${fail} failed`);
 })();
