@@ -22,6 +22,7 @@
     if(p.stock==null)return"Stock not tracked";
     return p.stock<=0?"Sold out":p.stock+" in stock";
   }
+  D.sellerThumb=function(p,cls){return thumb(p,cls)};
   function thumb(p,cls){
     var im=photo(p),k=D.artFor(p.col||"");
     return'<span class="ds-thumb'+(cls?" "+cls:"")+'">'+(im?'<img alt="" loading="lazy" src="'+esc(im)+'">':D.art(k,cls?28:40))+"</span>";
@@ -247,7 +248,7 @@
   function oname(o){return o.customer_name||"Customer"}
   function orders(orig){
     return Supa.rpc("my_seller_orders",{}).then(unwrap).then(function(list){
-      list=Array.isArray(list)?list:[];OL=list;OF.tab="all";OF.q="";
+      list=Array.isArray(list)?list:[];OL=list;OF.tab="all";OF.q="";var pre="";try{pre=sessionStorage.getItem("ev-oq")||"";sessionStorage.removeItem("ev-oq")}catch(e){}
       var cnt={all:list.length,pending:0,active:0,delivered:0,closed:0};list.forEach(function(o){cnt[grp(o)]++});
       var earned=list.filter(function(o){return o.status==="delivered"}).reduce(function(t,o){return t+Number(o.earning||0)},0);
       var cards=list.map(function(o,i){
@@ -259,7 +260,7 @@
       var seg='<div class="ds-chips ds-pf" role="group" aria-label="Filter orders">'+OT.map(function(t){return'<button type="button" class="ds-chip'+(t[0]==="all"?" on":"")+'" data-act="ds-of" data-id="'+t[0]+'" aria-pressed="'+(t[0]==="all"?"true":"false")+'">'+t[1]+' <span class="n">'+(cnt[t[0]]||0)+"</span></button>"}).join("")+"</div>";
       var html='<div class="ds-headrow"><h1 class="ds-title">Orders</h1></div>'
         +(list.length?'<div class="ds-stats">'+D.stat({icon:"bell",value:cnt.pending,label:"New"})+D.stat({icon:"box",value:cnt.active,label:"In progress"})+D.stat({icon:"okc",value:earned,money:true,label:"Earned, delivered"})+"</div>"
-          +'<div class="ds-search">'+D.icon("search",20)+'<input type="search" data-dso placeholder="Search by name, city or order" aria-label="Search orders" autocomplete="off"></div>'+seg
+          +'<div class="ds-search">'+D.icon("search",20)+'<input type="search" data-dso value="'+esc(pre)+'" placeholder="Search by name, city or order" aria-label="Search orders" autocomplete="off"></div>'+seg
           +'<div class="ds-stack" id="ds-olist">'+cards+'</div><div id="ds-onone" hidden>'+D.empty({icon:"search",title:"Nothing here",text:"No orders match this filter or search."})+"</div>"
           :D.empty({icon:"receipt",title:"No orders yet",text:"When a shopper buys from your store, the order appears here with the delivery details."}));
       return out(html,"Orders","portal/orders");
