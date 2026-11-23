@@ -27,6 +27,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Supabase Google OAuth returns to the app through this verified custom scheme. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.everneed.store" android:host="auth" android:path="/callback" />
+            </intent-filter>
+
         </activity>
 
         <provider
