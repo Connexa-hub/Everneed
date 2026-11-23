@@ -73,12 +73,15 @@ const appSource = readFileSync('js/app.js', 'utf8');
 const supaSource = readFileSync('js/supa.js', 'utf8');
 const manifestSource = readFileSync('android/app/src/main/AndroidManifest.xml', 'utf8');
 for (const [file, source, required] of [
-  ['js/auth.js', authSource, 'code_challenge_method=s256'],
+  ['js/auth.js', authSource, 'crypto.subtle.digest'],
+  ['js/supa.js', supaSource, 'code_challenge_method=s256'],
   ['js/auth.js', authSource, 'oauth_pkce'],
   ['js/app.js', appSource, 'oauthComplete'],
   ['js/app.js', appSource, 'appUrlOpen'],
   ['js/supa.js', supaSource, 'oauthExchange:function'],
-  ['AndroidManifest.xml', manifestSource, 'com.everneed.store://auth/callback'],
+  ['AndroidManifest.xml', manifestSource, 'android:scheme="com.everneed.store"'],
+  ['AndroidManifest.xml', manifestSource, 'android:host="auth"'],
+  ['AndroidManifest.xml', manifestSource, 'android:path="/callback"'],
 ]) if (!source.includes(required)) fail(file + ' is missing Google OAuth integration marker: ' + required);
 
 // 4e. Payment recovery worker must authenticate service-role calls and verify with Paystack before settlement.
