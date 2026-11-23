@@ -13,8 +13,8 @@ declare
   def text;
 begin
   select pg_get_functiondef('public.seller_transition(text,text,jsonb)'::regprocedure) into def;
-  if position('accept_by' in def)=0 or position('private.cancel_so' in def)=0 then
-    raise exception 'FAIL: seller_transition missing acceptance deadline guard';
+  if position('accept_by' in def)=0 or position('private.cancel_so' in def)=0 or position('clock_timestamp()' in def)=0 then
+    raise exception 'FAIL: seller_transition missing wall-clock acceptance deadline guard';
   end if;
 
   insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
