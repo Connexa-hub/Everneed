@@ -60,10 +60,8 @@
     var u=n.data&&n.data.url;if(typeof u==="string"&&u.charAt(0)==="/"&&u.charAt(1)!=="/")return u;
     if(n.kind==="store_approved")return"/portal";if(n.kind==="store_submitted")return"/admin/sellers";return"";
   }
-  function I(n,z){return window.DS&&DS.icon?DS.icon(n,z):AX.icon(n,z)}
-  function kic(k){k=String(k||"");return/message|chat/.test(k)?"chat":/order/.test(k)?"receipt":/store|seller|application/.test(k)?"store":/plan|payout|billing|payment/.test(k)?"card":/product|review/.test(k)?"box":"bell"}
   function row(href,icon,title,sub,when,dot,attrs){
-    var inner='<span class="nt-ic">'+I(icon,20)+'</span><span class="nt-tx"><b>'+esc(title)+"</b>"+(sub?"<small>"+esc(sub)+"</small>":"")+'</span><span class="nt-mt">'+(when?"<time>"+esc(when)+"</time>":"")+(dot?'<i class="nt-dot" aria-label="Unread"></i>':"")+"</span>";
+    var inner='<span class="nt-ic">'+AX.icon(icon,20)+'</span><span class="nt-tx"><b>'+esc(title)+"</b>"+(sub?"<small>"+esc(sub)+"</small>":"")+'</span><span class="nt-mt">'+(when?"<time>"+esc(when)+"</time>":"")+(dot?'<i class="nt-dot" aria-label="Unread"></i>':"")+"</span>";
     return href?'<a class="nt-row'+(dot?" un":"")+'" href="'+href+'" '+(attrs||"")+">"+inner+"</a>":'<div class="nt-row'+(dot?" un":"")+'" '+(attrs||"")+">"+inner+"</div>";
   }
   function render(){
@@ -71,12 +69,10 @@
     var body=el.querySelector(".nt-body"),msgs=N.convs.map(function(c){
       return row("/inbox/"+encodeURIComponent(c.id),"chat",(KIND[c.kind]||"Message")+(c.subject?" · "+c.subject:""),c.last_preview||"New message",C.ago(c.last_message_at),true,'data-act="notifclose"');
     }).join("");
-    var shown=N.f==="unread"?N.items.filter(function(n){return!n.read_at}):N.items;
-    var ups=shown.map(function(n){
-      var d=dest(n);return row(d,kic(n.kind),n.title,n.body||"",C.ago(n.created_at),!n.read_at,'data-act="notifread" data-id="'+esc(n.id)+'" data-to="'+esc(d)+'"');
+    var ups=N.items.map(function(n){
+      var d=dest(n);return row(d,"bell",n.title,n.body||"",C.ago(n.created_at),!n.read_at,'data-act="notifread" data-id="'+esc(n.id)+'" data-to="'+esc(d)+'"');
     }).join("");
-    var seg=N.items.length?'<div class="nt-f" role="group" aria-label="Filter updates"><button type="button" data-act="notiff" data-f="all" aria-pressed="'+(N.f!=="unread")+'">All</button><button type="button" data-act="notiff" data-f="unread" aria-pressed="'+(N.f==="unread")+'">Unread'+(unreadN()?" "+unreadN():"")+"</button></div>":"";
-    body.innerHTML=seg+(msgs?'<h3 class="nt-h">Messages</h3>'+msgs:"")+(ups?'<h3 class="nt-h">Updates</h3>'+ups:"")
+    body.innerHTML=(msgs?'<h3 class="nt-h">Messages</h3>'+msgs:"")+(ups?'<h3 class="nt-h">Updates</h3>'+ups:"")
       +(!msgs&&!ups?'<div class="nt-empty"><b>You are all caught up</b><p>New messages and updates will appear here.</p></div>':"")+perm();
     var all=el.querySelector('[data-act="notifall"]');if(all)all.hidden=!unreadN();
   }
@@ -91,7 +87,6 @@
     var el=document.getElementById("ax-notif");if(el)el.remove();document.body.classList.remove("ax-lock");N.open=false;
     if(N.last&&N.last.focus&&document.body.contains(N.last))N.last.focus();N.last=null;
   }
-  A.notiff=function(b){N.f=b.getAttribute("data-f");render()};
   A.notif=function(){N.open?closePanel():openPanel()};
   A.notifclose=function(){closePanel()};
   A.notifperm=function(){
