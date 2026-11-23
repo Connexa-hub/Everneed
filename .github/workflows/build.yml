@@ -91,7 +91,7 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
   # Staging test APK builds: web-portal pushes or manual dispatch only. main never creates a test APK.
   apk:
-    if: (github.ref_name == 'web-portal' || github.ref_name == 'feat/seller-app-packaging-layer') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.head_ref == 'feat/seller-app-packaging-layer' && github.event.pull_request.head.repo.full_name == github.repository))
+    if: (github.event_name == 'push' && (github.ref_name == 'web-portal' || github.ref_name == 'feat/seller-app-packaging-layer')) || (github.event_name == 'workflow_dispatch' && (github.ref_name == 'web-portal' || github.ref_name == 'feat/seller-app-packaging-layer')) || (github.event_name == 'pull_request' && github.head_ref == 'feat/seller-app-packaging-layer' && github.event.pull_request.head.repo.full_name == github.repository)
     # This staging-only packaging artifact depends on web checks, not database tests; APK success is not backend-readiness approval.
     needs: [test]
     runs-on: ubuntu-latest
