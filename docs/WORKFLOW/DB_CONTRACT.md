@@ -72,8 +72,8 @@ Not yet implemented: customer signup policy acceptance, published legal document
 ### Orders, delivery, hub
 | Function | Who | Web screen | Status |
 |---|---|---|---|
-| `my_seller_orders(p_status)` | seller | Portal > Orders list | TODO |
-| `seller_transition(p_so, p_to, p_payload)` | seller | Portal > Orders (accept, ready, hand over) | TODO |
+| `my_seller_orders(p_status)` | seller | Portal > Orders list | IMPLEMENTED — staging verified |
+| `seller_transition(p_so, p_to, p_payload)` | seller/admin | Portal > Orders (accept, reject, prepare, ready, dispatch/handover) | IMPLEMENTED — staging verified; frontend disabled pending deadline guard |
 | `mark_delivered(p_order, p_code)` | seller | Portal > Orders (4-digit delivery code) | TODO |
 | `hub_receive(p_so, p_check)` | admin | Admin > Hub board | TODO |
 | `hub_consolidate(p_order)` | admin | Admin > Hub board | TODO |
@@ -83,6 +83,19 @@ Not yet implemented: customer signup policy acceptance, published legal document
 | `order_tracking(p_order)` | buyer | Public tracking page | TODO |
 | `create_order(...)`, `confirm_payment(...)`, `confirm_received(...)` | buyer / server | Web checkout (future) | TODO |
 | `report_payment(order_id, reference, note)` | buyer | Web checkout, bank transfer (future) | TODO |
+
+
+
+### Seller order RPC — staging audit (23 Nov 2026)
+
+**Verified read-only against Everneed-staging `vjiadqygpyebpisxslbx`.**
+
+- `my_seller_orders(p_status text default null)` returns seller-owned released orders and snapshots: order/seller-order IDs, status, route, subtotal, commission, earnings, accept_by, created_at, customer name/city, conditionally phone/address, and items (`id,name,size,qty`). Direct-delivery private contact fields are withheld until accepted or later; hub orders show first name/city only.
+- `seller_transition(p_so text, p_to text, p_payload jsonb default '{}')` is SECURITY DEFINER and enforces authenticated caller, throttling, row lock, store ownership/admin, released-payment check, allowed transition, protected delivery/hub transitions, notification, audit and parent-order sync.
+- Allowed seller transitions: pending→accepted/rejected/cancelled; accepted→preparing/cancelled; preparing→ready/cancelled; ready→cancelled, or route-specific direct→out_for_delivery / hub→handover_pending. The wider delivery/admin state machine includes handover_pending→at_hub/cancelled, at_hub→consolidated, consolidated→out_for_delivery, out_for_delivery→delivered and issue→ready/at_hub/cancelled (issue is admin-only). Seller RPC blocks direct updates to delivered, at_hub and consolidated.
+- Payload: reject requires `reason` length ≥3; direct-dispatch optional `courier_name` max 80, `courier_phone` max 30, `note` max 300. Transition timestamps are set by backend.
+- **Not yet verified/implemented:** explicit accept-deadline (`accept_by`) guard within `seller_transition`; seller order-event timeline; frontend actions. Do not enable Accept until the deadline/race behavior is checked and tested.
+- No new migration is needed merely to create accept/reject/prepare/ready/handover actions. The frontend can use `Supa.rpcAuth("seller_transition", {p_so, p_to, p_payload})` after the deadline hardening.
 
 ### Money
 | Function | Who | Web screen | Status |
