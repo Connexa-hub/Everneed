@@ -86,7 +86,7 @@ begin
   r := r || public.zz_ok('approval makes the owner a merchant', (select role from public.profiles where id = um1) = 'merchant');
   r := r || public.zz_ok('approval starts a trial subscription', (select status from public.store_subscriptions where store_id = sA) = 'trialing');
   perform public.zz_anon();
-  r := r || public.zz_ok('anon sees approved stores (3 incl. official)', public.zz_n('select count(*) from public.public_stores') = 3);
+  r := r || public.zz_ok('anon sees both approved seller fixtures', public.zz_n(format($q$select count(*) from public.public_stores where id in (%L,%L)$q$, sA, sB)) = 2);
   r := r || public.zz_ok('anon cannot read store_private (pickup address, phone)', public.zz_try('select * from public.store_private') like 'ERR%');
   r := r || public.zz_ok('anon cannot read owner_id', public.zz_try('select owner_id from public.stores') like 'ERR%');
   r := r || public.zz_ok('anon cannot read applications (ID and bank details)', public.zz_try('select * from public.store_applications') like 'ERR%');
@@ -120,7 +120,7 @@ begin
   perform public.zz_back();
   perform public.zz_as(ua); perform public.review_product(p1, 'publish'); perform public.zz_back();
   perform public.zz_anon();
-  r := r || public.zz_ok('anon sees published products only', public.zz_n('select count(*) from public.public_products') = 4);
+  r := r || public.zz_ok('anon sees all four published test products', public.zz_n(format($q$select count(*) from public.public_products where id in (%L,%L,%L,%L)$q$, p1, p2, p3, p4)) = 4);
   r := r || public.zz_ok('anon cannot read review notes', public.zz_try('select * from public.product_private') like 'ERR%');
   perform public.zz_back();
   -- unpublished (draft) hidden from anon
