@@ -73,7 +73,7 @@ const appSource = readFileSync('js/app.js', 'utf8');
 const supaSource = readFileSync('js/supa.js', 'utf8');
 const manifestSource = readFileSync('android/app/src/main/AndroidManifest.xml', 'utf8');
 for (const [file, source, required] of [
-  ['js/auth.js', authSource, 'crypto.subtle.digest'],
+  ['js/auth.js', authSource, 'crypto.subtle.digest'],\n  ['js/auth.js', authSource, 'googleNativeAndroid'],\n  ['js/auth.js', authSource, 'signInIdToken("google",token)'],\n  ['js/supa.js', supaSource, 'grant_type=id_token'],\n  ['MainActivity.java', manifestSource, 'ModifiedMainActivityForSocialLoginPlugin'],
   ['js/supa.js', supaSource, 'code_challenge_method=s256'],
   ['js/auth.js', authSource, 'oauth_pkce'],
   ['js/app.js', appSource, 'oauthComplete'],
