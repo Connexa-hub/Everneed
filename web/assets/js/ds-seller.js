@@ -23,6 +23,20 @@
     return p.stock<=0?"Sold out":p.stock+" in stock";
   }
   D.sellerThumb=function(p,cls){return thumb(p,cls)};
+  /* "Get ready to sell": only things we can really check from the store record, never a made-up score. */
+  function ready(s,prods,priv){
+    var sd=s.storefront_details||{},P="/portal/settings/",L=[
+      ["Add your first product",prods.length>0,"/portal/product/new"],
+      ["Add a store logo",!!s.logo_url,P+"profile"],
+      ["Add a cover image",!!s.cover_url,P+"profile"],
+      ["Tell shoppers about your store",!!(s.about||s.tagline),P+"profile"],
+      ["Set your opening hours",!!(sd.hours_schedule||sd.opening_hours),P+"hours"],
+      ["Explain your returns",!!(sd.returns_summary||sd.returns),P+"returns"]];
+    if(priv)L.push(["Add a pickup address",!!priv.pickup_address,P+"delivery"]);
+    var n=L.filter(function(x){return x[1]}).length;if(n===L.length)return"";
+    return'<div class="ds-card ds-ck"><h2>Get ready to sell</h2><p class="ds-sub">Finish these so shoppers trust your store.</p><span class="ds-chip on" role="status">'+n+" / "+L.length+" completed</span>"
+      +'<div class="ds-ckl">'+L.map(function(x){return'<a href="'+x[2]+'"'+(x[1]?' class="done"':"")+'><span class="ds-ckc" aria-hidden="true">'+(x[1]?D.icon("check",14):"")+"</span><b>"+x[0]+'</b><span class="sr">'+(x[1]?", done":", not done")+"</span></a>"}).join("")+"</div></div>";
+  }
   function thumb(p,cls){
     var im=photo(p),k=D.artFor(p.col||"");
     return'<span class="ds-thumb'+(cls?" "+cls:"")+'">'+(im?'<img alt="" loading="lazy" src="'+esc(im)+'">':D.art(k,cls?28:40))+"</span>";
@@ -67,7 +81,8 @@
         q(Supa.rpc("my_seller_orders",{}).then(unwrap)),
         q(Supa.get("product_private?select=product_id,review_note")),
         Supa.rpc("my_store_entitlements",{}).then(unwrap).catch(function(){return null}),
-        Supa.rpc("seller_product_capabilities",{}).then(unwrap).catch(function(){return null})
+        Supa.rpc("seller_product_capabilities",{}).then(unwrap).catch(function(){return null}),
+        Supa.get("store_private?select=pickup_address&store_id=eq."+id).then(function(r){return r&&r[0]||{}}).catch(function(){return null})
       ]).then(function(a){
         var prods=(a[0]||[]).filter(function(x){return x.status!=="archived"}),orders=Array.isArray(a[1])?a[1]:[],pn={},e=a[3],cap=a[4];
         (a[2]||[]).forEach(function(x){pn[x.product_id]=x});
@@ -93,6 +108,7 @@
         var recent=orders.slice(0,4).map(function(o){return D.row({icon:"box",title:(o.customer_name||"Customer")+" · "+C.money(o.subtotal),sub:C.ago(o.created_at)+(o.customer_city?" · "+o.customer_city:""),href:"/portal/orders"})}).join("");
         var html='<div class="ds-hero"><span class="ds-logo">'+(s.logo_url?'<img alt="" src="'+esc(s.logo_url)+'">':esc(String(s.name||"?").charAt(0).toUpperCase()))+'</span>'
           +'<div class="ds-grow"><h1 class="ds-title">'+esc(s.name)+"</h1><div>"+D.chip("Live","ok","okc")+"</div></div>"+(s.slug?'<a class="ds-btn s o" href="/store/'+esc(s.slug)+'">View store</a>':"")+"</div>"
+          +ready(s,a[0]||[],a[5])
           +(failed?D.banner("warning","Some numbers could not load","The figures below may be incomplete.",{label:"Try again",act:"ds-reload"}):"")
           +'<div class="ds-stats">'+D.stat({icon:"bell",value:fresh.length,label:"New orders",href:"/portal/orders"})+D.stat({icon:"box",value:act.length,label:"In progress",href:"/portal/orders"})
           +D.stat({icon:"okc",value:c("published"),label:"Live products",href:"/portal/products"})+D.stat({icon:"clock",value:c("pending_review"),label:"In review",href:"/portal/products"})+"</div>"

@@ -40,6 +40,7 @@
     var c=cur(active),focus=String(active||"").indexOf("portal/product")===0&&/^\/portal\/product\//.test(location.pathname);
     function it(k,href,icon,label){return'<a href="'+href+'"'+(c===k?' class="on" aria-current="page"':"")+' aria-label="'+label+'">'+D.icon(icon,24)+"</a>"}
     setTimeout(load,0);
+    if(String(active||"")!=="portal")inner=String(inner).replace(/<h1 class="ds-title">([^<]*)<\/h1>/,function(m,t){return'<h1 class="ds-title"><button type="button" class="ds-ts" data-act="ds-asw" aria-haspopup="dialog">'+t+D.icon("chevd",18)+"</button></h1>"});
     return'<div class="ax ds-appsh-w" data-kind="portal"><header class="ds-ah"><a class="ds-av" href="/me" aria-label="Account and settings">'+esc(initial(me&&(me.name||me.email)))+'</a>'
       +'<a class="ds-st" href="/portal" aria-label="Store home">'+brand()+"</a>"+AX.bell()+"</header>"
       +'<section class="main" id="main">'+inner+"</section>"
@@ -51,8 +52,8 @@
   };
 
   /* ---------- full-screen menu ---------- */
-  var ITEMS=[["Home","/portal","home"],["Orders","/portal/orders","receipt"],["Products","/portal/products","box",[["All products","/portal/products"],["Add product","/portal/product/new"]]],["Messages","/inbox","chat"],["Plan","/portal/plan","crown"],["Settings","/me","user"]];
-  var trap=null;
+  var ITEMS=[["Home","/portal","home"],["Orders","/portal/orders","receipt"],["Products","/portal/products","box",[["All products","/portal/products"],["Add product","/portal/product/new"]]],["Messages","/inbox","chat"],["Plan","/portal/plan","crown"],["Store settings","/portal/settings","gear"],["Account","/me","user"]];
+  A["ds-asw"]=function(){D.actions({title:"Go to",items:ITEMS.map(function(i){return{label:i[0],icon:i[2],run:function(){C.go(i[1])}}})})};
   function overlay(cls,label,inner){
     var el=doc.createElement("div");el.className=cls;el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label",label);el.innerHTML=inner;
     var last=doc.activeElement,root=doc.getElementById("root");doc.body.appendChild(el);html.classList.add("ds-lock");if(root)root.setAttribute("inert","");
@@ -69,7 +70,7 @@
       return'<button type="button" class="ds-mi" data-act="ds-mg" aria-expanded="false" aria-controls="ds-mg'+n+'">'+D.icon(i[2],24)+"<b>"+i[0]+'</b><span class="ds-chv">'+D.icon("chevd",20)+'</span></button><div class="ds-mk" id="ds-mg'+n+'" hidden>'
         +kids.map(function(k){return'<a href="'+k[1]+'">'+k[0]+"</a>"}).join("")+"</div>";
     }).join("");
-    var o=overlay("ds-am","Menu",'<nav class="ds-ml" aria-label="Seller menu">'+rows+'</nav><div class="ds-mf"><a class="ds-mb" href="/me" aria-label="Settings">'+D.icon("gear",22)+'</a><a class="ds-mpill" href="/portal/product/new">'+D.icon("plus",20)+' Add product</a><button type="button" class="ds-mb" data-x aria-label="Close menu">'+D.icon("x",22)+"</button></div>");
+    var o=overlay("ds-am","Menu",'<nav class="ds-ml" aria-label="Seller menu">'+rows+'</nav><div class="ds-mf"><a class="ds-mb" href="/portal/settings" aria-label="Store settings">'+D.icon("gear",22)+'</a><a class="ds-mpill" href="/portal/product/new">'+D.icon("plus",20)+' Add product</a><button type="button" class="ds-mb" data-x aria-label="Close menu">'+D.icon("x",22)+"</button></div>");
     var f=o.el.querySelector("a,button");if(f)f.focus();
   };
   A["ds-mg"]=function(b){var k=doc.getElementById(b.getAttribute("aria-controls")),open=b.getAttribute("aria-expanded")!=="true";b.setAttribute("aria-expanded",String(open));if(k)k.hidden=!open};

@@ -21,8 +21,11 @@ Floating bar (Search, Home, Orders, Products, Menu, Messages with unread badge),
 ## Deliberately not shown (no backend yet, nothing faked)
 Customers list, Growth, Discounts, Content, Markets, Credit, Analytics reports, Collections, Inventory locations, Purchase orders, Transfers, Stock counts, Gift cards, Scan inventory, Users and Roles. They appear in the menu only when a real contract exists (see handoff R1 to R12 and the open requests below).
 
+## Slice 2 (done)
+Screen titles are a tap target that opens a "Go to" sheet (Home, Orders, Products, Messages, Plan, Store settings, Account). Home has a "Get ready to sell" checklist (also on the normal layout) built only from what the store record really holds: first product, logo, cover, about or tagline, opening hours, returns, pickup address; it disappears when complete. The menu now has Store settings (the existing `/portal/settings` sections) and Account.
+
 ## Next slices
-1. Screen titles with a sibling dropdown; products rows in the recording's style (variants count, available stock); Home "Get ready to sell" checklist from existing activation data.
+1. Product rows in the recording's style (variants count, available stock, status dot, actions sheet) and product detail as stacked cards.
 2. Settings screen split into App settings (push notifications, biometric unlock: needs native plugins) and Store settings (General, Plan, Billing).
 3. Shop / My store mode switch for a seller using the app.
 4. App packaging (ChatGPT): bundle the web seller workspace into the app build, hand the signed-in session across, set the native flag so `ds-app.js` switches on.

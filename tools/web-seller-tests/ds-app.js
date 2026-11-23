@@ -26,5 +26,11 @@ function shell(o){o=o||{};const x=make({});const store={};
    assert(!h.includes('class="ds-ab"')&&h.includes('<form/>'))});
  await t('names are escaped in the header',()=>{
    const x=shell({search:'?shell=app'});const h=x.ctx.AX.shell('portal','portal','',{name:'<img onerror=1>'});assert(!h.includes('<img onerror'))});
+ await t('screen titles get a switcher (not Home); menu lists store settings',()=>{
+   const x=shell({search:'?shell=app'});const h=x.ctx.AX.shell('portal','portal/products','<div><h1 class="ds-title">Products</h1></div>',{});
+   assert(h.includes('data-act="ds-asw"')&&h.includes('>Products<'));
+   const hm=x.ctx.AX.shell('portal','portal','<h1 class="ds-title">My shop</h1>',{});assert(!hm.includes('ds-asw'));
+   assert(typeof x.ctx.Core.A['ds-amenu']==='function'&&typeof x.ctx.Core.A['ds-asw']==='function')});
+
  console.log(`${pass} passed, ${fail} failed`);
 })();
