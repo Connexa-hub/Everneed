@@ -40,6 +40,8 @@ jobs:
           version: 3.1.0
       - run: test -f supabase/config.toml || supabase init
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
+      - name: Seller order accept deadline regression tests (039)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/039_seller_order_accept_deadline_checks.sql
       - name: Run Phase 2 checks
         shell: bash
         run: |
@@ -89,9 +91,6 @@ jobs:
 
       - name: Product catalogue foundation regression tests (038)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
-
-      - name: Seller order accept deadline regression tests (039)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/039_seller_order_accept_deadline_checks.sql
   # Staging test APK builds: web-portal pushes or manual dispatch only. main never creates a test APK.
   apk:
     if: github.ref_name == 'web-portal' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
