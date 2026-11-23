@@ -12,6 +12,9 @@ begin
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')
   loop
     execute format('alter function %s set search_path = ''''', f.signature);
+    -- PostgreSQL grants EXECUTE on newly created functions to PUBLIC by default.
+    -- Preserve role-specific grants, but remove the blanket grant for every authenticated RPC.
+    execute format('revoke execute on function %s from public', f.signature);
   end loop;
 end $$;
 
