@@ -1,24 +1,28 @@
 # Native seller workspace packaging — implementation checkpoint
 
 **Branch:** `feat/seller-app-packaging-layer` (based on `web-portal`)  
-**Status:** asset staging implemented; route/session activation intentionally not enabled.
+**Status:** Seller bundle now stages with a route-prefix and asset isolation adapter. Not yet activated by shopper navigation; shared session synchronization and ownership checks remain.
 
-## What this change does
-- Adds `tools/package-seller.mjs`, a repeatable build-time staging script.
-- Copies the web seller workspace to `www/seller/`, isolated from shopper files.
-- Inserts a bootstrap marker setting `window.EV_NATIVE_SELLER=true` and `window.EV_SESSION_KEY="en_sess"`.
-- Adds `tools/check-seller-package.mjs` smoke assertions.
-- Android build workflow now stages and checks this package after shopper assets are copied.
+## Implemented in this slice
+- Build script copies seller workspace to `www/seller/` without overwriting shopper entrypoint.
+- Native-only bootstrap defines `EV_NATIVE_SELLER=true` and shared session key `en_sess`.
+- Seller assets are rewritten to the dedicated `/seller/assets/` namespace and favicon paths.
+- Packaged seller router normalizes `/seller/<seller-route>` back to its seller route and prefixes generated navigation links.
+- Smoke test checks staged assets, bootstrap, and route/asset adapter markers.
+- Android build workflow stages and runs the seller package check.
 
-## Why it is not launched yet
-The seller workspace uses root-relative URLs and server routes such as `/portal`, `/inbox`, `/me`, and `/assets`. Opening `www/seller/index.html` as-is would resolve those paths at the app root and could route into the shopper shell or fail to load assets. The native route adapter must first introduce an isolated seller path namespace and normalize routes/assets without changing desktop website URLs.
+## Current boundaries / caveats
+- The public web source is unchanged; this adapter is injected into the packaged copy only.
+- The seller package is not yet linked from shopper UI and does not yet enforce store ownership before entry.
+- Shopper `js/supa.js` still needs shared-session adoption and refresh synchronization. Concurrent refresh-token use across clients must be addressed before auth is reliable.
+- Android Back, seller-to-shop switching, sign-out propagation, and actual APK/device validation are still pending.
+- The packaging smoke test has been added but its CI execution is pending confirmation.
 
-## Next implementation tasks
-1. Implement an app-only route adapter mapping seller workspace paths into a namespaced local path, while keeping the original website route paths untouched.
-2. Confirm app root and seller workspace navigation/back behaviour (seller Home returns to shopper app; back within seller follows seller history).
-3. Update app session client to adopt the latest shared `en_sess` before refresh and when returning from seller.
-4. Add Seller / My Store entry, with store ownership lookup and onboarding redirect.
-5. Add sign-out shared-session test.
-6. Add route/session tests and verify Android APK build + Hot 70 device testing.
+## Next steps
+1. Validate the route adapter with a browser/CI test for routes, hash redirects, links, and asset requests.
+2. Implement shared-session adoption and refresh coordination across shopper and seller Supabase clients.
+3. Add authenticated store ownership lookup, seller entry, and no-store onboarding redirect.
+4. Add Shop/My Store switching and Android Back handling.
+5. Build staging APK and test on Infinix Hot 70.
 
-No live Supabase settings or migrations were changed. No production/main changes were made.
+No hosted Supabase settings/migrations, main branch, or production deployment was changed.
