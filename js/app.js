@@ -134,10 +134,10 @@ function authed(){return Supa.profile().then(function(p){user={id:Supa.uid(),nam
 var oauthHandled=false;function oauthComplete(url){if(!url||oauthHandled)return;var h="",q="",u;try{u=new URL(url);h=u.hash.replace(/^#/,"");q=u.search.replace(/^\?/,"")}catch(e){var z=String(url).split("#");h=z[1]||""}
 var p=new URLSearchParams(h||q),err=p.get("error_description")||p.get("error");if(err){notify("Google sign-in failed: "+decodeURIComponent(err.replace(/\+/g," ")),"err");return}
 var tokens={access_token:p.get("access_token"),refresh_token:p.get("refresh_token"),expires_in:Number(p.get("expires_in")||3600)};
-if(!tokens.access_token||!tokens.refresh_token)return;
+if(!tokens.access_token||!tokens.refresh_token)return;oauthHandled=true;
 if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Browser&&Capacitor.getPlatform&&Capacitor.getPlatform()!=="web")Capacitor.Plugins.Browser.close().catch(function(){});
 Supa.oauthSession(tokens).then(function(g){return Supa.profile().then(function(pr){var nm=pr.name||g.user_metadata&&((g.user_metadata.full_name)||g.user_metadata.name)||g.email||"Customer";
-if(!pr.dob){if(!pr.name)Supa.patchProfile({name:nm,email:g.email||"",photo:(g.user_metadata&&g.user_metadata.avatar_url)||""}).catch(function(){});if(pr.country)Ctx.set(pr.country);A.au({step:"profile",email:g.email||"",name:nm,country:pr.country||Ctx.get().code});refresh();notify("One last step: confirm your date of birth.");return}
+if(!pr.dob){if(!pr.name)Supa.patchProfile({name:nm,email:g.email||"",photo:(g.user_metadata&&g.user_metadata.avatar_url)||""}).catch(function(){});if(pr.country)Ctx.set(pr.country);location.hash="#/login";A.au({step:"profile",email:g.email||"",name:nm,country:pr.country||Ctx.get().code});refresh();notify("One last step: confirm your date of birth.");return}
 return authed()})}).catch(netErr)}
 function setupOAuthLinks(){var AP=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.App;if(!AP)return;
 if(AP.addListener)AP.addListener("appUrlOpen",function(e){if(e&&e.url)oauthComplete(e.url)});
