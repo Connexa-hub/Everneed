@@ -473,3 +473,10 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - **Correction to R12:** staging already has SECURITY DEFINER `seller_transition(p_so,p_to,p_payload)` with auth, rate limiting, row lock, seller ownership/admin, paid/released check, legal transition matrix, direct delivery creation, notifications, audit and parent-order sync. `my_seller_orders` also returns the required seller-safe order list and item snapshot. The disabled order-action UI is therefore not waiting for new accept/reject/prepare/ready RPCs.
 - The UI still needs to wire the existing RPC and show action-specific controls, decline reason, direct/hub routing, server errors and refreshed state.
 - **Safety gap before enabling Accept:** `seller_transition` does not explicitly check `accept_by` against current time. Verify timeout cancellation/race semantics and add a server-side deadline guard/test if absent. Staging is only read; no SQL change was made. Production untouched.
+
+
+## 23 Nov 2026 — Seller acceptance deadline guard prepared
+
+- After read-only audit of `seller_transition` and `run_scheduled_jobs()`, confirmed scheduled expiry cancels late pending orders but the RPC had no explicit deadline guard; schedule configuration is separately not confirmed active.
+- Prepared migration `20261123021500_seller_order_accept_deadline_guard.sql`: row-lock serialized guard prevents seller acceptance after deadline and immediately invokes existing `private.cancel_so` cancellation/refund/restoration/notification/audit path. Admin override retained.
+- Added regression test `039_seller_order_accept_deadline_checks.sql`, build workflow test step, and migration replay allow-list. Feature branch `feature/seller-accept-deadline`; no staging or production apply. CI and review pending.
