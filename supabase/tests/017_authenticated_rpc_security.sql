@@ -70,16 +70,16 @@ begin
   insert into public.stores(owner_id, name, about, status, country, state, city)
   values (v_seller_a, 'F17 Store A', 'Security test', 'draft', 'NG', 'Lagos', 'Ikeja')
   returning id into v_store_a;
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name)
-  values (v_store_a, 'F17 Store A Ltd', 'NIN', 'F17-A', 'Test Bank', '0000000001', 'F17 Store A');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id)
+  values (v_store_a, 'F17 Store A Ltd', 'NIN', 'F17-A', 'Test Bank', '0000000001', 'F17 Store A', 'plan-starter');
   perform public.zz_f17_back();
 
   perform public.zz_f17_as(v_seller_b);
   insert into public.stores(owner_id, name, about, status, country, state, city)
   values (v_seller_b, 'F17 Store B', 'Security test', 'draft', 'NG', 'Lagos', 'Ikeja')
   returning id into v_store_b;
-  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name)
-  values (v_store_b, 'F17 Store B Ltd', 'NIN', 'F17-B', 'Test Bank', '0000000002', 'F17 Store B');
+  insert into public.store_applications(store_id, business_name, id_type, id_ref, bank_name, account_number, account_name, plan_id)
+  values (v_store_b, 'F17 Store B Ltd', 'NIN', 'F17-B', 'Test Bank', '0000000002', 'F17 Store B', 'plan-starter');
   perform public.zz_f17_back();
 
   perform public.zz_f17_as(v_admin);
@@ -235,7 +235,7 @@ begin
   perform public.zz_f17_back();
 
   -- Every authenticated-callable public SECURITY DEFINER function must have an empty path
-  -- and no implicit PUBLIC EXECUTE. Anonymous access is limited to the six intended public RPCs.
+  -- and no implicit PUBLIC EXECUTE. Anonymous access is limited to the seven intended public RPCs.
   if exists (
     select 1
     from pg_proc p
@@ -275,10 +275,26 @@ begin
         'support_guest_ping',
         'support_guest_close',
         'store_reply_stats',
-        'support_sla_public'
+        'support_sla_public',
+        'seller_plan_catalog'
       )
   ) then
-    raise exception 'An unexpected anonymous SECURITY DEFINER RPC is executable';
+    raise exception 'Unexpected anon SECURITY DEFINER RPC(s): %',
+      (select string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text)
+       from pg_proc p
+       join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public'
+         and p.prosecdef
+         and has_function_privilege('anon', p.oid, 'EXECUTE')
+         and p.proname not in (
+           'join_waitlist',
+           'support_guest_open',
+           'support_guest_ping',
+           'support_guest_close',
+           'store_reply_stats',
+           'support_sla_public',
+        'seller_plan_catalog'
+         ));
   end if;
 end
 $test$;
