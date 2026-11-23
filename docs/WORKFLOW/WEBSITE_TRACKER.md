@@ -472,3 +472,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - **Correction to R12:** staging already has SECURITY DEFINER `seller_transition(p_so,p_to,p_payload)` with auth, rate limiting, row lock, seller ownership/admin, paid/released check, legal transition matrix, direct delivery creation, notifications, audit and parent-order sync. `my_seller_orders` also returns the required seller-safe order list and item snapshot. The disabled order-action UI is therefore not waiting for new accept/reject/prepare/ready RPCs.
 - The UI still needs to wire the existing RPC and show action-specific controls, decline reason, direct/hub routing, server errors and refreshed state.
 - **Safety gap before enabling Accept:** `seller_transition` does not explicitly check `accept_by` against current time. Verify timeout cancellation/race semantics and add a server-side deadline guard/test if absent. Staging is only read; no SQL change was made. Production untouched.
+
+
+## 23 Nov 2026 — Google sign-in implementation
+
+- Added the **Continue with Google** option to the app's email-first login, password, verification-code and account-creation screens.
+- Android starts Supabase OAuth in Capacitor Browser and returns through `com.everneed.store://auth/callback`; Capacitor App deep-link listener restores the Supabase session.
+- First-time Google accounts without a stored DOB are directed to the existing profile-completion screen; the 18+ check remains in place.
+- Added `@capacitor/app` and `@capacitor/browser`, registered the Android callback intent filter, and updated OAuth setup documentation.
+- Branch: `feature/google-signin-clean`; PR targets `web-portal`. Staging and production code/config are not merged or changed by this PR.
+- Pending: CI, APK build, enable Google provider in Everneed-staging and allow-list `com.everneed.store://auth/callback`, then test Google sign-in on the Infinix Hot 70. Production OAuth configuration remains untouched.
