@@ -464,3 +464,11 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Added explicit `advanced_product_editor=true` for every plan and `product_editor_mode`: Free/Starter `guided`, Growth/Pro `full`. Basic plans retain the full backend field set and only receive a simplified guided UI. Test 038 confirms the Free seller capability RPC.
 
 - Added catalogue trigger ACL hardening migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 verifies API roles cannot directly execute internal trigger helpers while the actual trigger paths still function.
+
+
+## 23 Nov 2026 — Claude handoff R12 audit correction
+
+- Read Claude's latest seller app/backend handoff and inspected `/portal/orders` frontend and staging database read-only.
+- **Correction to R12:** staging already has SECURITY DEFINER `seller_transition(p_so,p_to,p_payload)` with auth, rate limiting, row lock, seller ownership/admin, paid/released check, legal transition matrix, direct delivery creation, notifications, audit and parent-order sync. `my_seller_orders` also returns the required seller-safe order list and item snapshot. The disabled order-action UI is therefore not waiting for new accept/reject/prepare/ready RPCs.
+- The UI still needs to wire the existing RPC and show action-specific controls, decline reason, direct/hub routing, server errors and refreshed state.
+- **Safety gap before enabling Accept:** `seller_transition` does not explicitly check `accept_by` against current time. Verify timeout cancellation/race semantics and add a server-side deadline guard/test if absent. Staging is only read; no SQL change was made. Production untouched.
