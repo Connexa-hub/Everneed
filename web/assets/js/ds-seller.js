@@ -138,6 +138,7 @@
             +"<small>"+C.money(x.price)+(x.old>x.price?" · was "+C.money(x.old):"")+" · "+esc(stock(x))+"</small>"
             +'<div class="ds-chips">'+D.chip(st[0],st[1]||"",st[2])+(x.col?D.chip(x.col):"")+"</div>"
             +(x.status==="rejected"&&n&&n.review_note?"<small>"+esc(n.review_note)+"</small>":"")
+            +'<button type="button" class="ds-more" data-act="ds-pmore" aria-label="Actions for '+esc(x.name)+'" aria-haspopup="dialog">'+D.icon("more",22)+"</button>"
             +'<div class="ds-acts">'+(can?'<button type="button" class="ds-btn s" data-act="wsub" data-id="'+id+'">Submit for review</button>':"")
             +'<a class="ds-btn s o" href="/portal/product/'+enc(x.id)+'">Edit</a><button type="button" class="ds-btn s o" data-act="wdup" data-id="'+id+'">Duplicate</button>'
             +(x.status!=="archived"?'<button type="button" class="ds-btn s o" data-act="ds-arch" data-id="'+id+'">Archive</button>':'<button type="button" class="ds-btn s o" data-act="wrest" data-id="'+id+'">Restore</button>')
@@ -154,6 +155,15 @@
       });
     }).catch(function(){return orig});
   }
+  /* ⋮ on a product row (phone shell): the same buttons the card already has, offered as a sheet, so no logic is duplicated. */
+  A["ds-pmore"]=function(b){
+    var c=b.closest(".ds-pr");if(!c)return;
+    var items=Array.prototype.map.call(c.querySelectorAll(".ds-acts>a,.ds-acts>button"),function(el){
+      var l=el.textContent.trim(),href=el.getAttribute("href");
+      return{label:l,icon:/Submit/.test(l)?"send":/Edit/.test(l)?"edit":/Duplicate/.test(l)?"copy":/Archive/.test(l)?"x":"undo",danger:/Archive/.test(l),run:function(){href?C.go(href):el.click()}};
+    });
+    D.actions({title:(c.querySelector("b")||{}).textContent||"Product",items:items});
+  };
   function apply(){
     var q=((document.querySelector("[data-dsp]")||{}).value||"").trim().toLowerCase(),shown=0;
     Array.prototype.forEach.call(document.querySelectorAll("#ds-plist>[data-st]"),function(c){

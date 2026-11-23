@@ -449,3 +449,11 @@ html.ds-appsh .actbar{bottom:0}
 .ds-ts:focus-visible{outline:2px solid var(--brand);outline-offset:4px;border-radius:8px}
 button.ds-st{background:none;border:0;font:inherit;cursor:pointer;padding:0}
 .ds-appsh-w .ds-ctxbar{display:none}
+
+/* Product rows in the phone shell: one tidy row, actions behind the more button */
+.ds-more{display:none}
+html.ds-appsh .ds-pr{position:relative;padding-right:52px}
+html.ds-appsh .ds-pr .ds-acts{display:none}
+html.ds-appsh .ds-pr .ds-more{display:grid;place-items:center;position:absolute;top:6px;right:4px;width:44px;height:44px;border:0;border-radius:50%;background:none;color:var(--text-2);cursor:pointer}
+html.ds-appsh .ds-pr .ds-more:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+html.ds-appsh #ds-plist{grid-template-columns:1fr}

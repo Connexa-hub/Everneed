@@ -73,6 +73,7 @@ function seller(o){
    const r=await seller().V.portal(['products']);
    assert.equal((r.html.match(/<article class="ds-card ds-pr"/g)||[]).length,4);
    assert(r.html.includes('data-act="wsub" data-id="p2"')&&r.html.includes('data-act="wdup"')&&r.html.includes('data-act="ds-arch" data-id="p1"')&&r.html.includes('data-act="wrest" data-id="p4"'));
+   assert((r.html.match(/data-act="ds-pmore"/g)||[]).length===4);
    assert(r.html.includes('class="ds-art')||r.html.includes('viewBox="0 0 64 64"'));
    assert(!r.html.includes('onerror=alert(1)>')&&r.html.includes('&lt;img'))});
  await t('products: filter chips carry real counts (archived excluded from All)',async()=>{

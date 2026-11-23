@@ -30,8 +30,11 @@ On phone width with `?shell=app`, signed-in admins get the same frame. Header: a
 - **Everneed Store only:** tabs Overview, Products, Orders; menu Messages, Staff, Account. No platform link anywhere, and platform routes still redirect to the store (the rule from `ds-admin.js`). This is front-end separation only; real store-scoped staff access needs backend request R2.
 - Menu footer has a Switch workspace button instead of Add product.
 
+## Slice 3 (done): product rows
+In the phone shell each product is one row (thumbnail, name, price, variants and stock, status chip) with a ⋮ button that opens an actions sheet (Submit for review, Edit, Duplicate, Archive or Restore). The sheet runs the card's own buttons, so there is one set of actions and no duplicated logic.
+
 ## Next slices
-1. Product rows in the recording's style (variants count, available stock, status dot, actions sheet) and product detail as stacked cards.
+1. Product detail as stacked cards (the editor already has section cards and a section nav).
 2. Settings screen split into App settings (push notifications, biometric unlock: needs native plugins) and Store settings (General, Plan, Billing).
 3. Shop / My store mode switch for a seller using the app.
 4. App packaging (ChatGPT): bundle the web seller workspace into the app build, hand the signed-in session across, set the native flag so `ds-app.js` switches on.
