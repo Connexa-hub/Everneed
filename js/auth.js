@@ -4,11 +4,15 @@ window.Auth=(function(){
   function shell(ic,t,d,body){return'<div class="onb"><div class="eb big">'+ico(ic,52)+"</div><h1>"+t+'</h1><p class="m">'+d+"</p>"+body+"</div>"}
   var back='<button class="lnk" data-act="aback">Use a different email</button>';
   function googleButton(){return'<button type="button" class="btn o w" data-act="google" style="display:flex;align-items:center;justify-content:center;gap:10px"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5h6.7c3.9-3.6 6-8.9 6-14.9z"/><path fill="#34A853" d="M24 44c5.6 0 10.3-1.9 13.7-5.1l-6.7-5c-1.9 1.3-4.2 2.1-7 2.1-5.4 0-10-3.7-11.6-8.7H3.5v5.2C7 39.4 15 44 24 44z"/><path fill="#FBBC05" d="M12.4 27.3a12 12 0 0 1 0-6.6v-5.2H3.5a20 20 0 0 0 0 17z"/><path fill="#EA4335" d="M24 12.1c3 0 5.7 1 7.8 3.1l5.9-5.9C34.2 5.8 29.5 4 24 4 15 4 7 8.6 3.5 15.5l8.9 5.2c1.6-5 6.2-8.6 11.6-8.6z"/></svg>Continue with Google</button><div class="or"><span>or continue with email</span></div>'}
+  function b64url(bytes){var s="";for(var i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"")}
   function google(){if(!Supa.on()){notify("Sign-in is unavailable while offline.","err");return}
+    if(!window.crypto||!crypto.subtle||!crypto.getRandomValues||!window.TextEncoder){notify("Secure Google sign-in isn't supported by this browser. Update your browser and try again.","err");return}
     var native=window.Capacitor&&Capacitor.getPlatform&&Capacitor.getPlatform()!=="web",redirect=native?"com.everneed.store://auth/callback":location.origin+location.pathname;
-    var url=Supa.oauthUrl("google",redirect);
-    if(native){var B=Capacitor.Plugins&&Capacitor.Plugins.Browser;if(!B||!B.open){notify("Google sign-in is not available in this build yet.","err");return}B.open({url:url}).catch(A.netErr)}
-    else location.href=url;
+    var bytes=new Uint8Array(32);crypto.getRandomValues(bytes);var verifier=b64url(bytes);
+    crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier)).then(function(hash){var challenge=b64url(new Uint8Array(hash));S.set("oauth_pkce",{verifier:verifier,created:Date.now()});var url=Supa.oauthUrl("google",redirect,challenge);
+      if(native){var B=Capacitor.Plugins&&Capacitor.Plugins.Browser;if(!B||!B.open){S.set("oauth_pkce",null);notify("Google sign-in is not available in this build yet.","err");return}B.open({url:url}).catch(function(e){S.set("oauth_pkce",null);A.netErr(e)})}
+      else location.href=url;
+    }).catch(function(e){notify("Could not start secure Google sign-in. Please try again.","err");A.netErr(e)});
   }
   function page(){var a=A.au(),c=A.ctx();
     if(a.step==="code")return shell("mail","Check your email","We sent a 6-digit code to <b>"+esc(a.email)+"</b>.",googleButton()+'<form class="act" data-form="acode" novalidate><input class="otp" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="······"><button class="btn w">Verify</button></form><button class="lnk" data-act="aresend">Resend code</button><button class="lnk" data-act="apw">Use a password instead</button>'+back);
