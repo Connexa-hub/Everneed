@@ -54,6 +54,11 @@ Tests: `node tools/web-seller-tests/ds-seller.js` (12 pass). Browser: Chromium a
 - **Needed from the owner:** the exact error text or a screenshot, and whether those accounts signed in with Google, email code or password.
 - The same `shared/supa.js` is copied into the app build, so the app gets this recovery too.
 
+## Part 6 (23 Nov 2026): seller Orders
+- New Orders tab (5th seller tab) and `/portal/orders` for live stores: filter chips (All, New, In progress, Delivered, Closed) with counts, search by name, city or order, tiles for new, in progress and earned from delivered orders, a detail sheet (totals, commission, what you earn, address, tap-to-call phone, items).
+- **Read-only on purpose:** there is no seller order action in the database (request R12). The sheet shows a disabled "Accept order" with the reason; nothing pretends to succeed.
+- True empty state and a retry state; verified at 360 px, no sideways scroll. Tests: ds-seller.js now 19.
+
 ## Tests actually run
 - `node tools/web-seller-tests/ds.js`: **28 of 28 pass** (art mapping for all 22 categories, no unclassed SVG shape, no emoji in icons, money formatting, HTML escaping in every builder, banner roles, overview numbers, all-clear and failure behaviour, applications, stores filters and actions, review, Everneed Store tabs, staff honesty, switcher, action-name prefix).
 - `node tools/web-seller-tests/run.js` (existing): **22 of 22 pass**.

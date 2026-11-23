@@ -339,3 +339,13 @@ html.ds-navbusy #main{opacity:.72;transition:opacity var(--ds-d2)}
 .ds-bar button:disabled{opacity:.6}
 @media(max-width:480px){.ds-bars{display:none}.ds-bar .ds-btn{padding-inline:var(--ds-s3)}.ds-bar .ds-btn[value=draft]{flex:0 0 auto}}
 @media(prefers-reduced-motion:reduce){.ds-barp,.ds-swt,.ds-mixprev{transition:none}.ds-vo{animation:none}}
+
+/* Seller orders */
+.ds-od{display:flex;align-items:center;gap:var(--ds-s3);width:100%;text-align:left;min-height:64px;font:inherit;cursor:pointer}
+.ds-od .ds-grow{flex:1;min-width:0}.ds-od .ds-grow b,.ds-od .ds-grow small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ds-od small{color:var(--text-2);font-size:var(--ds-t-s)}
+.ds-odr{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.ds-kvs{margin:var(--ds-s3) 0}.ds-kv{display:flex;justify-content:space-between;gap:var(--ds-s4);padding:10px 0;border-bottom:1px solid var(--border)}
+.ds-kv span{color:var(--text-2)}.ds-kv b{text-align:right;font-weight:600;overflow-wrap:anywhere}.ds-kv a{color:var(--brand)}
+.ds-note{color:var(--text-2);font-size:var(--ds-t-s);margin:var(--ds-s2) 0 0}
+.ds-od .ds-ico{width:40px;height:40px;border-radius:var(--ds-r2);background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:none}

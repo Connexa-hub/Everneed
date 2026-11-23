@@ -102,5 +102,16 @@ function seller(o){
  await t('product editor: other pages and non-editor html fall through untouched',async()=>{
    assert.equal((await seller({orig:{layout:'portal',title:'Product',html:'Not found'}}).V.portal(['product','zz'])).html,'Not found')});
 
+ await t('orders: lists live orders with filters, escapes names, shows true empty and error states',async()=>{
+   const O=[{id:'a',order_id:'o1',status:'pending',subtotal:5000,earning:4500,created_at:'2026-11-23T01:00:00Z',customer_name:'<b>Eve</b>'},{id:'b',order_id:'o2',status:'delivered',subtotal:2000,earning:1800,created_at:'2026-11-20T01:00:00Z'}];
+   const orig={layout:'portal',title:'Dashboard',active:'portal',html:'x'};
+   const r=await seller({orders:O,orig}).V.portal(['orders']);
+   assert.equal(r.title,'Orders');assert(r.html.includes('data-act="ds-of"')&&r.html.includes('&lt;b&gt;Eve')&&!r.html.includes('<b>Eve</b>')&&r.html.includes('Customer'));
+   const e=await seller({orders:[],orig}).V.portal(['orders']);assert(e.html.includes('No orders yet')&&!e.html.includes('ds-od"'));
+   const f=await seller({failorders:true,orig}).V.portal(['orders']);assert(f.html.includes('Orders could not load')&&f.html.includes('ds-reload'))});
+ await t('orders: not shown for a store that is not live (falls back to the original page)',async()=>{
+   const orig={layout:'portal',title:'Dashboard',html:'orig'};
+   assert.equal((await seller({store:Object.assign({},STORE,{activation_status:'pending'}),orig}).V.portal(['orders'])).html,'orig')});
+
  console.log(`${pass} passed, ${fail} failed`);
 })();

@@ -33,6 +33,7 @@
   V.portal=function(p){
     var sub=p[0]||"";
     return Promise.resolve(old(p)).then(function(res){
+      if(sub==="orders"&&res&&res.layout==="portal"&&Supa.uid())return Supa.get("stores?select=activation_status&owner_id=eq."+enc(Supa.uid())).then(function(r){return r&&r[0]&&r[0].activation_status==="live"?orders(res):res},function(){return res});
       try{
         if(!res||res.layout!=="portal"||!Supa.uid())return res;
         var r=null;
@@ -236,4 +237,64 @@
   document.addEventListener("change",function(e){var t=e.target;if(!SP.on||!t||!t.name)return;if(t.name==="col")drawSpecs();else checklist()});
   document.addEventListener("input",function(e){if(SP.on&&e.target&&e.target.closest&&e.target.closest("#wsform"))checklist()});
   document.addEventListener("click",function(e){if(SP.on&&e.target.closest&&e.target.closest("#wsmedia"))setTimeout(checklist,300)});
+
+  /* ---------- orders (read-only until the backend adds order actions, see handoff R12) ---------- */
+  var OS={pending:["New","warn","bell"],accepted:["Accepted","info","okc"],preparing:["Preparing","info","box"],ready:["Ready","info","okc"],handover_pending:["Handover","info","clock"],at_hub:["At hub","info","store"],consolidated:["At hub","info","store"],out_for_delivery:["On its way","info","send"],delivered:["Delivered","ok","okc"],cancelled:["Cancelled","bad","x"],rejected:["Declined","bad","x"],returned:["Returned","bad","alert"]};
+  var OT=[["all","All"],["pending","New"],["active","In progress"],["delivered","Delivered"],["closed","Closed"]];
+  var OL=[],OF={tab:"all",q:""};
+  function grp(o){return o.status==="pending"?"pending":o.status==="delivered"?"delivered":ACTIVE.indexOf(o.status)>-1?"active":"closed"}
+  function oname(o){return o.customer_name||"Customer"}
+  function orders(orig){
+    return Supa.rpc("my_seller_orders",{}).then(unwrap).then(function(list){
+      list=Array.isArray(list)?list:[];OL=list;OF.tab="all";OF.q="";
+      var cnt={all:list.length,pending:0,active:0,delivered:0,closed:0};list.forEach(function(o){cnt[grp(o)]++});
+      var earned=list.filter(function(o){return o.status==="delivered"}).reduce(function(t,o){return t+Number(o.earning||0)},0);
+      var cards=list.map(function(o,i){
+        var st=OS[o.status]||[o.status,"","box"];
+        return'<button type="button" class="ds-card ds-od" data-act="ds-od" data-id="'+i+'" data-g="'+grp(o)+'" data-name="'+esc((oname(o)+" "+(o.customer_city||"")+" "+o.order_id).toLowerCase())+'">'
+          +'<span class="ds-ico">'+D.icon(st[2],20)+'</span><span class="ds-grow"><b>'+esc(oname(o))+'</b><small>'+esc(C.ago(o.created_at))+(o.customer_city?" · "+esc(o.customer_city):"")+'</small></span>'
+          +'<span class="ds-odr"><b>'+C.money(o.subtotal)+'</b>'+D.chip(st[0],st[1])+'</span></button>';
+      }).join("");
+      var seg='<div class="ds-chips ds-pf" role="group" aria-label="Filter orders">'+OT.map(function(t){return'<button type="button" class="ds-chip'+(t[0]==="all"?" on":"")+'" data-act="ds-of" data-id="'+t[0]+'" aria-pressed="'+(t[0]==="all"?"true":"false")+'">'+t[1]+' <span class="n">'+(cnt[t[0]]||0)+"</span></button>"}).join("")+"</div>";
+      var html='<div class="ds-headrow"><h1 class="ds-title">Orders</h1></div>'
+        +(list.length?'<div class="ds-stats">'+D.stat({icon:"bell",value:cnt.pending,label:"New"})+D.stat({icon:"box",value:cnt.active,label:"In progress"})+D.stat({icon:"okc",value:earned,money:true,label:"Earned, delivered"})+"</div>"
+          +'<div class="ds-search">'+D.icon("search",20)+'<input type="search" data-dso placeholder="Search by name, city or order" aria-label="Search orders" autocomplete="off"></div>'+seg
+          +'<div class="ds-stack" id="ds-olist">'+cards+'</div><div id="ds-onone" hidden>'+D.empty({icon:"search",title:"Nothing here",text:"No orders match this filter or search."})+"</div>"
+          :D.empty({icon:"receipt",title:"No orders yet",text:"When a shopper buys from your store, the order appears here with the delivery details."}));
+      return out(html,"Orders","portal/orders");
+    }).catch(function(){return out(D.empty({icon:"alert",title:"Orders could not load",text:"Check your connection and try again.",action:{label:"Try again",act:"ds-reload"}}),"Orders","portal/orders")});
+  }
+  function oapply(){
+    var q=((document.querySelector("[data-dso]")||{}).value||"").trim().toLowerCase(),n=0;
+    Array.prototype.forEach.call(document.querySelectorAll("#ds-olist>[data-g]"),function(c){var ok=(OF.tab==="all"||c.getAttribute("data-g")===OF.tab)&&(!q||c.getAttribute("data-name").indexOf(q)>-1);c.hidden=!ok;if(ok)n++});
+    var none=document.getElementById("ds-onone");if(none)none.hidden=n>0;
+  }
+  A["ds-of"]=function(b){OF.tab=b.getAttribute("data-id");Array.prototype.forEach.call(document.querySelectorAll(".ds-pf .ds-chip"),function(c){var on=c===b;c.classList.toggle("on",on);c.setAttribute("aria-pressed",on?"true":"false")});oapply()};
+  document.addEventListener("input",function(e){if(e.target&&e.target.hasAttribute&&e.target.hasAttribute("data-dso"))oapply()});
+  function line(k,v){return v?'<div class="ds-kv"><span>'+esc(k)+'</span><b>'+v+"</b></div>":""}
+  A["ds-od"]=function(b){
+    var o=OL[Number(b.getAttribute("data-id"))];if(!o)return;
+    var st=OS[o.status]||[o.status,"","box"],items=Array.isArray(o.items)?o.items:[];
+    var its=items.map(function(i){i=i||{};var n=i.name||i.title||i.product_name||"Item",q=Number(i.qty||i.quantity||1),pr=Number(i.price||i.unit_price||0);
+      return D.row({icon:"box",title:n+(i.variant||i.size?" · "+(i.variant||i.size):""),sub:"Qty "+q+(pr?" · "+C.money(pr):"")})}).join("");
+    var ph=o.customer_phone?'<a href="tel:'+esc(String(o.customer_phone).replace(/[^+\d]/g,""))+'">'+esc(o.customer_phone)+"</a>":"";
+    D.sheet({title:oname(o),html:'<div class="ds-chips">'+D.chip(st[0],st[1],st[2])+(o.route?D.chip(String(o.route).replace(/_/g," ")):"")+"</div>"
+      +'<div class="ds-kvs">'+line("Placed",esc(C.when(o.created_at)))+(o.status==="pending"&&o.accept_by?line("Respond by",esc(C.when(o.accept_by))):"")
+      +line("Order total",C.money(o.subtotal))+line("Everneed commission",o.commission!=null?C.money(o.commission):"")+line("You earn",o.earning!=null?C.money(o.earning):"")
+      +line("City",esc(o.customer_city||""))+line("Address",esc(o.customer_address||""))+line("Phone",ph)+"</div>"
+      +(its?'<div class="ds-h"><h2>Items</h2></div><div class="ds-rows">'+its+"</div>":"")
+      +'<div class="ds-acts"><button type="button" class="ds-btn" disabled aria-describedby="ds-odn">'+(o.status==="pending"?"Accept order":"Update status")+'</button></div>'
+      +'<p class="ds-note" id="ds-odn">Accepting and updating orders from here is coming. It needs a secure order action on the Everneed server, so the button stays off rather than pretending.</p>'});
+  };
+  if(window.AX&&AX.shell){var shell0=AX.shell;AX.shell=function(kind,active,inner,me){
+    var h=shell0.apply(this,arguments);
+    if(kind!=="portal"||h.indexOf('href="/portal/products"')<0||h.indexOf('href="/portal/orders"')>-1)return h;
+    var on=String(active||"")==="portal/orders";
+    h=h.replace(/<a href="\/portal\/products"([^>]*)>[\s\S]*?<\/a>/g,function(m){
+      var big=m.indexOf('width="24"')>-1;
+      return m+'<a href="/portal/orders"'+(on?' class="on" aria-current="page"':"")+">"+D.icon("receipt",big?24:22)+"<span>Orders</span></a>"});
+    h=h.replace('class="ax-tabs" style="--n:4"','class="ax-tabs" style="--n:5"');
+    if(on)h=h.replace(/(<a href="\/me")\s+class="on" aria-current="page"/g,"$1");
+    return h;
+  }}
 })();
