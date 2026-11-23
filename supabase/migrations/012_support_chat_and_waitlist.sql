@@ -105,9 +105,18 @@ create or replace function public.chat_member(p uuid) returns boolean language s
 create or replace function public.support_tier(p_store text) returns text language sql stable security definer set search_path=public as $$
   select coalesce((select lower(pl.name) from public.store_subscriptions s join public.store_plans pl on pl.id=s.plan_id
     where s.store_id=p_store and s.status not in ('cancelled','canceled','expired','ended') order by s.current_period_end desc nulls last limit 1),'none') $$;
-create or replace function public.support_sla_minutes(p_tier text) returns int language sql stable security definer set search_path=public as $$
-  select coalesce((select (value->'minutes'->>coalesce(p_tier,'none'))::int from public.support_settings where key='sla'),
-                  (select (value->'minutes'->>'none')::int from public.support_settings where key='sla'),480) $$;
+create or replace function public.support_sla_minutes(p_tier text) returns int
+language sql stable security definer set search_path=''
+as $
+  -- Keep the helper safe under the final empty-search_path hardening pass.
+  select coalesce(
+    (select (ss.value->'minutes'->>coalesce(p_tier,'none'))::int
+       from public.support_settings ss where ss.key='sla'),
+    (select (ss.value->'minutes'->>'none')::int
+       from public.support_settings ss where ss.key='sla'),
+    480
+  )
+$;
 
 -- ===== message guard: never let a delivery code sit in chat =====
 create or replace function public.chat_guard() returns trigger language plpgsql as $$
