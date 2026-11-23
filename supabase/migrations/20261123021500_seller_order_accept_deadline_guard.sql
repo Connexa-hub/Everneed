@@ -24,7 +24,7 @@ begin
   -- serializes both paths; the cancellation helper performs stock restoration,
   -- refund bookkeeping (where applicable), notifications and audit atomically.
   if not admin_ and p_to = 'accepted' and so.status = 'pending'
-     and so.accept_by is not null and so.accept_by <= now() then
+     and so.accept_by is not null and so.accept_by <= clock_timestamp() then
     perform private.cancel_so(p_so, 'The seller did not respond in time.', null, 'cancelled');
     return;
   end if;
