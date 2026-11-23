@@ -463,3 +463,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Added explicit `advanced_product_editor=true` for every plan and `product_editor_mode`: Free/Starter `guided`, Growth/Pro `full`. Basic plans retain the full backend field set and only receive a simplified guided UI. Test 038 confirms the Free seller capability RPC.
 
 - Added catalogue trigger ACL hardening migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 verifies API roles cannot directly execute internal trigger helpers while the actual trigger paths still function.
+
+
+## 23 Nov 2026 — Google sign-in implementation
+
+- Added the **Continue with Google** option to the app's email-first login, password, verification-code and account-creation screens.
+- Android starts Supabase OAuth in Capacitor Browser and returns through `com.everneed.store://auth/callback`; Capacitor App deep-link listener restores the Supabase session.
+- First-time Google accounts without a stored DOB are directed to the existing profile-completion screen; the 18+ check remains in place.
+- Added `@capacitor/app` and `@capacitor/browser`, registered the Android callback intent filter, and updated OAuth setup documentation.
+- Branch: `feature/google-signin`; PR #36 targets `web-portal`. Staging and production code/config are not merged or changed by this PR.
+- Pending: CI, APK build, enable Google provider in Everneed-staging and allow-list `com.everneed.store://auth/callback`, then test Google sign-in on the Infinix Hot 70. Production OAuth configuration remains untouched.
