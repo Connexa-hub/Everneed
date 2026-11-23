@@ -58,7 +58,31 @@ if (paystackSource.includes('return json({ ok: true, queued: true });')) {
   fail('Paystack webhook processing failure must not return a successful 2xx acknowledgement without a retry worker');
 }
 
-// 4c. Payment recovery worker must authenticate service-role calls and verify with Paystack before settlement.
+// 4c. Checkout client must reuse an idempotency key for session recovery and never launch a blank Paystack session.
+const cardsSource = readFileSync('js/cards.js', 'utf8');
+for (const required of ['function makeKey(order,fresh)', 'idempotency_key:idem', 'if(r.url&&r.access_code)', 'function wait(order,ref,status,retry)', 'data-act="cretry"', 'action:"verify"']) {
+  if (!cardsSource.includes(required)) fail('js/cards.js is missing payment-recovery guard: ' + required);
+}
+if (!cardsSource.includes('S.set(keyName(order),k)')) fail('js/cards.js must persist its per-order idempotency key');
+if (!cardsSource.includes('S.set("payorder",null)')) fail('successful payment must clear the saved pending order');
+if (!cardsSource.includes('window.PaystackPop')) fail('card checkout must guard Paystack inline SDK availability');
+
+// 4d. Google OAuth must use PKCE, native callback, one-time exchange, and registered Android deep link.
+const authSource = readFileSync('js/auth.js', 'utf8');
+const appSource = readFileSync('js/app.js', 'utf8');
+const supaSource = readFileSync('js/supa.js', 'utf8');
+const manifestSource = readFileSync('android/app/src/main/AndroidManifest.xml', 'utf8');
+for (const [file, source, required] of [
+  ['js/auth.js', authSource, 'code_challenge_method=s256'],
+  ['js/auth.js', authSource, 'oauth_pkce'],
+  ['js/app.js', appSource, 'oauthComplete'],
+  ['js/app.js', appSource, 'appUrlOpen'],
+  ['js/supa.js', supaSource, 'oauthExchange:function'],
+  ['AndroidManifest.xml', manifestSource, 'com.everneed.store://auth/callback'],
+]) if (!source.includes(required)) fail(file + ' is missing Google OAuth integration marker: ' + required);
+
+// 4e. Payment recovery worker must authenticate service-role calls and verify with Paystack before settlement.
+
 const recoveryWorkerPath = 'supabase/functions/payment-recovery/index.ts';
 if (existsSync(recoveryWorkerPath)) {
   const recoverySource = readFileSync(recoveryWorkerPath, 'utf8');
