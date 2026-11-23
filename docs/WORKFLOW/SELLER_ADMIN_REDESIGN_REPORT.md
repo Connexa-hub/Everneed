@@ -64,6 +64,9 @@ Tests: `node tools/web-seller-tests/ds-seller.js` (12 pass). Browser: Chromium a
 - Still blocked on backend request R4: real "awaiting reply" and urgency fields, buyer names for sellers, order context card, attachments, quick replies, receipts. Nothing is faked meanwhile.
 - Not done: swipe actions on conversations (needs mute/archive/pin fields, R4 item 7).
 
+## Part 9 (23 Nov 2026): plan page
+- `/portal/plan` now opens with a current-plan card (usage ring, daily listings, status and renewal or trial-end date) from `my_store_entitlements` and `store_subscriptions`, above the existing carousel. Nothing is guessed when data is missing. Plan prices, limits and activation rules are untouched.
+
 ## Tests actually run
 - `node tools/web-seller-tests/ds.js`: **28 of 28 pass** (art mapping for all 22 categories, no unclassed SVG shape, no emoji in icons, money formatting, HTML escaping in every builder, banner roles, overview numbers, all-clear and failure behaviour, applications, stores filters and actions, review, Everneed Store tabs, staff honesty, switcher, action-name prefix).
 - `node tools/web-seller-tests/run.js` (existing): **22 of 22 pass**.

@@ -33,6 +33,7 @@
   V.portal=function(p){
     var sub=p[0]||"";
     return Promise.resolve(old(p)).then(function(res){
+      if(sub==="plan"&&res&&res.layout==="portal"&&Supa.uid())return planNow(res).catch(function(){return res});
       if(sub==="orders"&&res&&res.layout==="portal"&&Supa.uid())return Supa.get("stores?select=activation_status&owner_id=eq."+enc(Supa.uid())).then(function(r){return r&&r[0]&&r[0].activation_status==="live"?orders(res):res},function(){return res});
       try{
         if(!res||res.layout!=="portal"||!Supa.uid())return res;
@@ -238,7 +239,7 @@
   document.addEventListener("input",function(e){if(SP.on&&e.target&&e.target.closest&&e.target.closest("#wsform"))checklist()});
   document.addEventListener("click",function(e){if(SP.on&&e.target.closest&&e.target.closest("#wsmedia"))setTimeout(checklist,300)});
 
-  /* ---------- orders (read-only until the backend adds order actions, see handoff R12) ---------- */
+  /* ---------- orders: status changes go through the seller_transition RPC, which checks ownership, payment and legal steps ---------- */
   var OS={pending:["New","warn","bell"],accepted:["Accepted","info","okc"],preparing:["Preparing","info","box"],ready:["Ready","info","okc"],handover_pending:["Handover","info","clock"],at_hub:["At hub","info","store"],consolidated:["At hub","info","store"],out_for_delivery:["On its way","info","send"],delivered:["Delivered","ok","okc"],cancelled:["Cancelled","bad","x"],rejected:["Declined","bad","x"],returned:["Returned","bad","alert"]};
   var OT=[["all","All"],["pending","New"],["active","In progress"],["delivered","Delivered"],["closed","Closed"]];
   var OL=[],OF={tab:"all",q:""};
@@ -278,13 +279,47 @@
     var its=items.map(function(i){i=i||{};var n=i.name||i.title||i.product_name||"Item",q=Number(i.qty||i.quantity||1),pr=Number(i.price||i.unit_price||0);
       return D.row({icon:"box",title:n+(i.variant||i.size?" · "+(i.variant||i.size):""),sub:"Qty "+q+(pr?" · "+C.money(pr):"")})}).join("");
     var ph=o.customer_phone?'<a href="tel:'+esc(String(o.customer_phone).replace(/[^+\d]/g,""))+'">'+esc(o.customer_phone)+"</a>":"";
-    D.sheet({title:oname(o),html:'<div class="ds-chips">'+D.chip(st[0],st[1],st[2])+(o.route?D.chip(String(o.route).replace(/_/g," ")):"")+"</div>"
+    var sh=D.sheet({title:oname(o),html:'<div class="ds-chips">'+D.chip(st[0],st[1],st[2])+(o.route?D.chip(String(o.route).replace(/_/g," ")):"")+"</div>"
       +'<div class="ds-kvs">'+line("Placed",esc(C.when(o.created_at)))+(o.status==="pending"&&o.accept_by?line("Respond by",esc(C.when(o.accept_by))):"")
       +line("Order total",C.money(o.subtotal))+line("Everneed commission",o.commission!=null?C.money(o.commission):"")+line("You earn",o.earning!=null?C.money(o.earning):"")
       +line("City",esc(o.customer_city||""))+line("Address",esc(o.customer_address||""))+line("Phone",ph)+"</div>"
       +(its?'<div class="ds-h"><h2>Items</h2></div><div class="ds-rows">'+its+"</div>":"")
-      +'<div class="ds-acts"><button type="button" class="ds-btn" disabled aria-describedby="ds-odn">'+(o.status==="pending"?"Accept order":"Update status")+'</button></div>'
-      +'<p class="ds-note" id="ds-odn">Accepting and updating orders from here is coming. It needs a secure order action on the Everneed server, so the button stays off rather than pretending.</p>'});
+      +'<div class="ds-acts" id="ds-oacts">'+oacts(o)+"</div>"});
+    sh.body.addEventListener("click",function(e){
+      var x=e.target.closest("[data-to]");if(!x||x.disabled)return;
+      var to=x.getAttribute("data-to");
+      if(to==="rejected")return D.confirm({title:"Decline this order?",text:"The shopper is told why. Declining cannot be undone.",ok:"Decline order",danger:true,input:{label:"Reason for the shopper",required:true,placeholder:"For example: item is out of stock"}}).then(function(v){if(v)go(o,sh,x,to,{reason:v})});
+      if(to==="out_for_delivery")return courier(o,sh,x);
+      go(o,sh,x,to,{});
+    });
+  };
+  function oacts(o){
+    var r=o.route,m={pending:[["accepted","Accept order"],["rejected","Decline","o d"]],accepted:[["preparing","Start preparing"]],preparing:[["ready","Mark ready"]],ready:r==="direct"?[["out_for_delivery","Send out for delivery"]]:r==="hub"?[["handover_pending","Hand over to hub"]]:[]};
+    var l=m[o.status]||[],h=l.map(function(a){return'<button type="button" class="ds-btn'+(a[2]?" "+a[2].replace(" d"," d"):"")+'" data-to="'+a[0]+'">'+a[1]+"</button>"}).join("");
+    var note=l.length?(o.status==="pending"?"Accept within the response time, or the order may be cancelled.":""):/^(handover_pending|at_hub|consolidated|out_for_delivery)$/.test(o.status)?"The next step is handled by the Everneed hub or delivery team.":o.status==="ready"?"Waiting for the delivery route to be set.":"";
+    if(o.status!=="pending"&&["accepted","preparing","ready","handover_pending"].indexOf(o.status)>-1)note+=(note?" ":"")+"To cancel an accepted order, contact Everneed.";
+    return h+(note?'<p class="ds-note">'+esc(note)+"</p>":"");
+  }
+  function go(o,sh,x,to,payload){
+    var all=sh.body.querySelectorAll("[data-to]");Array.prototype.forEach.call(all,function(b){b.disabled=true});x.setAttribute("aria-busy","true");
+    Supa.rpc("seller_transition",{p_so:o.id,p_to:to,p_payload:payload||{}}).then(function(){
+      sh.close();D.toast(to==="rejected"?"Order declined":"Order updated");A["ds-reload"]&&A["ds-reload"]();
+    }).catch(function(e){
+      Array.prototype.forEach.call(all,function(b){b.disabled=false});x.removeAttribute("aria-busy");
+      D.toast((e&&e.message)||"That did not work. Try again.",true);
+    });
+  }
+  function courier(o,sh,x){
+    var c=D.sheet({title:"Send out for delivery",html:'<p class="lead">Optional: who is delivering, so the shopper can reach them.</p>'
+      +'<label class="ds-field"><span>Courier name</span><input id="ds-cn" maxlength="80" autocomplete="off"></label>'
+      +'<label class="ds-field"><span>Courier phone</span><input id="ds-cp" type="tel" maxlength="30" autocomplete="off"></label>'
+      +'<label class="ds-field"><span>Note</span><input id="ds-cm" maxlength="300" autocomplete="off"></label>'
+      +'<div class="ds-foot"><button type="button" class="ds-btn o" data-c="0">Cancel</button><button type="button" class="ds-btn" data-c="1">Send out</button></div>'});
+    c.body.addEventListener("click",function(e){var b=e.target.closest("[data-c]");if(!b)return;
+      if(b.getAttribute("data-c")==="0")return c.close();
+      var v=function(i){return(c.body.querySelector(i).value||"").trim()};
+      c.close();go(o,sh,x,"out_for_delivery",{courier_name:v("#ds-cn"),courier_phone:v("#ds-cp"),note:v("#ds-cm")});
+    });
   };
   if(window.AX&&AX.shell){var shell0=AX.shell;AX.shell=function(kind,active,inner,me){
     var h=shell0.apply(this,arguments);
@@ -312,4 +347,24 @@
       }catch(e){return r}
     });
   };
+
+  /* ---------- plan page: your current plan, usage and renewal above the plan carousel ---------- */
+  var SUBST={active:["Active","ok"],trialing:["Trial","info"],past_due:["Payment due","bad"],cancelled:["Cancelled","bad"],canceled:["Cancelled","bad"],expired:["Expired","bad"],paused:["Paused","warn"]};
+  function planNow(res){
+    return Supa.get("stores?select=id&owner_id=eq."+enc(Supa.uid())).then(function(r){
+      var st=r&&r[0];if(!st)return res;
+      return Promise.all([Supa.rpc("my_store_entitlements",{}).then(unwrap).catch(function(){return null}),Supa.get("store_subscriptions?select=status,current_period_end,plan_id&store_id=eq."+enc(st.id)).catch(soft)]).then(function(a){
+        var e=a[0],sub=(a[1]||[])[0];if(!e||e.configured!==true)return res;
+        var used=e.active_products||0,lim=e.active_products_unlimited?null:e.active_product_limit,pct=lim?Math.min(100,Math.round(used/lim*100)):0,ss=sub&&SUBST[sub.status]||(sub?[String(sub.status||"").replace(/_/g," "),""]:null);
+        var card='<div class="ds-card ds-ringcard ds-cur">'+(lim?D.ring(pct,pct>=80?"warn":"ok",used+" of "+lim+" products used"):"")
+          +'<div class="ds-grow"><small>Your current plan</small><b>'+D.plan(e.plan_name||"Plan")+"</b>"
+          +'<p>'+(lim?used+" of "+lim+" products used":used+" products, no limit")+"</p>"
+          +(e.daily_new_products_unlimited?"":"<small>Today: "+(e.daily_new_products_used||0)+" of "+e.daily_new_product_limit+" new listings</small>")
+          +(ss||(sub&&sub.current_period_end)?'<div class="ds-chips">'+(ss?D.chip(ss[0],ss[1]):"")+(sub&&sub.current_period_end?D.chip((sub.status==="trialing"?"Trial ends ":"Renews ")+C.when(sub.current_period_end),"","clock"):"")+"</div>":"")
+          +"</div></div>";
+        var k='<form data-form="sfplan"';if(typeof res.html!=="string"||res.html.indexOf(k)<0)return res;
+        res.html=res.html.replace(k,card+k);return res;
+      });
+    });
+  }
 })();
