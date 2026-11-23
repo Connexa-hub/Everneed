@@ -3,6 +3,14 @@
 **Target:** `web-portal` and Android staging build only.  
 **Production:** No provider settings, secrets, charges, migrations or deployments are changed by this checklist.
 
+## Read-only staging baseline verified 23 Nov 2026
+
+- Everneed-staging migration ledger currently includes 026–033 and newer timestamped checkout/finance migrations through `20261122140408_fin03_verified_payment_journal_posting`.
+- Staging `paystack` Edge Function is ACTIVE version 14, `verify_jwt=false`; its source includes snapshot-backed card order creation (`create_order_with_financial_snapshot_v2)), payment-attempt creation, verified settlement, and durable provider-event inbox handling.
+- The deployed function source hash reported by Supabase is `6a6ce92bbe70ece6b8f1bf60986e3c1bac84ef91bdd7bcc977287fe55f7bfdef`.
+- This confirms the core card-payment backend is already present in staging. It does **not** prove a test charge, webhook round-trip, retry/reconciliation or refund has been tested.
+- Provider secrets were not read. No database or Edge Function deployment/change was made during this inspection.
+
 ## Authentication (Google)
 
 ### Staging setup — owner action
