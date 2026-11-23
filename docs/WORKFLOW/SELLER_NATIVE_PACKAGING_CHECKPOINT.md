@@ -14,13 +14,13 @@
 ## Current boundaries / caveats
 - The public web source is unchanged; this adapter is injected into the packaged copy only.
 - The seller package is not yet linked from shopper UI and does not yet enforce store ownership before entry.
-- Shopper `js/supa.js` still needs shared-session adoption and refresh synchronization. Concurrent refresh-token use across clients must be addressed before auth is reliable.
+- Shopper `js/supa.js` now adopts the newest stored `en_sess` before checking expiry/refreshing, and on a refresh failure it checks for a newer session before clearing local state. This is a basic cross-shell synchronization guard; a true concurrent refresh lock and session-flow tests remain needed.
 - Android Back, seller-to-shop switching, sign-out propagation, and actual APK/device validation are still pending.
 - The packaging smoke test has been added but its CI execution is pending confirmation.
 
 ## Next steps
 1. Validate the route adapter with a browser/CI test for routes, hash redirects, links, and asset requests.
-2. Implement shared-session adoption and refresh coordination across shopper and seller Supabase clients.
+2. Add a shared refresh coordination mechanism and tests for session adoption, stale-token races, logout propagation, and auth failures.
 3. Add authenticated store ownership lookup, seller entry, and no-store onboarding redirect.
 4. Add Shop/My Store switching and Android Back handling.
 5. Build staging APK and test on Infinix Hot 70.
