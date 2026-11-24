@@ -89,9 +89,9 @@ jobs:
 
       - name: Product catalogue foundation regression tests (038)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
-  # Staging test APK builds: web-portal pushes or manual dispatch only. main never creates a test APK.
+  # Staging APK builds: web-portal pushes/manual dispatch and same-repo integration PR only. main never creates a test APK.
   apk:
-    if: github.ref_name == 'web-portal' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: (github.event_name == 'push' && github.ref_name == 'web-portal') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'web-portal') || (github.event_name == 'pull_request' && (github.head_ref == 'feat/payment-login-client-hardening' || github.head_ref == 'feat/native-google-signin') && github.event.pull_request.head.repo.full_name == github.repository)
     # This staging-only packaging artifact depends on web checks, not database tests; APK success is not backend-readiness approval.
     needs: [test]
     runs-on: ubuntu-latest
