@@ -69,3 +69,15 @@ Shopping exists only in the app, so the switch is in the app frontend (`js/mode.
 - Boot: once per app launch (`sessionStorage en_mode_boot`), if `en_mode=seller` and signed in, the app replaces to `/seller/index.html`. A broken bundle cannot trap the person: the launch guard only fires once and the seller shell's Shop button (`EVSeller.exit`) sets `en_mode=shop`.
 - For ChatGPT (packaging): keep the entry as `/seller/index.html` (Capacitor serves the shopper `index.html` for unknown extensionless paths, so a reload on `/seller/portal` can load the wrong page); the seller router adapter must map `/index.html` after stripping `/seller` to the seller home; Android Back should call `window.EVSeller.back()` first and only then the app's own back.
 - Not tested: real device (owner), the packaged `/seller/` bundle itself (tested here with a stub page).
+
+## Animated onboarding, permissions and notifications (slice 6)
+
+App frontend, `js/motion.js` + `css/motion.css` (inline SVG and CSS animation only, no images or libraries; all stop under reduced motion).
+
+- Scenes: delivery route, globe with currencies, card checkout (intro); location pin drop, ringing bell, camera scan (permissions); empty box (every empty screen via `empty()`); friendly profile (signed-out Me and `hello`).
+- Permission freeze fixed: tapping Allow immediately turns the button into "Waiting for your answer…" (disabled, spinner) so repeat taps cannot happen. When the system answers, the scene itself shows the result (check badge or neutral dash), the button reads "Allowed" or "Not turned on", then the screen advances. "Not now" still works while waiting. A late answer after Not now is ignored (`permTok`).
+- No permission banners: the "Showing X prices" toast is now the inline line on the location step. Denied shows "You can turn this on later in Settings." inline.
+- Granted-but-no-position (location timeout) now counts as allowed instead of failed.
+- Notifications are a compact pill that springs in from the top, no progress bar; swipe up or tap to dismiss.
+- Signed-out Me is minimal: scene, one line, one Sign in button, Appearance.
+- Not tested: real device, system permission dialogs, motion performance on low-end phones (Infinix Hot 70 check is the owner's).
