@@ -351,7 +351,7 @@
   /* The saved sign-in could not be refreshed (revoked, expired elsewhere, another account signed in): send the person to sign in with a clear note. */
   /* Hooks for the app that bundles this workspace (see SELLER_APP_EXPERIENCE_SPEC.md): leave to the shopping side, and let Android Back close overlays first. */
   var EVS=window.EVSeller=window.EVSeller||{};
-  EVS.exit=function(to){if(typeof window.EV_EXIT_SELLER==="function")return window.EV_EXIT_SELLER(to);location.assign("/index.html#/"+(to||""))};
+  EVS.exit=function(to){try{localStorage.setItem("en_mode","shop")}catch(e){}if(typeof window.EV_EXIT_SELLER==="function")return window.EV_EXIT_SELLER(to);location.assign("/index.html#/"+(to||""))};
   EVS.back=EVS.back||function(){return false};
   window.addEventListener("en:session-lost",function(){
     try{C.reset&&C.reset()}catch(e){}

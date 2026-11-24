@@ -58,3 +58,14 @@ Agreed direction (owner, 23 Nov 2026): the shopper signs in once in the app, sho
    - Show "Seller" only for an account that owns a store; otherwise route to the open-a-store flow.
    - Android back button: inside the seller workspace go back within it, and from its Home return to the shopping experience.
 4. **Not changed:** the app's Google sign-in itself, redirect URLs, or any production setting.
+
+## Shop / My store switch lives in the app (slice 5)
+
+Shopping exists only in the app, so the switch is in the app frontend (`js/mode.js`, `css/mode.css`), not in the web seller bundle.
+
+- Shown on the Me page, and on the in-app admin dashboard for admins, only in the native app (Capacitor) or with `?mode=1` for testing, and only when signed in.
+- Right-hand button label: **My store** (owns a store), **Admin** (profile role admin), **Sell** (signed in, no store yet). Owner or admin: sets `localStorage en_mode=seller` and goes to `/seller/index.html`. No store: goes to the existing open-a-store flow `#/m`.
+- No token is passed. The seller bundle reads the same `en_sess` session (`EV_SESSION_KEY`), so nobody signs in twice.
+- Boot: once per app launch (`sessionStorage en_mode_boot`), if `en_mode=seller` and signed in, the app replaces to `/seller/index.html`. A broken bundle cannot trap the person: the launch guard only fires once and the seller shell's Shop button (`EVSeller.exit`) sets `en_mode=shop`.
+- For ChatGPT (packaging): keep the entry as `/seller/index.html` (Capacitor serves the shopper `index.html` for unknown extensionless paths, so a reload on `/seller/portal` can load the wrong page); the seller router adapter must map `/index.html` after stripping `/seller` to the seller home; Android Back should call `window.EVSeller.back()` first and only then the app's own back.
+- Not tested: real device (owner), the packaged `/seller/` bundle itself (tested here with a stub page).
