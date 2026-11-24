@@ -41,5 +41,10 @@ function shell(o){o=o||{};const x=make({});const store={};
    assert.equal(x.ctx.AX.shell('admin','admin','','' ),'<prev/>');
    assert.equal(x.ctx.AX.shell('admin','admin','',{role:'merchant'}),'<prev/>')});
 
+ await t('packaged app: EV_NATIVE_SELLER turns the shell on and exposes exit and back hooks',()=>{
+   const x=shell();x.ctx.window.EV_NATIVE_SELLER=true;
+   assert(x.ctx.AX.shell('portal','portal','<p/>',{}).includes('ds-ab'));
+   assert(typeof x.ctx.window.EVSeller.exit==='function'&&x.ctx.window.EVSeller.back()===false)});
+
  console.log(`${pass} passed, ${fail} failed`);
 })();

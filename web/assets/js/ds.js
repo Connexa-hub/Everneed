@@ -349,8 +349,13 @@
   doc.addEventListener("pointermove",function(e){if(lpT&&(Math.abs(e.clientX-lpX)>8||Math.abs(e.clientY-lpY)>8))clearTimeout(lpT)},{passive:true});
 
   /* The saved sign-in could not be refreshed (revoked, expired elsewhere, another account signed in): send the person to sign in with a clear note. */
+  /* Hooks for the app that bundles this workspace (see SELLER_APP_EXPERIENCE_SPEC.md): leave to the shopping side, and let Android Back close overlays first. */
+  var EVS=window.EVSeller=window.EVSeller||{};
+  EVS.exit=function(to){if(typeof window.EV_EXIT_SELLER==="function")return window.EV_EXIT_SELLER(to);location.assign("/index.html#/"+(to||""))};
+  EVS.back=EVS.back||function(){return false};
   window.addEventListener("en:session-lost",function(){
     try{C.reset&&C.reset()}catch(e){}
+    if(window.EV_NATIVE_SELLER){window.EVSeller.exit("login");return}
     var p=location.pathname;if(p==="/sign-in"||p==="/create-account"||p==="/"||p==="/login")return;
     DS.toast("Your sign-in expired. Please sign in again.",{kind:"warn",duration:6000});C.go("/sign-in")});
 
@@ -358,10 +363,10 @@
      (No page transition: it froze the screen while the next page loaded, which felt slow.) */
   doc.addEventListener("click",function(e){
     if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
-    var a=e.target.closest&&e.target.closest(".ax-tabs a[href],.ax-rail a[href]");if(!a||a.classList.contains("on"))return;
-    Array.prototype.forEach.call(doc.querySelectorAll(".ax-tabs a.on,.ax-rail a.on"),function(n){n.classList.remove("on");n.removeAttribute("aria-current")});
+    var a=e.target.closest&&e.target.closest(".ax-tabs a[href],.ax-rail a[href],.ds-abp a[href]");if(!a||a.classList.contains("on"))return;
+    Array.prototype.forEach.call(doc.querySelectorAll(".ax-tabs a.on,.ax-rail a.on,.ds-abp a.on"),function(n){n.classList.remove("on");n.removeAttribute("aria-current")});
     var href=a.getAttribute("href");
-    Array.prototype.forEach.call(doc.querySelectorAll('.ax-tabs a[href="'+href+'"],.ax-rail a[href="'+href+'"]'),function(n){n.classList.add("on");n.setAttribute("aria-current","page")});
+    Array.prototype.forEach.call(doc.querySelectorAll('.ax-tabs a[href="'+href+'"],.ax-rail a[href="'+href+'"],.ds-abp a[href="'+href+'"]'),function(n){n.classList.add("on");n.setAttribute("aria-current","page")});
     var m=doc.getElementById("main");if(m)m.setAttribute("aria-busy","true");
     html.classList.add("ds-navbusy");setTimeout(function(){html.classList.remove("ds-navbusy")},8000);
   },true);

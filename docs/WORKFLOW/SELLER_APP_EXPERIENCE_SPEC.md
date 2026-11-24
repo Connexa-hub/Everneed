@@ -33,6 +33,10 @@ On phone width with `?shell=app`, signed-in admins get the same frame. Header: a
 ## Slice 3 (done): product rows
 In the phone shell each product is one row (thumbnail, name, price, variants and stock, status chip) with a ⋮ button that opens an actions sheet (Submit for review, Edit, Duplicate, Archive or Restore). The sheet runs the card's own buttons, so there is one set of actions and no duplicated logic.
 
+## Slice 4 (done): loading skeletons and app hooks
+- Skeleton: tapping a tab or bar item keeps the old page for 180 ms (so fast or cached visits never flash), then shows a skeleton until the new page is drawn. Reduced motion keeps the old page dimmed instead. The tap feedback now also covers the floating bar.
+- **Hooks for the packaged app (agreed with ChatGPT's PR #41 plan):** `window.EV_NATIVE_SELLER===true` switches the phone shell on by default; the menu then starts with **Shop**, which calls `EVSeller.exit()` (default `location.assign("/index.html#/")`, or your own `window.EV_EXIT_SELLER(to)`); a lost session calls `EVSeller.exit("login")` instead of routing to a seller sign-in page that does not exist in the bundle; `EVSeller.back()` closes the menu or search overlay and returns `true` if it consumed Android Back, otherwise `false` so the app can go back in seller history, and from seller Home exit to shopping.
+
 ## Next slices
 1. Product detail as stacked cards (the editor already has section cards and a section nav).
 2. Settings screen split into App settings (push notifications, biometric unlock: needs native plugins) and Store settings (General, Plan, Billing).

@@ -8,7 +8,7 @@
   function on(){
     try{
       var m=/[?&]shell=(app|web)\b/.exec(location.search);if(m)localStorage.setItem(KEY,m[1]);
-      var f=localStorage.getItem(KEY)==="app"||!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+      var f=window.EV_NATIVE_SELLER===true||localStorage.getItem(KEY)==="app"||!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
       return f&&matchMedia("(max-width:700px)").matches;
     }catch(e){return false}
   }
@@ -38,7 +38,7 @@
   function ctx(){return C.adminCtx?C.adminCtx():"platform"}
   function adm(){return ctx()==="store"?{tabs:ST3.slice(0,3),msg:"/admin/store/messages",items:ST3.concat([["Account","/me","user"]])}
     :{tabs:[["Overview","/admin","chart"],["Sellers","/admin/sellers","store"],["Review","/admin/review","clip"]],msg:"/inbox",items:[["Overview","/admin","chart"],["Sellers","/admin/sellers","store"],["Review","/admin/review","clip"],["Everneed Store","/admin/store","store",ST3.map(function(x){return[x[0],x[1]]})],["Inbox","/inbox","chat"],["Account","/me","user"]]}}
-  function items(){return KIND==="admin"?adm().items:ITEMS}
+  function items(){var l=KIND==="admin"?adm().items:ITEMS;return window.EV_NATIVE_SELLER?[["Shop","/","bag",null,"ds-ashop"]].concat(l):l}
   function acur(a,h){a=String(a||"");if(ctx()==="store")return a.indexOf("admin/store")===0&&("/"+a)===h?"on":"";return h==="/admin"?(a==="admin"?"on":""):(a.indexOf(h.slice(1))===0?"on":"")}
   var prev=AX.shell;
   AX.shell=function(kind,active,inner,me){
@@ -84,6 +84,7 @@
   A["ds-amenu"]=function(){
     var rows=items().map(function(i,n){
       var kids=i[3];
+      if(i[4])return'<button type="button" class="ds-mi" data-act="'+i[4]+'">'+D.icon(i[2],24)+"<b>"+i[0]+"</b></button>";
       if(!kids)return'<a class="ds-mi" href="'+i[1]+'">'+D.icon(i[2],24)+"<b>"+i[0]+"</b></a>";
       return'<button type="button" class="ds-mi" data-act="ds-mg" aria-expanded="false" aria-controls="ds-mg'+n+'">'+D.icon(i[2],24)+"<b>"+i[0]+'</b><span class="ds-chv">'+D.icon("chevd",20)+'</span></button><div class="ds-mk" id="ds-mg'+n+'" hidden>'
         +kids.map(function(k){return'<a href="'+k[1]+'">'+k[0]+"</a>"}).join("")+"</div>";
@@ -91,6 +92,8 @@
     var o=overlay("ds-am","Menu",'<nav class="ds-ml" aria-label=(KIND==="admin"?"Admin menu":"Seller menu")>'+rows+'</nav><div class="ds-mf"><a class="ds-mb" href="'+(KIND==="admin"?"/me":"/portal/settings")+'" aria-label="Settings">'+D.icon("gear",22)+'</a>'+(KIND==="admin"?'<button type="button" class="ds-mpill" data-act="ds-ctx" data-x>'+D.icon(ctx()==="store"?"store":"globe",20)+" Switch workspace</button>":'<a class="ds-mpill" href="/portal/product/new">'+D.icon("plus",20)+" Add product</a>")+'<button type="button" class="ds-mb" data-x aria-label="Close menu">'+D.icon("x",22)+"</button></div>");
     var f=o.el.querySelector("a,button");if(f)f.focus();
   };
+  A["ds-ashop"]=function(){var x=doc.querySelector(".ds-am [data-x]");if(x)x.click();window.EVSeller.exit("")};
+  window.EVSeller.back=function(){var e=doc.querySelector(".ds-am,.ds-as"),x=e&&e.querySelector("[data-x]");if(x){x.click();return true}return false};
   A["ds-mg"]=function(b){var k=doc.getElementById(b.getAttribute("aria-controls")),open=b.getAttribute("aria-expanded")!=="true";b.setAttribute("aria-expanded",String(open));if(k)k.hidden=!open};
 
   /* ---------- search ---------- */
