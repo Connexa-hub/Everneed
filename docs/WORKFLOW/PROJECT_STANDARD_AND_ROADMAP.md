@@ -4,6 +4,8 @@
 This document consolidates accepted product, architecture, role/access, logistics, app/web and delivery standards. If older planning notes conflict, this document plus the current implementation contracts and migration files prevail. It does not authorize production changes.
 
 ## 1. Product and delivery
+
+**AI team:** Ten Claude agents total. Claude 1–9 are specialist builders across app and web; Claude 10 is the master planner/researcher/analyst/design strategist/reviewer/debugger/moderator/integrator who proactively coordinates them end-to-end. ChatGPT/Codex is backend-only.
 Everneed is a multi-vendor marketplace and logistics platform, not a single store. Customers discover across stores, buy in one checkout, and may receive consolidated delivery via Everneed hub or eligible direct delivery. Sellers own their storefront and catalogue. Everneed earns through disclosed marketplace fees and delivery/fulfilment services; never invent charges or hide deductions.
 
 **One repository and one workflow:** `web-portal` is development/integration for shopper app, merchant, public site, platform operations and Android packaging. `main` is reviewed production release and Cloudflare production. PR `web-portal → main`; hotfixes from main must return to web-portal. No force pushes, no direct production edits, and no app-only branch.
