@@ -63,3 +63,21 @@ The site has a boot screen (`web/assets/js/boot.js`). It prints the failing file
 ## Universal modular platform direction (owner-approved)
 
 Before adding a new role, department, app, logistics workflow, POS or integration, read `EVERNEED_UNIVERSAL_PLATFORM_ARCHITECTURE.md`. Do not hardcode role names as authorization rules or create isolated permission systems per app. Use permission keys, explicit context scopes, backend enforcement, versioned configuration and shared domain contracts. New roles should be assignable from the safe permission registry; new capabilities that require backend code/security checks still require reviewed implementation and tests. Dispatcher/logistics, tracking, courier, support, POS and future applications are planned as modules sharing platform core. This is a long-term architecture: implement progressively and do not ship speculative infrastructure or production migrations without staging review and owner approval.
+
+
+## AI-to-AI communication: documents are the channel (owner-approved, 25 November 2026)
+
+ChatGPT (backend, security, contracts, coordination) and Claude (frontend, app shells, UX) cannot talk to each other directly. Everything that one needs from the other goes through files in `docs/WORKFLOW/`, on `web-portal`.
+
+1. **Read before you work.** At the start of every session, and again before any push, pull `web-portal` and read the other AI's newest handoff and any doc changed since your last commit (`git log --since` or `git diff <your last commit>..HEAD -- docs`). Never work from memory of an earlier state.
+2. **Write after you work.** Every feature, contract change or decision ends with a handoff doc or an appended section: what changed, files, contracts (fields, events, permission keys, error codes), what is mock, what was tested, what could not be tested, risks, and what you need from the other side. Add or update the tracker row too.
+3. **Name the owner of each ask.** Requests are numbered (Claude to ChatGPT: `SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md`, R-numbers; ChatGPT to Claude: a `*_CLAUDE_HANDOFF.md` or a section in the feature's contract). Each has: what, why, who, status (OPEN, ACCEPTED, CHANGED, DONE, REJECTED). Answer an ask by changing its status in the same file and saying why, not in chat.
+4. **Follow the other AI's accepted contract.** If a contract is marked ACCEPTED, build to it exactly. To disagree, do not silently deviate: add a dated CHANGE REQUEST under that contract and carry on with the accepted version until it is answered.
+5. **Same words everywhere.** Permission keys, error codes, status names and table or function names are written exactly as in the contract. Never invent a second name. A new name is added to the contract first.
+6. **Mark mocks and unknowns.** Anything not backed by a real function is labelled MOCK in the doc and in the UI and is never shown as live data. Missing backend means "not available" in the UI, not a fake success. A doc states plainly what has not been tested.
+7. **Frontend never decides security; backend never decides design.** ChatGPT owns RLS, RPC guards, migrations and verification. Claude owns layout, flows, components and motion. Each can comment on the other's area through a handoff, not by editing it.
+8. **Do not overwrite each other.** Append to the other AI's docs, do not rewrite them. Docs you own may be edited freely; say in the commit message when you change a contract section the other AI relies on.
+9. **Staging and production.** Everything lands on `web-portal` and staging first. Environment differences (for example Everneed01 versus Everneed-staging) are recorded in a doc before anyone assumes parity. Production needs explicit owner approval.
+10. **The owner is the tie-breaker.** Open disagreements are listed in the doc under "Needs owner decision" with both options and a recommendation, so the owner can answer in one reply.
+
+Handoff template (copy into any new handoff): Summary, Files changed, Contracts (fields, events, permission keys, errors), Mock versus live, Tests run, Not tested, Risks, Needs from the other AI (with R-number and status), Needs owner decision.
