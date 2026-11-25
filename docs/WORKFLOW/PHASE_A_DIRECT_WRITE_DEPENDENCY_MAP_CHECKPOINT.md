@@ -17,9 +17,9 @@ This checkpoint captures verified browser/shared client call sites found on `web
 | `product_private` | `web/assets/js/workspace.js` | INSERT, UPDATE by product_id | Product compliance reference for seller-owned products. | Preserve owner-scoped, narrow field access; avoid granting arbitrary private data writes. |
 | `store_private` | `web/assets/js/settings.js` | INSERT, UPDATE by store_id | Owner-configured pickup address, direct delivery and delivery zones. | Narrow columns + owner RLS; assess PII exposure and use RPC if mutation semantics need audit. |
 | `notifications` | `web/assets/js/notify.js` | UPDATE by id | Set recipient's `read_at` timestamp; also batch mark-read. | Column-only update grant for read state; recipient-only RLS. |
-| `profiles` | `shared/supa.js` | UPDATE self via `patchProfile`; Auth metadata update via `setUserData` | Profile fields and auth user metadata. Direct call sites need further mapping. | Map fields; role/email/identity/security fields must stay protected. Prefer supported profile RPC for sensitive updates. |
+| `profiles` | `shared/supa.js`; `js/theme.js` | UPDATE self via `patchProfile`; Auth metadata update via `setUserData` | Theme preference save writes `settings` JSON (mode/palette/AMOLED) to profile. Auth metadata helper exists; callers still need full inventory. | Column/field allowlist; role/email/identity/security fields protected. Prefer supported profile RPC for sensitive updates. |
 
-## Client write surface
+## Native/app bundle note\n\nThe native app uses the shared seller web bundle/session. The additional `js/mode.js` direct REST call is a read-only store lookup filtered by `owner_id`; it does not add a table write. `js/theme.js` adds the profile settings write noted above. This repo search found no direct `Supa.delete` wrapper/call pattern; that is not proof there are no raw fetches or other paths.\n\n## Client write surface
 
 The shared wrapper in `shared/supa.js` provides:
 - `Supa.insert(table, body)` → REST POST
