@@ -588,3 +588,16 @@ Read-only live policy expressions checked:
 - conversations SELECT: admin or conversation member; UPDATE admin only. messages SELECT: admin or member excluding kind='note'; preserve internal-note confidentiality and avoid global support access.
 
 All listed policies are permissive. Converting admin branches requires replacing/altering the existing policy while preserving each buyer, seller, recipient, and participant branch. No order/payment/support records were read or changed by this audit query.
+
+
+## Identity, store and policy-document RLS cross-check (2026-11-25)
+
+- profiles SELECT: self or legacy admin; UPDATE self-only and requires role equals my_role(), preventing self-role change. Preserve role/email/profile guard trigger and avoid adding general staff PII access; admin profile access should become purpose-scoped/minimized.
+- stores INSERT: auth.uid() owner and draft/pending only; UPDATE owner-only; SELECT owner, admin, or approved+live public storefront. Store guard protects owner/status/official/demo/approved_at/slug fields. New store-team roles must not edit ownership or status directly.
+- store_verification_checks SELECT: store owner or admin. Sellers see their own verification state; staff review access must be assigned/store scoped and minimize document data.
+- policy_acceptances SELECT: user own rows or admin. Policy acceptance writes through auth.uid()-bound RPC; acceptance must remain attributable and immutable.
+- policy_documents anon SELECT: published and effective; authenticated SELECT published/effective or admin (including drafts). Admin INSERT/UPDATE/DELETE. Keep drafts/internal versions inaccessible publicly and require legal/compliance review/audit on publication.
+- store_plans SELECT: active plans or admin; legacy admin ALL. Keep inactive plans/internal plan configuration private except authorized plan managers.
+- offers: public SELECT only active offers where code IS NULL; admin ALL. Offer funding consent is separate owner-bound/private state. Ensure public offers don't expose private campaign budget/funding records; replace broad admin ALL before scoped offer operations.
+
+These policies reinforce role-assignment protection: profile.role is not the team-membership source, and store owner is not interchangeable with a staff role. Preserve separate identity, ownership, membership, and operational authority.
