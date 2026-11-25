@@ -153,3 +153,10 @@ A follow-up query separated base tables from security-invoker views. It confirms
 However, the anon role has broad table privileges on several RLS-enabled base tables, including `TRUNCATE` on `banners`, `collections`, `offers`, `orders`, `products`, `profiles`, `reviews`, `settings`, and `size_charts`; plus broad INSERT/UPDATE/DELETE/TRIGGER/REFERENCES on multiple tables. **TRUNCATE is not protected by RLS.** Although ordinary PostgREST CRUD does not expose TRUNCATE as a normal endpoint operation, the grant is unnecessary and should be treated as a high-priority privilege-hardening finding, not as an RLS-contained privilege.
 
 This is a confirmed excessive SQL privilege in the catalog, but reachability through a public API or any other execution path is not established. Immediate action: construct a least-privilege allowlist migration on staging, revoke anon table write/DDL-like privileges (including TRUNCATE, TRIGGER, REFERENCES), retain only required SELECT and explicitly required public writes, and separately constrain authenticated grants. Test all web/app flows, RPCs, views and triggers. Production remains untouched until the staging suite and owner approval.
+
+
+## 9. Root cause: broad default ACLs (confirmed catalog finding)
+
+The PostgreSQL `pg_default_acl` inventory shows that both object owners `supabase_admin` and `postgres` have default privileges in `public` for future tables (`defaclobjtype='r'`) granting `arwdDxtm` to `anon` and `authenticated` (ALL-like table privileges including TRUNCATE, REFERENCES, TRIGGER), as well as broad default sequence and function ACLs. This is a potential source of privilege drift for newly created objects.
+
+**Hardening must include both existing-object ACL cleanup and owner-specific default ACL changes** for each table/function/sequence creator, not just one owner. Carefully preserve service-role, migration-owner and required API behavior. Stage a least-privilege default-ACL migration, inspect migration owner and role ownership, and verify newly created test objects inherit the intended ACL. Do not apply to production without staging CI and explicit owner approval.
