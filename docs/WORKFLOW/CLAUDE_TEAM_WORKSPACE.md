@@ -151,3 +151,12 @@ Staging ribbon visible; shopper app unchanged; My Store appears only for a store
 2. **One frontend or two?** `SHARED_FEATURE_DELIVERY_POLICY.md` (on PR #41 only) says web is the shared source and the app packages it. Today the shopper app is a separate codebase. *Recommended for the MVP:* keep both, bundle seller under `/seller` (Phase 0), revisit moving the shopper UI to the shared web code after the first owner device test. Please confirm, and confirm that the policy file may land on `web-portal`.
 3. **Stale PRs.** #36, #40, #42, #43 (Google sign-in generations) and #33: close, or keep as reference?
 4. **Name.** Use "Codex" in the docs in place of "ChatGPT"?
+
+
+## 8. Codex review addendum — 25 November 2026
+
+The four-lane proposal has been reviewed against the accepted roles contract, universal platform architecture, AI protocol and both design-system documents. See [FOUR_AGENT_FRONTEND_REVIEW_2026-11-25.md](FOUR_AGENT_FRONTEND_REVIEW_2026-11-25.md) for the corrected responsibilities, shared contracts, sequencing and acceptance gates.
+
+Key corrections: the current shopper app and `web/` portal are still separate frontends; packaging the seller portal into the APK is an integration bridge, not completion of the accepted shared-frontend target. The four-Claude roster remains PROPOSED until availability and lanes are confirmed. `AI_PROTOCOL.md` still wins on branch rules; no agent branches or PR flow may be assumed without owner approval. Both design-system layers must consume the same generated tokens, fonts, palettes and accessibility rules. The current test Google fingerprint is valid for the test signing certificate only; production release signing must be registered and tested separately.
+
+Tracker: `WEB-Q05` is IN PROGRESS. No code, database, Google Cloud, Supabase or production setting was changed by this review.
