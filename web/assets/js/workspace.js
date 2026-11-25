@@ -347,7 +347,8 @@
     f.addEventListener("change",function(e){
       var t=e.target;
       if(t.id==="wsfile"){
-        var room=MAX_PHOTOS-E.items.length,files=[].slice.call(t.files||[]).filter(function(x){return /^image\//.test(x.type)||(!x.type&&/\.(jpe?g|png|webp|gif|heic|heif|avif)$/i.test(x.name||""))});
+        var room=MAX_PHOTOS-E.items.length,all=[].slice.call(t.files||[]),U=window.EVUpload,files=all.filter(function(x){return U?U.maybeImage(x):/^image\//.test(x.type)});
+        if(all.length>files.length)C.toast((all.length-files.length)+" file"+(all.length-files.length===1?" was":"s were")+" skipped because "+(all.length-files.length===1?"it is":"they are")+" not photos.",true);
         if(files.length>room)C.toast("Only "+MAX_PHOTOS+" photos are allowed. Extra ones were skipped.",true);
         files.slice(0,room).forEach(function(file){E.items.push({file:file,preview:URL.createObjectURL(file)})});
         drawMedia();return;

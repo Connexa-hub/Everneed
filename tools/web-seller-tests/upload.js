@@ -53,4 +53,7 @@ const res=(status,body)=>Promise.resolve({ok:status>=200&&status<300,status,text
    x=setup({fetch:()=>res(400,{message:'mime type image/x is not supported'})});await assert.rejects(()=>x.EVUpload.put(new Blob([JPG],{type:'image/jpeg'}),'s'),e=>e.code==='format')});
  await t('diagnostics never contain the token or the key',async()=>{const x=setup({fetch:()=>res(403,{message:'denied'})});await x.EVUpload.put(new Blob([JPG],{type:'image/jpeg'}),'s').catch(()=>{});
    const d=JSON.stringify(x.EVUpload.last);assert.ok(!/tok|anon/.test(d.replace(/token/g,'')))});
+ await t('picker filter lets mislabeled photos through to the byte check but skips clear non-images',()=>{const u=setup({}).EVUpload;
+   for(const ty of ['image/jpeg','image/heic','','application/octet-stream','binary/octet-stream'])assert.equal(u.maybeImage({type:ty}),true,ty);
+   for(const ty of ['video/mp4','audio/mpeg','text/plain','application/pdf'])assert.equal(u.maybeImage({type:ty}),false,ty)})
  console.log(pass+' passed, '+fail+' failed')})();

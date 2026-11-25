@@ -102,5 +102,13 @@
     }
     return loop().catch(fin);
   }
-  window.EVUpload={prepare:prepare,put:put,sniff:sniff,last:null};
+  /* First, cheap filter for the file picker. Some phones and cloud pickers report an empty type or application/octet-stream for a real photo, so those are
+     let through and prepare() decides from the bytes. Clearly non-image types (video, audio, text, pdf...) are skipped. */
+  function maybeImage(f){
+    var t=String(f&&f.type||"").toLowerCase();
+    if(t.indexOf("image/")===0)return true;
+    if(t===""||t==="application/octet-stream"||t==="binary/octet-stream")return true;
+    return false;
+  }
+  window.EVUpload={maybeImage:maybeImage,prepare:prepare,put:put,sniff:sniff,last:null};
 })();
