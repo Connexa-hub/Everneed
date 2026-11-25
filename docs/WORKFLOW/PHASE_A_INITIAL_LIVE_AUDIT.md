@@ -77,3 +77,9 @@ No migrations, production policies, RPCs, user data, secrets, provider configura
 3. Inspect each no-policy table's intended service-only access and verify the API doesn't expose unintended routes.
 4. Review RLS policy expressions and permissive/restrictive composition for key sensitive tables; create a test matrix for buyer, store owner, unrelated merchant, customer, platform admin and anonymous actor.
 5. Continue migration drift comparison and state-transition dependency tracing.
+
+
+### ACL verification refinement
+A focused ACL query confirms that several `private` helper functions have explicit EXECUTE grants to anon/authenticated (not merely inherited from PUBLIC), including `private.buys(text)`, `private.my_store()`, `private.owns_store(text)`, `private.sells(text)`, and `private.store_live(text)`. A trigger guard function also has a NULL ACL (PostgreSQL default EXECUTE to PUBLIC). The private schema has USAGE grants to anon/authenticated/service_role. However, the private tables showed no anon/authenticated table privileges in the inspected grant query.
+
+**Action:** Verify API exposed-schema configuration and whether private RPCs are reachable. If `private` is not an exposed PostgREST schema, these grants may be inert for API access, but they still widen SQL-level permissions and should be least-privilege reviewed. If exposed, immediately classify callable functions by whether they reveal private context or permit any unsafe operation. No ACL changes were made.
