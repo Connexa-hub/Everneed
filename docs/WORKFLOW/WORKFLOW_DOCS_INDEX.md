@@ -3,7 +3,7 @@
 
 ## Read first
 1. [Project Standard & Roadmap](PROJECT_STANDARD_AND_ROADMAP.md) — accepted platform, roles, dispatch/hub, app/web standards and roadmap.
-2. [AI Coordination Standard](AI_COORDINATION_STANDARD.md) — nine builders and AI #10 planner/researcher/reviewer/moderator.
+2. [AI Coordination Standard](AI_COORDINATION_STANDARD.md) — Claude 1–9 builders and Claude 10 master planner/coordinator; ten total.
 3. [AI Protocol](AI_PROTOCOL.md) — mandatory collaboration, branch, security, release and handoff rules.
 4. [Backend-only Roadmap](BACKEND_ONLY_ROADMAP.md) — ChatGPT/Codex scope and sequenced backend work.
 5. [Website Tracker](WEBSITE_TRACKER.md) — task status/evidence (historical rows are explicitly dated).
