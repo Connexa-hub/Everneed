@@ -1,0 +1,15 @@
+// Tests for the lazy editor loader (ds-lazy.js). Run from the repository root: node tools/web-seller-tests/ds-lazy.js
+const {make,J,vm}=require('./harness');const assert=require('assert');let pass=0,fail=0;
+const t=async(n,f)=>{try{await f();pass++;console.log('PASS',n)}catch(e){fail++;console.log('FAIL',n,'\n  ',e.message);process.exitCode=1}};
+function setup(mode){const x=make({});const calls=[];const base=p=>Promise.resolve({html:'plain:'+p[0]});
+  x.ctx.Core.V.portal=base;x.ctx.window=x.ctx;const added=[];
+  x.ctx.document={currentScript:{src:'/seller/assets/js/ds-lazy.js'},head:{appendChild(s){added.push(s);
+    setTimeout(()=>{if(mode==='fail'){s.onerror()}else{const prev=x.ctx.Core.V.portal;x.ctx.Core.V.portal=p=>Promise.resolve(prev(p)).then(r=>({html:'editor:'+r.html}));s.onload()}},0)}},createElement:()=>({})};
+  x.ctx.setTimeout=setTimeout;vm.runInContext(J('ds-lazy.js'),x.ctx);x.added=added;return x}
+(async()=>{
+ await t('other portal pages never load the editor',async()=>{const x=setup();const r=await x.ctx.Core.V.portal(['orders']);assert.equal(r.html,'plain:orders');assert.equal(x.added.length,0)});
+ await t('product page loads the editor once from the same folder, then uses it',async()=>{
+   const x=setup();const r=await x.ctx.Core.V.portal(['product']);assert.equal(r.html,'editor:plain:product');assert.equal(x.added.length,1);assert.equal(x.added[0].src,'/seller/assets/js/ds-editor.js');
+   const r2=await x.ctx.Core.V.portal(['product']);assert.equal(x.added.length,1);assert(r2.html.startsWith('editor:'))});
+ await t('if the file cannot load, the plain editor page still opens',async()=>{const x=setup('fail');const r=await x.ctx.Core.V.portal(['product']);assert.equal(r.html,'plain:product')});
+ console.log(pass+' passed, '+fail+' failed')})();
