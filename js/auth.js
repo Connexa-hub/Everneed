@@ -9,7 +9,7 @@ window.Auth=(function(){
   function nativeGoogleErrorCode(e){return String(e&&(e.code||e.errorCode||e.error)||"").toUpperCase()}
   function nativeGoogleMessage(e){return String(e&&(e.message||e.error_description)||e||"Google sign-in failed")}
   function nativeGoogleCancelled(e){var c=nativeGoogleErrorCode(e),m=nativeGoogleMessage(e);return /USER[_ -]?(CANCELLED|CANCELED)|SIGN[_ -]?IN[_ -]?CANCELLED/.test(c)||/user cancelled|user canceled|sign in cancelled|sign in canceled/i.test(m)}
-  function nativeGoogleAccountReauthFailure(e){var c=nativeGoogleErrorCode(e),m=nativeGoogleMessage(e);return c==="16"||/\\[16\\].*account reauth failed|account reauth failed/i.test(m)}
+  function nativeGoogleAccountReauthFailure(e){var c=nativeGoogleErrorCode(e),m=nativeGoogleMessage(e);return c==="16"||/\[16\].*account reauth failed|account reauth failed/i.test(m)}
   function googleNativeAndroid(){
     if(nativeGoogleBusy)return;
     var plugin=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SocialLogin,clientId=CFG.googleWebClientId||"";
