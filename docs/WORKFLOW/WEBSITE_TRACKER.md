@@ -534,3 +534,9 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ## 25 Nov 2026 — ChatGPT claim: ACL dependency map
 - **Task:** Phase A privilege hardening dependency map (existing table grants, frontend direct reads/writes, RPCs, triggers, role needs). **Status: IN PROGRESS** — owner ChatGPT, branch `web-portal`.
 - Before drafting a migration, map direct client calls and required table/column privileges; staging-only validation. Production remains read-only.
+
+
+### ACL dependency-map progress (25 Nov)
+- Static initial map committed: `docs/WORKFLOW/PHASE_A_FRONTEND_ACL_DEPENDENCY_MAP.md` (`84cc6398df579d5950c8cf7efa0d52fe3d97e652`). Covers selected seller, admin, support/inbox files and classifies direct table reads/writes versus RPC calls.
+- Confirms a blanket authenticated write revoke would break seller setup/store/product editing and some support/admin direct updates. Needs table/column allowlist or conversion to RPCs. Direct product status updates and support queue/settings writes need explicit policy review.
+- This is incomplete: root app `js/`, additional web modules, Edge Functions, storage and Realtime are not fully mapped; GitHub code search index returned no matches. No migration drafted/applied. Everneed01 unchanged.
