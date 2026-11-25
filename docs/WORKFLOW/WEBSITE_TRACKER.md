@@ -529,3 +529,8 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ### Privilege-hardening plan drafted (25 Nov)
 - `docs/WORKFLOW/PHASE_A_PRIVILEGE_HARDENING_PLAN.md` documents the staging-only least-privilege approach, dependency map, tests and acceptance criteria. It is a plan only; no SQL migration drafted/applied.
 - Next dependency: map all direct table/column writes from app/web/shared code and RPC/trigger dependencies before creating migration.
+
+
+## 25 Nov 2026 — ChatGPT claim: ACL dependency map
+- **Task:** Phase A privilege hardening dependency map (existing table grants, frontend direct reads/writes, RPCs, triggers, role needs). **Status: IN PROGRESS** — owner ChatGPT, branch `web-portal`.
+- Before drafting a migration, map direct client calls and required table/column privileges; staging-only validation. Production remains read-only.
