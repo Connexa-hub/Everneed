@@ -2,8 +2,8 @@
 
 **Date:** 25 November 2026  
 **Request:** R24 — ChatGPT to Claude  
-**Status:** OPEN  
-**Owner:** Claude (app/frontend integration)  
+**Status:** CHANGED  
+**Owner:** ChatGPT (direct implementation; Claude unavailable)  
 **Target:** `web-portal` only  
 **Related:** PR #43 (review source only; do not merge or rebase it)
 
@@ -66,3 +66,31 @@ The owner wants Android Google sign-in to show the native Google Credential Mana
 ## Needs from Claude (R24)
 
 Port the isolated Android-native Google sign-in implementation onto `web-portal`, correct the Web client ID, resolve the logout/repeat-login and cancellation behavior from the documented plugin API, preserve current web/iOS behavior, and return a commit + CI/APK evidence. Mark R24 ACCEPTED/CHANGED and update the tracker when complete.
+
+
+## 25 Nov 2026 — R24 response / implementation (CHANGED)
+
+The owner asked ChatGPT to implement directly because Claude is unavailable. This changes the assignment from a Claude request to a ChatGPT-owned implementation; the scope and acceptance requirements remain unchanged.
+
+### Files changed on web-portal
+- `package.json`: added `@capgo/capacitor-social-login@^6.0.0` (Capacitor 6-compatible major).
+- `js/config.js`: set `CFG.googleWebClientId` to the confirmed Web OAuth client ID; the Android client ID is not embedded as the plugin's server client ID.
+- `android/app/src/main/java/com/everneed/store/MainActivity.java`: added the plugin's required Google activity-result forwarding bridge.
+- `js/auth.js`: Android now calls native SocialLogin / Credential Manager and exchanges the returned Google ID token with Supabase; browser OAuth/PKCE remains on the web path. It prevents duplicate taps, handles cancellation quietly, and performs one best-effort native-provider reset/retry for legacy Credential Manager error [16].
+- `js/supa.js`: added the Supabase `grant_type=id_token` exchange, persisting only the Supabase session.
+- `js/app.js`: explicit sign-out now best-effort calls `SocialLogin.logout({provider:"google"})` to clear native Google provider state before the next sign-in, while Everneed sign-out proceeds even if the plugin is unavailable.
+- `tools/check.mjs`: added static regression guards for the client ID, native bridge, ID-token exchange, browser PKCE preservation, and both explicit sign-out paths.
+
+### Contracts
+- Android native sign-in uses the Web OAuth client ID as `webClientId`; Android OAuth client is only configured in Google Cloud against package + signing SHA-1.
+- Web browser sign-in remains Supabase OAuth + PKCE and does not invoke the native plugin.
+- Supabase ID-token exchange accepts only Google in this helper; native Google tokens are not persisted by the app.
+- Native provider logout is best-effort and only occurs on explicit sign-out, not normal session restoration.
+- No database migration, RPC, RLS, Supabase dashboard or Google Cloud setting was changed.
+
+### Validation / limitations
+- GitHub Actions checks and Android APK build have been triggered by pushes to `web-portal`; results are pending at the time of this note.
+- No Android device run has been performed by ChatGPT. The owner must still verify the native picker, first login, cancellation, explicit logout/re-login, app restart/session restore, and email/password fallback on the Infinix Hot 70.
+- The installed plugin major v6 matches Capacitor 6 but is marked unmaintained by its upstream project. Upgrading Capacitor/plugin major versions is outside this isolated change and would require a separate compatibility project.
+- Google Cloud Android OAuth registration (package `com.everneed.store` + exact signing SHA-1 of the generated APK) remains unverified from this repository.
+- R24 is **CHANGED / implementation pushed, acceptance pending**; it is not DONE until CI and device acceptance pass.
