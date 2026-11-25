@@ -5,13 +5,43 @@ window.Auth=(function(){
   var back='<button class="lnk" data-act="aback">Use a different email</button>';
   function googleButton(){return'<button type="button" class="btn o w" data-act="google" style="display:flex;align-items:center;justify-content:center;gap:10px"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5h6.7c3.9-3.6 6-8.9 6-14.9z"/><path fill="#34A853" d="M24 44c5.6 0 10.3-1.9 13.7-5.1l-6.7-5c-1.9 1.3-4.2 2.1-7 2.1-5.4 0-10-3.7-11.6-8.7H3.5v5.2C7 39.4 15 44 24 44z"/><path fill="#FBBC05" d="M12.4 27.3a12 12 0 0 1 0-6.6v-5.2H3.5a20 20 0 0 0 0 17z"/><path fill="#EA4335" d="M24 12.1c3 0 5.7 1 7.8 3.1l5.9-5.9C34.2 5.8 29.5 4 24 4 15 4 7 8.6 3.5 15.5l8.9 5.2c1.6-5 6.2-8.6 11.6-8.6z"/></svg>Continue with Google</button><div class="or"><span>or continue with email</span></div>'}
   function b64url(bytes){var s="";for(var i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+  var nativeGoogleReady=false,nativeGoogleBusy=false;
+  function nativeGoogleErrorCode(e){return String(e&&(e.code||e.errorCode||e.error)||"").toUpperCase()}
+  function nativeGoogleMessage(e){return String(e&&(e.message||e.error_description)||e||"Google sign-in failed")}
+  function nativeGoogleCancelled(e){var c=nativeGoogleErrorCode(e),m=nativeGoogleMessage(e);return /USER[_ -]?(CANCELLED|CANCELED)|SIGN[_ -]?IN[_ -]?CANCELLED/.test(c)||/user cancelled|user canceled|sign in cancelled|sign in canceled/i.test(m)}
+  function nativeGoogleAccountReauthFailure(e){var c=nativeGoogleErrorCode(e),m=nativeGoogleMessage(e);return c==="16"||/\\[16\\].*account reauth failed|account reauth failed/i.test(m)}
+  function googleNativeAndroid(){
+    if(nativeGoogleBusy)return;
+    var plugin=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SocialLogin,clientId=CFG.googleWebClientId||"";
+    if(!plugin||typeof plugin.initialize!=="function"||typeof plugin.login!=="function"){notify("Native Google sign-in isn't included in this build yet. Update Everneed and try again.","err");return}
+    if(!clientId){notify("Google sign-in is not configured in this build. Please use email sign-in for now.","err");return}
+    nativeGoogleBusy=true;
+    var init=nativeGoogleReady?Promise.resolve():plugin.initialize({google:{webClientId:clientId}});
+    init.then(function(){nativeGoogleReady=true;return plugin.login({provider:"google",options:{}})}).catch(function(e){
+      if(!nativeGoogleAccountReauthFailure(e))throw e;
+      /* Older v6 plugin builds may not recover Credential Manager error [16] themselves.
+         Clear only Google's native provider state, then offer one normal picker retry. */
+      var clear=typeof plugin.logout==="function"?plugin.logout({provider:"google"}):Promise.resolve();
+      return Promise.resolve(clear).catch(function(){}).then(function(){return plugin.login({provider:"google",options:{}})});
+    }).then(function(res){
+      var token=res&&res.result&&res.result.idToken;
+      if(!token)throw new Error("Google did not return an ID token. Please try again.");
+      return Supa.signInIdToken("google",token).then(A.authed);
+    }).catch(function(e){
+      if(nativeGoogleCancelled(e)){notify("Google sign-in cancelled.");return}
+      var code=nativeGoogleErrorCode(e),message=nativeGoogleMessage(e);
+      console.warn("Everneed native Google sign-in failed",{code:code,message:message.slice(0,180)});
+      if(nativeGoogleAccountReauthFailure(e))notify("Google could not re-authenticate this account. Try choosing the account again, or use email sign-in.","err");
+      else notify("Google sign-in failed"+(code?" ["+code+"]":"")+". Please try again or use email sign-in.","err");
+    }).then(function(){nativeGoogleBusy=false},function(){nativeGoogleBusy=false});
+  }
   function google(){if(A.oauthReset)A.oauthReset();if(!Supa.on()){notify("Sign-in is unavailable while offline.","err");return}
+    var platform=window.Capacitor&&Capacitor.getPlatform?Capacitor.getPlatform():"web";
+    if(platform==="android"){googleNativeAndroid();return}
     if(!window.crypto||!crypto.subtle||!crypto.getRandomValues||!window.TextEncoder){notify("Secure Google sign-in isn't supported by this browser. Update your browser and try again.","err");return}
-    var native=window.Capacitor&&Capacitor.getPlatform&&Capacitor.getPlatform()!=="web",redirect=native?"com.everneed.store://auth/callback":location.origin+location.pathname;
+    var redirect=location.origin+location.pathname;
     var bytes=new Uint8Array(32);crypto.getRandomValues(bytes);var verifier=b64url(bytes);
-    crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier)).then(function(hash){var challenge=b64url(new Uint8Array(hash));S.set("oauth_pkce",{verifier:verifier,created:Date.now()});var url=Supa.oauthUrl("google",redirect,challenge);
-      if(native){var B=Capacitor.Plugins&&Capacitor.Plugins.Browser;if(!B||!B.open){S.set("oauth_pkce",null);notify("Google sign-in is not available in this build yet.","err");return}B.open({url:url}).catch(function(e){S.set("oauth_pkce",null);A.netErr(e)})}
-      else location.href=url;
+    crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier)).then(function(hash){var challenge=b64url(new Uint8Array(hash));S.set("oauth_pkce",{verifier:verifier,created:Date.now()});var url=Supa.oauthUrl("google",redirect,challenge);location.href=url;
     }).catch(function(e){notify("Could not start secure Google sign-in. Please try again.","err");A.netErr(e)});
   }
   function page(){var a=A.au(),c=A.ctx();
