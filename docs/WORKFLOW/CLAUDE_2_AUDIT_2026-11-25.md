@@ -67,3 +67,12 @@ Findings, in order of severity:
 ## 6. Roadmap alignment
 
 `PRODUCT_ROADMAP.md` order: baseline, secure foundation, seller onboarding/catalogue, customer discovery/shopping, then orders/payments. Tracker "next up": seller fulfilment MVP (S05/S06), admin operations MVP (AD08-AD11), real-device checks, owner test gate, release gate on PR #31. `CLAUDE_TEAM_WORKSPACE.md` follows that order and adds "web in the app" as the first unblock, so the owner can test seller flows on the Infinix Hot 70.
+
+## 7. Addendum (same day, after reading the architecture and roles contracts)
+
+Read afterwards: `EVERNEED_UNIVERSAL_PLATFORM_ARCHITECTURE.md`, `ROLES_AND_ACCESS_PROPOSAL.md` (ACCEPTED), the first part of `OFFICIAL_STORE_ADMIN_CONTRACT.md`, and the headers of `ds-access.js`, `ds-team.js`, `ds-dispatch.js`. Section 1 above is otherwise unchanged.
+
+- The shell split in `CLAUDE_TEAM_WORKSPACE.md` section 2a follows these contracts.
+- Corrections to findings 6 and 8: Claude 1 had already written the **web-side** session adoption (`shared/supa.js` reads `EV_SESSION_KEY`, adopts the newest stored session; `tools/web-seller-tests/supa-session.js`) and the native hooks in `ds-app.js` (`EV_NATIVE_SELLER`, a "Shop" entry). What is missing is the **shopper-side** `js/supa.js` adoption and any refresh lock covering both writers.
+- The role and dispatch screens are previews on sample data by design; they are not defects.
+- Still unread by me: `SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md` (R1-R23), `PHASE_A_KICKOFF_CLAUDE_HANDOFF.md`, the logistics/finance contracts. Read before any lane touches them.

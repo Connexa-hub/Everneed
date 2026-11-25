@@ -30,6 +30,30 @@ A file has one owner. Others change it only by (a) a handoff request below, or (
 | **Codex** | `supabase/**`, `functions/**`, `shared/sql/`, `.github/workflows/{migrations-check,staging-db,staging-reset,payment-recovery-manual}.yml`, `docs/WORKFLOW/DB_CONTRACT.md`, SQL tests |
 | **Shared (note required)** | `web/index.html` script/link lists (append inside your own commented block), `shared/{icons,art,geo,turnstile}.js`, `package.json`, `css/tokens.css` (generated: `npm run tokens`), `WEBSITE_TRACKER.md` (edit only your own rows) |
 
+## 2a. Alignment with the platform architecture and roles contracts (added by Claude 2 after reading them)
+
+Sources: `EVERNEED_UNIVERSAL_PLATFORM_ARCHITECTURE.md` (planning contract), `ROLES_AND_ACCESS_PROPOSAL.md` (ACCEPTED), `OFFICIAL_STORE_ADMIN_CONTRACT.md`, previews `ds-access.js`, `ds-team.js`, `ds-dispatch.js`. My first draft of this file was written before reading them; the lanes below now follow them.
+
+**What the contracts fix for every frontend lane**
+1. **One shared frontend.** The roles contract (section 7) says the phone app and the web are the same code (`web/`). The architecture lists app shells (Customer, Merchant, Platform Ops/Admin, Support, Finance, Dispatcher, Hub, Courier, POS) over one core: identity, memberships, permission checks, design system. Web-in-app (Phase 0) is therefore the foundation every shell needs, not a side task.
+2. **Two planes, permission keys.** `platform.*` and `store.*` (and `logistics.*` for dispatch). The server decides; the UI only reflects. Controls go through `EVAccess.gate(name, legacy)` and its one `GATES` table in `ds-access.js`. Never invent a key; a rename is a `GATES` edit. Missing `my_access()` means today's owner/admin behaviour, nothing inferred.
+3. **No role-management UI in the real menu until backend enforcement exists** (owner decision 8.6g). `ds-team.js` and `ds-dispatch.js` stay behind `?proto=1`, labelled MOCK, with actions disabled and the reason shown.
+4. **Dispatch and the delivery hub use today's vocabulary only** (`deliveries.mode` direct|hub, `deliveries.status`, `seller_orders.status`) until Codex publishes the logistics shipment/leg/event contract (architecture phase D). The UI never writes a status; a transition is an RPC that checks actor, scope and state.
+5. **Staging first; production only with owner approval.** Official store `everneed-official` is a platform-owned store: preserve its id and slug; use `store.*` keys scoped by `store_scope`.
+6. **Mock honesty.** Anything not backed by a real function is MOCK in code and UI. Missing backend shows "not available", never a fake success.
+7. **View-as/impersonation is off** (owner decision 3). No frontend work on it.
+
+**Lanes by app shell (supersedes the descriptions in the roster where they differ)**
+
+| Shell (architecture) | Claude | Real now | Waits for backend |
+|---|---|---|---|
+| Merchant: store, catalogue, orders, finance, store team | 1 | S05-S12, plan, settings | `my_access`, `team_*` RPCs, `store_members` |
+| Platform Ops/Admin, Support, Finance, **Dispatcher and Hub workspaces** | 4 | AD08-AD19, hub board over existing `hub_receive`/`hub_consolidate`/`dispatch` | logistics contract (phase D), `staff_*`, `audit_log_list` |
+| Customer: discovery, cart, checkout, orders, **tracking timeline** | 3 | APP-03..05 on existing RPCs | tracking events, POD, ETA |
+| **App shells and native bridge**: web-in-app, context switcher, Back/lifecycle, **Courier shell** (location sharing, POD camera, offline queue), later POS terminal shell | 2 | Phase 0, then native adapters over Capacitor plugins already installed (`camera`, `geolocation`, `local-notifications`, `app`, `browser`) | courier jobs and POD contract, idempotent offline commit contract |
+
+Architecture invariants that shape my lane: location sharing only for active duty or assigned jobs; courier offline actions are queued locally and revalidated and committed idempotently by the server; native features sit behind adapters (`shared/native.js`, to come) so no screen calls a plugin directly.
+
 ## 3. Work split (in dependency order)
 
 ### Phase 0: web inside the app (Claude 2 leads; unblocks owner device testing)
@@ -103,9 +127,18 @@ Handoff template: Summary, Files changed, Contracts (fields, events, permission 
 ### Claims
 | Task | Owner | Branch | Status | Notes |
 |---|---|---|---|---|
-| X2-01 | Claude 2 | (pending owner branch decision) | TODO | |
+| X2-01 | Claude 2 | `claude-2/seller-bundle-assembly` (PR #44, draft) | IN PROGRESS | Assembly script + boot check pushed; CI result pending. Not in APK yet. |
+| X2-02 | Claude 2 | `claude-2/seller-bundle-assembly` (PR #44, draft) | IN PROGRESS | Environment from build stamp; live project removed from non-main bundles; `EV_ENV` in `shared/config.js`. |
 
 ### Handoff entries
+- **25 Nov 2026, Claude 2 (second entry): X2-01/X2-02 pushed as draft PR #44.**
+  Summary: `tools/assemble-seller-bundle.mjs` builds `www/seller/` (web tree plus the shared files the Cloudflare build copies in); `tools/check-seller-bundle.mjs` verifies it; CI "Install and test" runs both. Environment now comes from the stamped build; non-main bundles contain no live project reference.
+  Files: `shared/config.js` (adds `EV_ENV`), two new tools, `.github/workflows/build.yml` (one step). `web/` untouched, `core.js` untouched.
+  Contracts: bootstrap sets `EV_NATIVE_SELLER`, `EV_SESSION_KEY="en_sess"`, `EV_BASE="/seller"`, `EV_ENV`. `ds-app.js` already reads `EV_NATIVE_SELLER` (Claude 1) and `shared/supa.js` already reads `EV_SESSION_KEY` and adopts the newer stored session (Claude 1, tested in `supa-session.js`). The shopper `js/supa.js` has no adoption yet (X2-04).
+  Tests run: local assemble+check for `web-portal` and `main` builds; three negative cases fail correctly; `node tools/check.mjs`; `tools/web-seller-tests/run.js` 22 pass, 0 fail.
+  Not tested: GitHub Actions run, any device, whether Capacitor falls back to root `index.html` for `/seller/...`, `/api/geo` absence in the app.
+  Risks: `EV_BASE` is declared but nothing reads it until X2-03; the bundle is deliberately not in the APK or linked from the shopper UI.
+  Needs: Claude 1 answer to R-C2-04 before I edit `core.js`; Codex R-C2-01 (ownership lookup), R-C2-03.
 - **25 Nov 2026, Claude 2:** audit complete, no code changed. See `CLAUDE_2_AUDIT_2026-11-25.md`. Not tested: deployed preview visuals, any device behaviour, CI logs.
 
 ## 6. Device checklist for the first web-in-app APK (owner, Infinix Hot 70)
