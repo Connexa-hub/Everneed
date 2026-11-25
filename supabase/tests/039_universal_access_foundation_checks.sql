@@ -15,6 +15,8 @@ declare
   denied boolean := false;
   test_uid uuid := gen_random_uuid();
   fixture_store text := gen_random_uuid()::text;
+  legacy_admin_uid uuid := gen_random_uuid();
+  legacy_admin_email text := 'universal-access-admin-ci-'||gen_random_uuid()||'@example.test';
   email_addr text := 'universal-access-ci-'||gen_random_uuid()||'@example.test';
 begin
   if to_regclass('public.access_permission_catalog') is null
@@ -34,6 +36,11 @@ begin
   select array_agg(x) into missing from unnest(required_roles) x
     where not exists (select 1 from public.access_role_catalog r where r.role_key=x and r.active);
   if missing is not null then raise exception 'FAIL: missing active role templates: %',missing; end if;
+
+  if (select assignable from public.access_role_catalog where role_key='platform_owner')
+    or (select assignable from public.access_role_catalog where role_key='store_owner') then
+    raise exception 'FAIL: protected owner templates are assignable';
+  end if;
 
   if not exists(select 1 from public.access_role_permissions where role_key='platform_owner' and permission_key='platform.staff.manage')
     or not exists(select 1 from public.access_role_permissions where role_key='store_owner' and permission_key='store.team.manage')
@@ -98,6 +105,18 @@ begin
     'plane','store','scope_type','store','scope_id',fixture_store,
     'role','store_owner','source','legacy_owner'))) then
     raise exception 'FAIL: legacy store-owner context missing: %',ctx;
+  end if;
+
+  -- Legacy admin remains a compatibility context only, never auto-promoted to owner or permissions.
+  insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
+    values(legacy_admin_uid,'authenticated','authenticated',legacy_admin_email,'',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
+  insert into public.profiles(id,name,email,role) values(legacy_admin_uid,'Legacy Admin CI',legacy_admin_email,'admin');
+  perform set_config('request.jwt.claim.sub',legacy_admin_uid::text,true);
+  ctx := public.my_access();
+  if jsonb_array_length(ctx) <> 1
+    or not (ctx @> jsonb_build_array(jsonb_build_object(
+      'plane','platform','role','legacy_admin','source','legacy_profile','compatibility',true,'permissions',jsonb_build_array()))) then
+    raise exception 'FAIL: legacy admin compatibility must be a permission-empty context: %',ctx;
   end if;
 
   raise notice 'PASS: universal access catalogue, scope templates, RLS, grants and empty-context introspection';
