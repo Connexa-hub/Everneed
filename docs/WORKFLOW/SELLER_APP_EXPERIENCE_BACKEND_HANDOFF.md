@@ -181,3 +181,5 @@ The owner's app recording shows menu areas Everneed does not have a backend for 
 **Not backend (frontend or app side):** biometric unlock (native plugin), the app's seller entry and session sharing (see the spec), the Shop / My store switch.
 
 **Not requested because Everneed does not need them yet:** gift cards, markets and currencies, credit, purchase orders, inventory transfers, stock counts, multiple locations. Tell me if the owner wants any of them and I will add contracts.
+
+- **R23. Unified access (`my_access()`).** One function returning every plane and store context the caller has (role plus permission keys), so one app serves a store owner, store team member, platform staff and official-store staff without cross access. Full proposal, role tables, guard rails and open questions are in `ROLES_AND_ACCESS_PROPOSAL.md`. It supersedes the permission-key lists in R2 and R13 once accepted; until then the frontend keeps today's owner and admin behaviour.
