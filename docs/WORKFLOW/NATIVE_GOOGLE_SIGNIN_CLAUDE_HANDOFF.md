@@ -94,3 +94,8 @@ The owner asked ChatGPT to implement directly because Claude is unavailable. Thi
 - The installed plugin major v6 matches Capacitor 6 but is marked unmaintained by its upstream project. Upgrading Capacitor/plugin major versions is outside this isolated change and would require a separate compatibility project.
 - Google Cloud Android OAuth registration (package `com.everneed.store` + exact signing SHA-1 of the generated APK) remains unverified from this repository.
 - R24 is **CHANGED / implementation pushed, acceptance pending**; it is not DONE until CI and device acceptance pass.
+
+
+### Follow-up preservation check (25 Nov 2026)
+- Kept the pre-existing iOS native Browser + custom callback flow intact. Only Android routes to Credential Manager; website continues with browser OAuth/PKCE. Regression markers were added for the iOS callback and Browser plugin.
+- Follow-up commits: `b07f3d1` (iOS flow preservation), `6e3afaa` (regression guard).
