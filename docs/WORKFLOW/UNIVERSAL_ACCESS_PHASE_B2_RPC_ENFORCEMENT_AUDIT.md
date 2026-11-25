@@ -97,3 +97,14 @@ Verified against **Everneed-staging** project ref `vjiadqygpyebpisxslbx`; produc
 - Anonymous-executable public functions in this snapshot: `seller_plan_catalog`, `store_reply_stats`, `support_sla_public`. These require explicit public-data/abuse assessment; do not automatically revoke without frontend contract review.
 
 This snapshot is a discovery baseline. B2 must inspect each function definition, effective grants, table policies, triggers, dependencies and call paths before changing enforcement. The source migration audit alone is insufficient because later migrations have replaced or extended several functions.
+
+### Live staging RLS policy snapshot
+
+- `public` has 92 RLS policies in the snapshot.
+- 57 policy expressions reference legacy `is_admin()`; 27 reference `private.owns_store()`; 19 reference `auth.uid()`. Counts overlap and are not findings by themselves.
+- Admin-gated policies include audit log, banners, category attributes, collections, offers, orders, profiles, disputes, ledger, payouts, policy acceptances/documents, product catalogue and media, seller plans/entitlements/verification, settings, store applications/private/payments/subscriptions, stores, support queues/rules/settings, and waitlist.
+- Store-owner-only policies affect catalogue variants/media/links/tier tables, private product data, store applications/private settings, subscriptions, verification status, seller orders, finance and payouts. Team access must be introduced without weakening these scopes.
+- Customer ownership predicates (orders, order secrets, deliveries, refunds, disputes, notifications, reviews, cards and conversations) must retain customer isolation as roles are generalized.
+- Public read policies for published catalogue/storefront content must not be coupled to signed-in role contexts or unintentionally lose anon access.
+
+B2 must inventory effective table grants alongside RLS (RLS alone does not protect tables from grants that bypass policies), and validate all policy/function behavior with role-scoped SQL tests after every migration.
