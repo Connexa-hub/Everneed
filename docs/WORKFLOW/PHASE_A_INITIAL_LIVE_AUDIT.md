@@ -55,3 +55,25 @@ Selected SECURITY DEFINER functions inspected include `admin_store_workspace_con
 
 ## No changes made
 No migrations, production policies, RPCs, user data, secrets, provider configuration, or deployment settings were changed.
+
+
+## Second-pass findings (focused metadata queries)
+
+### Table-policy and grant notes
+- The public RLS policy inventory shows explicit policies on marketplace/order/store and support tables; several internal tables intentionally have RLS enabled but zero policies (e.g. `kv`, `rate_limits`, `seller_product_listing_events`). Those tables are inaccessible through policy-based authenticated access unless a separately reviewed RPC/service route is used. Confirm intended use and service-only status.
+- Private-schema tables are not RLS-enabled in this snapshot (finance journals/accounts, campaign budget/consent audit, financial snapshots). They are sensitive, so verify that the `private` schema is not exposed through the Supabase REST API and that table privileges remain restricted to owner/service paths. Do not infer exposure from the RLS flag alone.
+- Metadata shows schema USAGE grants for anon/authenticated on `private` as well as public. This is a configuration review item: confirm PostgREST exposed-schema configuration and effective grants. An API-exposed private schema would be high risk; no direct access test was performed.
+- The table-grant inventory shows broad base privileges on many public tables for anon/authenticated (including mutation privileges), with RLS intended to constrain rows/operations. This is not automatically a vulnerability, but warrants least-privilege grant review, especially tables with only SELECT or ALL policies and no mutation policy. Confirm effective privileges and test policies per role.
+
+### SECURITY DEFINER inventory summary
+- Snapshot count: 83 SECURITY DEFINER functions in public, 25 in private.
+- All inspected SECURITY DEFINER functions have a configured search_path (often empty); this is a positive baseline, but not a substitute for reviewing qualified references, dynamic SQL, authorization and ACLs.
+- ACL helper reported effective anon EXECUTE for some private helpers (`buys`, `owns_store`, `my_store`, `sells`, `store_live`) and trigger/guard functions, plus a few public read functions. This may be inherited from PUBLIC or explicit grants; resolve actual ACL sources and REST exposure before rating. The private schema's USAGE is also granted, so this is a priority configuration check.
+- No blanket revocation or ACL change was made. Treat these as findings to validate, not proof of an exploit.
+
+### Priority next checks
+1. Confirm the Supabase API exposed schemas and role-level schema/table/function grants, particularly `private`.
+2. Trace ACL inheritance vs explicit grants on SECURITY DEFINER functions, and inspect all anon-callable functions for intended public behavior.
+3. Inspect each no-policy table's intended service-only access and verify the API doesn't expose unintended routes.
+4. Review RLS policy expressions and permissive/restrictive composition for key sensitive tables; create a test matrix for buyer, store owner, unrelated merchant, customer, platform admin and anonymous actor.
+5. Continue migration drift comparison and state-transition dependency tracing.
