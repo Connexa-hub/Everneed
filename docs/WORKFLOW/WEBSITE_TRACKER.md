@@ -498,3 +498,16 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Added `@capacitor/app` and `@capacitor/browser`, registered the Android callback intent filter, and updated OAuth setup documentation.
 - Branch: `feature/google-signin-clean`; PR targets `web-portal`. Staging and production code/config are not merged or changed by this PR.
 - Pending: CI, APK build, enable Google provider in Everneed-staging and allow-list `com.everneed.store://auth/callback`, then test Google sign-in on the Infinix Hot 70. Production OAuth configuration remains untouched.
+
+
+## 25 Nov 2026 — Phase A production audit continuation (ChatGPT)
+
+- **Protocol checked first:** read current `AI_PROTOCOL.md`, tracker, universal architecture, roles/access proposal and seller backend handoff. Latest protocol commit is Claude's WEB-S22 part 23; docs are the AI-to-AI channel. R23 is answered and marked ACCEPTED in the handoff.
+- FIN-01 read-only scope extended to Everneed01 production: SECURITY DEFINER inventory and selected RPC bodies, RLS policies, table grants, schema USAGE, order/delivery/finance routines. Findings are recorded in `PHASE_A_DRIFT_AND_FRONTEND_ACCESS_REVIEW.md`.
+- Preliminary grant finding: anon/authenticated broad table grants exist on some public tables; RLS policies currently constrain rows/actions. This is a least-privilege review item, not a confirmed exploit. Staging revocation/allowlist tests are required before any privilege reduction.
+- API exposed-schema settings could not be verified through SQL; private schema USAGE is granted to anon/authenticated in the snapshot. Confirm dashboard API configuration and reduce privileges only after dependency testing.
+- RPC follow-ups: seller acceptance deadline guard, refund-provider confirmation boundary, hub check JSON one-to-one validation, assignment validation/audit, concurrency testing for refund allocations.
+- Production remains read-only; no migrations, grants, records, deployment or ownership changes made.
+- Next: staged table/column grant allowlist audit and negative-access test matrix; then role/membership migration plan and read-only `my_access()` implementation on staging.
+
+**Last updated:** 25 Nov 2026 (ChatGPT coordinator) — Protocol and cross-AI handoff requirement acknowledged; R23 answered; production audit remains read-only.
