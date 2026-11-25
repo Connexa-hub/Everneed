@@ -95,3 +95,26 @@ An EXECUTE grant is not by itself proof that a function is reachable over HTTP. 
 - Review support guest abuse/rate-limiting behavior.
 - Review financial functions for four-eyes controls and direct state mutation paths.
 - Do not revoke or change grants in production without a staging rehearsal and owner approval.
+
+
+## 6. Order, delivery and finance RPC review — focused source inspection
+
+Read-only production definitions inspected for `seller_transition`, `dispatch`, `hub_receive`, `hub_consolidate`, `mark_delivered`, `confirm_received`, `report_payment`, `refund`, `record_payout`, `store_balance`, store approval/rejection/suspension, support chat functions and related helpers.
+
+### Positive controls observed
+- `seller_transition` requires authentication, rate-limits, locks the seller order, checks store ownership/admin, requires released orders, blocks seller-only actions from marking hub states, uses a legal transition helper, writes audit/notifications and synchronizes parent order.
+- Hub receive requires the admin guard, row lock, correct handover state and item-by-item check array; hub consolidate checks all active seller orders have reached `at_hub` and locks parent order.
+- Dispatch requires admin, locks parent order, validates hub route/readiness, requires delivery record, and updates tracking/order state.
+- Delivery-code confirmation rate-limits per order; direct delivery is limited to seller owner/admin, and customer confirmation checks order ownership.
+- `report_payment` updates only the authenticated buyer's order in awaiting-transfer state.
+- Refund and payout recording use admin guards, throttling, row locks, amount/balance validations, ledger writes, notifications and audit records.
+
+### Issues / questions for follow-up
+1. **Seller acceptance deadline:** `seller_transition` does not visibly check `accept_by` before accepting. The timeout/auto-cancel job and concurrency behavior must be examined. A server-side deadline guard and regression test are recommended before enabling accept UI. (High priority.)
+2. **Refund provider boundary:** `refund()` inserts a refund row as `processed` and posts ledger adjustments in the same call; this function does not call a payment provider. Confirm this is strictly manual/recorded-refund workflow and that UI wording cannot imply money was returned electronically. Actual provider refund initiation/confirmation needs a separate lifecycle and reconciliation.
+3. **Hub check input shape:** the function checks each order item is represented, but review duplicate/extra item IDs and JSON validation so submitted check data is a one-to-one item mapping. Consider enforcing array length and unique IDs.
+4. **Delivery assignment model:** current dispatch stores courier name/phone/note directly on order-level delivery record. This is a minimal legacy model, not structured courier identity, assignment history, shipment legs, route stops, attempts, exception events or proof-of-delivery event history. New logistics design must extend/reconcile this, not replace checkout data abruptly.
+5. **Chat assignment controls:** admin-only `chat_set` permits status/assignee/tags/priority updates; validate that assignee is a current authorized staff user and assignment changes are audited in the future role model.
+6. **Refund bounds:** cumulative processed/approved refunds are compared against order total; run adversarial tests for concurrent refund requests, partial seller allocations, commission math, and order/payment-status consistency.
+
+No functions, rows, grants or migrations were changed. These are source observations and proposed tests, not confirmed exploit findings.
