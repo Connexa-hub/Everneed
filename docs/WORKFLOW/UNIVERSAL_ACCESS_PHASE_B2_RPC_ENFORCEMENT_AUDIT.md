@@ -274,3 +274,32 @@ A source-level name inventory of the 38 policy definitions created in `006_marke
 - Store owner policy groups must be converted to store membership only after explicit store-scope assignment is proven; do not broaden with a permissive OR that retains a global admin predicate unintentionally.
 - Order, order-item, seller-order, delivery-secret, finance, dispute, notification, and audit policies are high-sensitivity. Access expansion must be accompanied by data projection and role-specific tests; courier must not gain direct secret access.
 - This slice does not modify schema, data, grants, RLS, staging, or production.
+
+
+## Live policy command/role matrix — second catalog query (2026-11-25)
+
+A read-only aggregate of `pg_policies` on Everneed-staging confirms all **92** policies are currently `PERMISSIVE` (no restrictive policies in this catalog snapshot). Command/role distribution:
+
+| Command | Role target | Count | Legacy `is_admin()` predicate | `auth.uid()` predicate |
+|---|---|---:|---:|---:|
+| ALL | authenticated | 18 | 18 | 1 |
+| DELETE | authenticated | 5 | 3 | 2 |
+| INSERT | authenticated | 9 | 2 | 3 |
+| SELECT | anon | 1 | 0 | 0 |
+| SELECT | anon, authenticated | 9 | 0 | 0 |
+| SELECT | public | 4 | 0 | 0 |
+| SELECT | authenticated | 34 | 30 | 9 |
+| UPDATE | authenticated | 12 | 4 | 4 |
+
+Counts in predicate columns overlap with each other and with other policies. This is not a vulnerability count. The **permissive OR composition** is the key design constraint: adding a narrowly scoped policy does not neutralize an existing broad policy on the same command/table. For each conversion, legacy admin policy must be deliberately replaced/altered or retained only where the new permission has equivalent scope; do not layer a narrow policy and assume it tightens access.
+
+### Additional live-policy notes
+
+- The 18 authenticated `ALL` policies are legacy-admin gated. Convert by table/domain, not a blanket administrator replacement; the catalogue includes seller verification rules, settings, support, offers, products, banners, collections, category attributes and others.
+- The 34 authenticated SELECT policies include 30 with legacy admin predicates; these include mixed owner/customer/admin read paths. Keep each owner/customer branch independent while migrating the admin branch.
+- Public catalogue policies (anon/authenticated and PUBLIC) are intentional storefront surfaces. Test anonymous reads against unpublished/inactive/private rows to prevent accidental exposure while retaining approved public data.
+- The merchant-facing `settings` policy permits SELECT on row id `hub` when `my_role()='merchant'`. Confirm the `hub` row contains only seller-safe public configuration; this is a field/data review, not a policy change.
+- Conversation/message policies include global `is_admin()` visibility and admin update. Any future support role must use assigned case/conversation scope and hide internal notes; do not treat platform support as unrestricted conversation membership.
+- `order_secrets` and `deliveries` remain buyer/admin read surfaces; seller/courier roles should use minimal RPC projections rather than direct table access.
+
+This remains a source-and-catalogue inventory. Every policy's final expression and grant interaction still needs explicit test mapping; no staging writes or production access occurred.
