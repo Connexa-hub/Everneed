@@ -13,6 +13,7 @@ window.Supa=(function(){
     signIn:function(e,p){return raw("/auth/v1/token?grant_type=password",{m:"POST",b:{email:e,password:p},anon:true}).then(setSess)},
     oauthUrl:function(provider,redirect,challenge){return U+"/auth/v1/authorize?provider="+encodeURIComponent(provider)+"&redirect_to="+encodeURIComponent(redirect)+"&response_type=code&code_challenge="+encodeURIComponent(challenge)+"&code_challenge_method=s256"},
     oauthExchange:function(code,verifier){if(!code||!verifier)return Promise.reject(new Error("Google sign-in verification is missing. Please try again."));return raw("/auth/v1/token?grant_type=pkce",{m:"POST",b:{auth_code:code,code_verifier:verifier},anon:true}).then(setSess)},
+    signInIdToken:function(provider,idToken){if(provider!=="google"||!idToken)return Promise.reject(new Error("Google sign-in token is missing. Please try again."));return raw("/auth/v1/token?grant_type=id_token",{m:"POST",b:{provider:provider,id_token:idToken},anon:true}).then(setSess)},
     otp:function(phone){return raw("/auth/v1/otp",{m:"POST",b:{phone:phone},anon:true})},
     verify:function(phone,code){return raw("/auth/v1/verify",{m:"POST",b:{type:"sms",phone:phone,token:code},anon:true}).then(setSess)},
     out:function(){if(sess)raw("/auth/v1/logout",{m:"POST"}).catch(function(){});sess=null;S.set("sess",null)},
