@@ -645,3 +645,28 @@ Live staging catalog verified all 83 public SECURITY DEFINER functions have expl
 ## SECURITY DEFINER ownership and PUBLIC ACL cross-check (2026-11-25)
 
 Live staging catalog shows all 83 public SECURITY DEFINER functions owned by postgres (single owner) and none has an explicit EXECUTE grant to pseudo-role PUBLIC. This is a positive ACL baseline: function execution is granted through named role ACLs, with the role-effective inventory documented above. Preserve tests that assert no PUBLIC EXECUTE and no unexpected anon/authenticated grants; review the ownership model when deploying migrations under a different database owner.
+
+
+## Critical least-privilege grant/default-ACL finding (2026-11-25)
+
+This read-only pass independently corroborated the existing Phase A privilege-hardening plan and enumerated effective table privileges on staging. **RLS does not apply to TRUNCATE.**
+
+| Effective privilege across public base tables | anon | authenticated |
+|---|---:|---:|
+| TRUNCATE | 17 tables | 31 tables |
+| INSERT | 16 tables | 31 tables |
+| UPDATE | 16 tables | 31 tables |
+| DELETE | 16 tables | 32 tables |
+| TRIGGER | 17 tables | 44 tables |
+| REFERENCES | 17 tables | 44 tables |
+| MAINTAIN | 17 tables | 44 tables |
+
+ACL inspection confirmed explicit table ACLs on the sample objects; public-schema default privileges for postgres and supabase_admin include broad table privileges (arwdDxtm) to anon/authenticated/service_role. Examples of effective anon TRUNCATE include orders, products, product_variants, profiles, stores, settings, offers and product_inventory_movements. Authenticated has TRUNCATE on stores, store_applications, store_private, orders, support tables, products/catalogue, and many other tables. Direct DELETE/UPDATE/INSERT are RLS-filtered where policies exist; TRUNCATE bypasses RLS. PostgREST client API exposure of TRUNCATE was not tested, so do not overstate this as a demonstrated remote exploit. It is a confirmed excessive SQL privilege that should be removed from anon/authenticated.
+
+### Immediate remediation priority / non-destructive next steps
+
+1. Treat this as P0/P1 least-privilege remediation: revoke TRUNCATE, TRIGGER, REFERENCES, MAINTAIN from anon/authenticated on public base tables unless a documented requirement exists; retain service_role and owner privileges.
+2. Remove anon broad INSERT/UPDATE/DELETE grants from exposed public tables, retaining only explicit public-form paths (prefer Edge RPCs) and intentional read-only catalog access. Authenticated direct mutation grants must be reduced table/column-by-table according to call-site dependency mapping, not blanket revoked.
+3. Change default privileges for both postgres and supabase_admin so future public tables/functions do not inherit broad client grants. Review sequences separately.
+4. Build staging-only ACL regression tests for every public table and newly created objects; ensure no anon/authenticated TRUNCATE/trigger/reference/maintain grants and no unexpected DML. Test public catalogue reads and intended seller/buyer writes via supported RPC/API paths.
+5. Phase A hardening remains separate from B1/B2 authorization work. Do not apply a revoke migration until web/app direct-write call sites, view behavior, column-level grants and service/trigger dependencies are mapped and CI proves safe. Production untouched.
