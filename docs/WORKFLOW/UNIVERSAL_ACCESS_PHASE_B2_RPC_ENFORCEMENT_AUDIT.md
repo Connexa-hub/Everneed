@@ -144,3 +144,35 @@ Read-only SQL was run against the same **Everneed-staging** project. No data was
 ### B2.0 inventory completion status
 
 The read-only snapshot now covers public SECURITY DEFINER function counts and ACL, named high-impact function definitions, RLS policy totals and selected policy bodies, direct table privilege patterns, anon policy surface, private-schema table grants, trigger definitions, and selected role/profile guard helpers. **It is not yet a complete line-by-line audit of all 47 authenticated-executable functions or all 92 policy expressions.** The next audit pass must finish that list and classify each function/policy into: public read, user-owned, store-scoped, platform-admin, logistics, finance, support, or service-only. Enforcement implementation remains blocked on B1 security review/staging validation and must not be started from this incomplete inventory.
+
+
+## Second-pass targeted findings (2026-11-25)
+
+### Confirmed follow-up items
+
+1. **Campaign budget approval lacks durable change-history audit.** `approve_offer_campaign_budget()` is authenticated-executable, checks `profiles.role='admin'`, overwrites approval fields on conflict, and does not call `private.audit()`. The staging trigger inventory found audit triggers for campaign reservations and seller funding consent, but none on `private.offer_campaign_budgets`. Existing row fields preserve latest approver/time/note only, not prior approved budget changes. Treat as a high-priority finance governance gap: migrate to narrow campaign budget approval permission, require reason, and append immutable audit/history on create/update; add tests that previous values and actor/reason are retained.
+2. **Single-store assumptions in plan APIs conflict with multi-store context.** `choose_plan(p_plan)` uses `SELECT ... FROM stores WHERE owner_id=auth.uid()` without store ID or deterministic ordering/limit, so when an actor owns multiple stores the target may be ambiguous. `my_store_entitlements()` also silently picks the most recently created store and has no explicit context input. Before B3/B4 introduce multiple store memberships/contexts, these APIs must accept or resolve a validated active store context and reject ambiguity; never trust client-selected context without checking membership.
+3. **Support SLA sweep is authenticated-executable.** `support_sla_sweep()` checks `auth.role()='authenticated' AND NOT is_admin()` and permits service-role calls. This is a deliberate admin/service gate; keep it service-only if the UI does not need manual execution, or assert non-admin rejection and admin-only authenticated behavior. The function also deletes stale support_queue records, so document scheduled invocation and retention expectations.
+4. **Public store reply stats.** `store_reply_stats()` publishes aggregate store IDs, median reply latency, and chat counts with a minimum sample size of three. No message content/customer identifiers are returned. Confirm frontend public badge contract and whether a privacy/abuse rate limit is needed; do not expose more fields.
+
+### Targeted second-pass classification (not full source review)
+
+| Function | Current boundary | Review note / target |
+|---|---|---|
+| `accept_policy` | authenticated user only; inserts using `auth.uid()` | Retain self-only acceptance and effective/published policy checks |
+| `choose_plan` | authenticated store owner; subscription-state guard | Add explicit store context for multi-store; lock subscription and audit plan changes |
+| `confirm_received` | authenticated order owner | Keep customer-only; retain delivery workflow guard |
+| `order_tracking` | authenticated order owner | Returns route/seller status and delivery payload; preserve owner predicate and data minimization |
+| `report_payment` | authenticated order owner + awaiting-transfer state | Retain status guard, throttle and notification; add audit event if needed for dispute trail |
+| `request_store_activation` | authenticated owner; subscription, plan and verification gates | Preserve exact owner scope and verification requirements |
+| `submit_store` | authenticated owner; pending/draft state and policy acceptances | Preserve owner scope and submission state; verify application row integrity |
+| `my_seller_orders` | store owner via DB-resolved store; released orders only | Contact details shown only for direct-route stages; hub route shows limited location; team permission must be purpose-limited |
+| `my_store_entitlements` | current owner; newest store implicit | Multi-store context ambiguity identified above |
+| `seller_product_capabilities` | owner/admin access to explicitly resolved store | Context switch must verify store membership; admin override must become narrow platform permission |
+| `seller_product_category_schema` | authenticated read of active taxonomy/attributes | Read-only public product metadata; ensure no inactive/private fields leak |
+| `next_slug` | authenticated caller; collision check | No obvious data exposure beyond slug availability; throttle/uniqueness remains important |
+| `chat_start` | authenticated; membership/ownership and order-store relationship checks; admin-only admin_user path | `p_user` is only used in admin_user branch; retain participant binding and rate limits |
+| `set_offer_store_funding_consent` / `revoke_offer_store_funding_consent` | authenticated store owner; offer availability; consent record | Trigger audit exists; keep owner check and seller consent explicit, do not imply admin consent |
+| `support_sla_public` / `seller_plan_catalog` / `seller_product_category_schema` | read-only public/config surfaces (grant varies) | Confirm allowlisted fields and stable public contracts |
+
+These findings are discovery-only. No migration, grant, row, or policy was changed on staging. The audit branch remains documentation-only and must not be merged as an enforcement change.
