@@ -512,3 +512,10 @@ Trigger inventory is limited to these tables and event types; no schema changes 
 - `request_store_activation(text)` locks owner store and checks approved application, suspension, active subscription/plan entitlements, regional verification rules and required verified checks before activation; missing checks queue reminders. `submit_store(text)` locks owner store, restricts draft/rejected states, validates business application and latest regional policy acceptances. Preserve these owner/state/compliance gates when adding store-team roles.
 
 Read-only body review; no customer or seller records changed.
+
+
+## Manual payment-confirmation boundary (2026-11-25)
+
+`admin_confirm_payment(text)` is authenticated-executable but legacy-admin-gated; it throttles and calls `private.confirm_payment_core(order,NULL,auth.uid())`. The core locks the order, returns `already` if paid, rejects cancelled, otherwise marks paid and releases seller legs/ledger sale+commission. The core does not itself require an order to be specifically `awaiting_transfer` or `payment_reported`, nor does the manual wrapper carry provider evidence/reference. This is a privileged manual confirmation path, not a Paystack-verified path.
+
+**B2/payment gate:** replace with a narrow bank-transfer review permission; require allowed pending-transfer/report states and documented evidence/reference, actor/reason audit; ensure only manual transfer orders can use it. Provider-confirmed card checkout remains service/webhook path, and a second successful distinct provider reference must be reconciled rather than hidden by `already`. Keep existing idempotency and seller-release guards. No payment status was changed or simulated.
