@@ -461,3 +461,17 @@ The live body review of `refund(text,text,numeric,text)` and the existing fast-s
 - `record_payout()` similarly remains a manual admin record rather than bank-transfer execution confirmation; permissions must not present that record as proof of funds transfer.
 
 This is a high-priority finance blocker/contract note, not a production incident assertion. No refund, payment, payout, or staging data was changed.
+
+
+## Multi-store and seller-finance function-body pass (2026-11-25)
+
+| RPC | Confirmed behavior | Risk/target |
+|---|---|---|
+| `choose_plan(text)` | SELECT from stores WHERE owner_id=auth.uid() without store ID, deterministic order, or ambiguity rejection; then updates application/subscription for that selected row. | Must accept explicit store context and verify active membership; reject ambiguous owner. Lock subscription and retain audit on plan changes. |
+| `my_store_entitlements()` | Selects most recently created owner store implicitly; then reads its subscription/plan and usage. | Context-specific response; never silently choose latest store when a seller owns multiple. |
+| `seller_product_capabilities(text)` | Explicit store ID is resolved and must belong to caller or legacy admin; absent ID defaults to latest store. Admin override returns broad feature flags. | Store context required for multi-store; replace global admin override with narrowly scoped capability-management permission; no team access without B3. |
+| `store_balance(text)` | Returns ledger aggregate only for legacy admin or store owner; otherwise NULL. | Preserve per-store scope; finance team read permission should be scoped and use a finance projection, not cross-store balance access. |
+| `set_offer_store_funding_consent(text,text,integer)` | Requires caller own the store, active offer and funding basis points 0–10000; upserts consent row and resets revocation fields. | Team members must not consent on behalf of seller by default. Explicit delegated authority, change history, and clear consent UI required. |
+| `revoke_offer_store_funding_consent(text,text,text)` | Caller-owned store only; updates active consent with timestamp/reason. | Keep seller-controlled revocation, audit reason, and prevent staff/admin overriding consent. |
+
+No multi-store fixtures or write tests were run. These body-level findings confirm that context selection is a contract issue to resolve before universal team roles are allowed to call seller RPCs.
