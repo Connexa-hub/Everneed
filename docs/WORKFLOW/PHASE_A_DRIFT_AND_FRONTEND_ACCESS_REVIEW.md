@@ -144,3 +144,12 @@ The `private` schema has USAGE granted to anon and authenticated in this product
 
 ### R23 response — accepted contract, implementation not yet started
 The two-plane proposal is accepted. Use its canonical permission keys (e.g. `store.catalogue.write`, `store.orders.transition`, `platform.staff.manage`) rather than architecture-document aliases in new backend contract. Frontend compatibility aliases are transitional and should be removed after the backend/UI contract aligns. R23 `my_access()` is read-only introspection and must be based on active membership/assignment records; it must not grant or mutate access. It will be staged only after role inventory, orphaned/ownerless stores and legacy admin account classification. No automatic owner assignment, no view-as, no custom role permissions in initial release. Bootstrap preserves legacy admin only as a compatibility/emergency path until controlled audited migration.
+
+
+## 8. Table-grant finding refinement — anon TRUNCATE and excess privileges
+
+A follow-up query separated base tables from security-invoker views. It confirms **no anon-granted base table in the inspected public list has RLS disabled**; the RLS-disabled objects (`auto_offers`, `product_ratings`, `public_products`, `public_reviews`, `public_stores`) are views with `security_invoker=true`. Their underlying table policies still apply.
+
+However, the anon role has broad table privileges on several RLS-enabled base tables, including `TRUNCATE` on `banners`, `collections`, `offers`, `orders`, `products`, `profiles`, `reviews`, `settings`, and `size_charts`; plus broad INSERT/UPDATE/DELETE/TRIGGER/REFERENCES on multiple tables. **TRUNCATE is not protected by RLS.** Although ordinary PostgREST CRUD does not expose TRUNCATE as a normal endpoint operation, the grant is unnecessary and should be treated as a high-priority privilege-hardening finding, not as an RLS-contained privilege.
+
+This is a confirmed excessive SQL privilege in the catalog, but reachability through a public API or any other execution path is not established. Immediate action: construct a least-privilege allowlist migration on staging, revoke anon table write/DDL-like privileges (including TRUNCATE, TRIGGER, REFERENCES), retain only required SELECT and explicitly required public writes, and separately constrain authenticated grants. Test all web/app flows, RPCs, views and triggers. Production remains untouched until the staging suite and owner approval.
