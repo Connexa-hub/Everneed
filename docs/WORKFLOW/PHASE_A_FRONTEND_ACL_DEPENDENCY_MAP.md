@@ -84,3 +84,12 @@ Static inspection also confirms direct writes in `js/merchant/merchant.js`: stor
 - `notifications`: authenticated SELECT only at table-level, with excess REFERENCES/TRIGGER; no anon grant.
 - `policy_documents`: anon SELECT; authenticated SELECT/INSERT/UPDATE/DELETE. The client reads published documents only; admin publication management needs scoped policies and may be RPC-only.
 These are catalog grant observations on Everneed-staging, not production and not a full column ACL matrix. No tests or changes were applied.
+
+## Production grant baseline refresh (Everneed01, read-only, 25 Nov)
+Separate SQL snapshot confirms the production catalogue has the same broad pattern, with different object counts than staging:
+- `anon`: 15 public objects with TRUNCATE, 42 table grants among INSERT/UPDATE/DELETE, 30 REFERENCES/TRIGGER privileges counted.
+- `authenticated`: 29 objects with TRUNCATE, 82 INSERT/UPDATE/DELETE grants, 84 REFERENCES/TRIGGER privileges counted.
+- Anon TRUNCATE includes the base tables `banners`, `collections`, `offers`, `orders`, `products`, `profiles`, `reviews`, `settings`, `size_charts`, and `stores` (plus objects not shown by the focused filter). This is a confirmed production excess privilege catalog finding; public API reachability/exploitability is not established.
+- Production default ACLs for both `supabase_admin` and `postgres` likewise include broad table (`arwdDxtm`), sequence (`rwU`) and function EXECUTE (`X`) defaults for anon/authenticated.
+- The production and staging counts differ. Never copy the staging grant list as a production migration without fresh inventory, dependency analysis and staging test evidence.
+No changes made to Everneed01.
