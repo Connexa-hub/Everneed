@@ -1,6 +1,6 @@
 # Roles and access: proposal for ChatGPT (backend) and Claude (frontend)
 
-Status: PROPOSAL for the backend owner to accept, change or reject. Claude does not change the database. Nothing here ships until ChatGPT confirms the contract; the frontend asks the server once and hides or disables by the answer, so no frontend release is needed when the backend lands.
+Status: **ACCEPTED CONTRACT (25 November 2026)**. The owner approved the two-plane split and decisions in section 8. Backend implementation is staged and must be reviewed/tested on staging before production. Claude owns UI; ChatGPT coordinates backend, migrations, security and validation.
 
 Owner's brief: roles for everyone who can manage the platform, and roles for merchants to manage their own store, without interfering with each other and without cross work.
 
@@ -76,11 +76,21 @@ Plus the RPCs already requested: `team_list/team_invite/team_accept/team_set_rol
 - Team screens: Seller Team (R13) and Platform Staff (R2/R22) with invite, role picker, revoke, seats left, and an Activity list from `audit_log_list`.
 - Phone app and web are the same code (`web/`), so roles work in the bundled seller workspace without extra work.
 
-## 8. Questions for ChatGPT
+## 8. Owner decisions (25 November 2026)
 
-1. Do you accept the two-plane split and the namespaced keys, or do you want a different naming?
-2. Keep `profiles.role = 'admin'` as the bootstrap owner, and move everything else into `staff_members`?
-3. Is `view-as` allowed at all? If yes, who can use it and how long can it last?
-4. Should `store_members.role` stay a fixed list, or should `permissions jsonb` allow custom per-member overrides (my preference: fixed roles first, overrides later)?
-5. Four-eyes payout: who is the second approver for a small merchant with one owner (platform finance only)?
-6. Migration order you prefer. My suggestion: `my_access()` first (works with today's tables), then the team RPCs, then RLS changes, then audit.
+1. **Accepted:** two-plane model (`platform.*` and `store.*`) and least-privilege permission bundles.
+2. **Bootstrap:** retain the current `profiles.role = 'admin'` path temporarily for backwards compatibility and emergency bootstrap. Inventory every existing admin first. Do not silently convert all legacy admins into platform owners. Only the verified owner account receives the owner role. Migrate other admins to least-privilege staff roles through an audited process.
+3. **View-as:** disabled for initial release. No impersonation or acting-as-merchant. A future support inspection feature must be read-only, scoped to a single store, time-limited (15 minutes maximum), reason-required, audited, and visible to the merchant. It requires separate owner approval and security review before implementation.
+4. **Store roles:** fixed role bundles for initial release. No custom permission overrides until the role model and audit controls have been tested in production-like staging.
+5. **Four-eyes payout:** for a solo merchant, platform Finance is the second approver. The merchant cannot approve their own payout request. Bank-detail changes remain restricted to the Everneed team as currently specified; require a cooling period and second-person review before payout to changed details.
+6. **Implementation order:** (a) schema/RLS and role inventory audit; (b) read-only `my_access()` using current verified identities and safe legacy fallback; (c) platform staff table and audited RPCs; (d) store team invites/acceptance and fixed roles; (e) RLS enforcement for staff/store members across data and RPCs; (f) audit/activity feed and revocation checks; (g) frontend context switcher and role-based UI. Do not expose role-management UI before backend enforcement exists.
+
+## 9. Implementation and release guardrails
+
+- Staging only for initial migrations and testing. No production migration, live role assignment or access changes without explicit approval.
+- Start with a complete inventory of existing admins, store owners, staff scopes, relevant RLS policies and security-definer functions. Preserve existing owner and seller access while tests prove the new checks.
+- `my_access()` must be read-only, return only the caller's contexts, and never expose store/platform access based solely on UI state or unverified JWT claims.
+- Permission checks must be server-side on each protected operation; UI gating is only presentation. Revocation must take effect on the next request.
+- Tests must cover cross-store isolation, store/platform plane separation, official-store scoping, owner preservation, invite token binding/expiry, seat limits, revoked-member denial, staff permission escalation denial, payout separation and audit completeness.
+- Migrations must be additive and reversible where practical, reviewed against staging schema, and use stable permission/error codes documented in `DB_CONTRACT.md`.
+- Until `my_access()` is deployed, Claude's frontend must preserve the existing owner/admin experience and treat missing RPC as compatibility fallback only; it must not infer new permissions.
