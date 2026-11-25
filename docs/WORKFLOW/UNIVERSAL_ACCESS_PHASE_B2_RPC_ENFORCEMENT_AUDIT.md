@@ -635,3 +635,8 @@ The live query enumerated every public policy expression containing is_admin() i
 - Audit log remains admin read only; future compliance/finance reviewers need filters and scope, not general audit-log access by default.
 
 The catalog is now a table-by-table policy migration backlog. Any future migration should include role-context negative tests and legacy-admin compatibility tests, verifying that each new policy actually replaces broad admin access rather than merely adding an OR branch.
+
+
+## SECURITY DEFINER search-path hardening cross-check (2026-11-25)
+
+Live staging catalog verified all 83 public SECURITY DEFINER functions have explicit function-level search_path configuration (83/83; none missing). All currently set an empty search_path (`search_path=""`), requiring schema-qualified references and avoiding mutable search-path resolution. This is a positive hardening baseline; retain it in future functions and regression tests. The three anon-executable SECURITY DEFINER RPCs are exactly seller_plan_catalog(), store_reply_stats(), and support_sla_public(), and each also has authenticated execute; no other public SECURITY DEFINER RPC is anon-executable in this snapshot.
