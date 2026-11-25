@@ -448,3 +448,16 @@ Read-only `pg_get_functiondef` review was performed for eight currently executab
 - Courier metadata in legacy dispatch/direct-seller functions is not a substitute for the FIN-02/B5 assignment, custody, proof-of-delivery, and exception lifecycle.
 - Finance/commercial operations should use actor-bound immutable audit records with before/after, reason, correlation/idempotency reference and approval state, not only the latest mutable row or a generic audit payload.
 - The targeted body review remains read-only. No staging mutation, role simulation, grant change, or production access was performed.
+
+
+## Refund lifecycle / seller subledger cross-check (2026-11-25)
+
+The live body review of `refund(text,text,numeric,text)` and the existing fast-settlement contract identifies a critical B2 finance boundary:
+
+- The legacy `public.refund()` inserts `public.refunds.status='processed'`, reverses seller share/commission through ledger entries, updates the order payment status and notifies the buyer. It **does not itself confirm a Paystack refund**.
+- The existing `private.provider_refunds` foundation (migration 026) is intended to hold provider execution/confirmation; its contract explicitly warns that legacy `approved`/`processed` refund status is not proof the provider sent money. Current lifecycle does not yet model the full provider pending/processing/needs-attention/failed/processed states.
+- The live legacy refund RPC enforces a total-order refund cap, but the selected seller-order ledger reversal is calculated pro-rata from `p_amount / orders.total * seller_orders.subtotal`. A seller-order-specific cumulative cap and cross-seller attribution test should be added to the finance audit before using this operation for package-level refunds; ensure refunding one seller leg cannot over-reverse another seller's subledger.
+- Do not assign a new staff `refund.approve` / `refund.process` permission or expose this workflow as customer-confirmed until the provider refund lifecycle is wired, idempotent, and reconciled. Separate approval from execution, persist provider reference/status, and only mark provider-paid/processed after verified provider evidence.
+- `record_payout()` similarly remains a manual admin record rather than bank-transfer execution confirmation; permissions must not present that record as proof of funds transfer.
+
+This is a high-priority finance blocker/contract note, not a production incident assertion. No refund, payment, payout, or staging data was changed.
