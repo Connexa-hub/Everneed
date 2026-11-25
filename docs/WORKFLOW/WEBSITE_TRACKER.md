@@ -517,3 +517,8 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Base-table refinement: no anon-granted base table in the queried public set had RLS disabled; RLS-disabled catalogue/public objects are `security_invoker=true` views, so base policies remain relevant.
 - Confirmed excess anon SQL grants include `TRUNCATE` and broad write/trigger/reference privileges on multiple RLS-enabled tables. TRUNCATE bypasses RLS; REST reachability is not established, but the grants are not justified by RLS and are high-priority to harden.
 - FIN-01 next subtask: staging privilege allowlist migration and regression suite; production unchanged.
+
+
+### Default ACL root-cause confirmed (25 Nov)
+- `pg_default_acl` shows public-schema default table ACLs for owners `supabase_admin` and `postgres` grant broad table privileges (including TRUNCATE/trigger/reference) to anon and authenticated; default function/sequence grants are also broad.
+- Grant-hardening scope must include existing-object ACLs **and both owners' default ACLs**. Add tests that newly created table/function/sequence ACLs are least-privilege. See audit report section 9. No live changes.
