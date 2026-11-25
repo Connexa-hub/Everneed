@@ -26,6 +26,5 @@
 - [Auth production setup](AUTH_PRODUCTION_SETUP.md) — deployment checklist.
 - [Routine security review](ROUTINE_SECURITY_REVIEW.md), [Supabase Advisor review](SUPABASE_ADVISOR_REVIEW.md), [Privilege hardening plan](PHASE_A_PRIVILEGE_HARDENING_PLAN.md) — security findings; not proof of current security posture.
 - [Intelligence & advertising data architecture](INTELLIGENCE_ADVERTISING_DATA_ARCHITECTURE.md), [Advertising DB reconciliation/build plan](ADVERTISING_DATABASE_RECONCILIATION_AND_BUILD_PLAN.md) — optional growth/ads work.
-- [Platform audit](PHASE_A_EVERNEED01_VERIFIED_AUDIT.md) and [ACL dependency map](PHASE_A_FRONTEND_ACL_DEPENDENCY_MAP.md) are retained only if their detailed data remains needed; do not treat them as current without re-verification.
 
 **Rule:** New decisions update a canonical standard/contract. Do not create another dated report or parallel roadmap unless a short, temporary audit is needed; fold findings into canonical docs and delete the temporary report after handoff.
