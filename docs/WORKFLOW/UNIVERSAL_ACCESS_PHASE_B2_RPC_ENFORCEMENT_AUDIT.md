@@ -601,3 +601,17 @@ All listed policies are permissive. Converting admin branches requires replacing
 - offers: public SELECT only active offers where code IS NULL; admin ALL. Offer funding consent is separate owner-bound/private state. Ensure public offers don't expose private campaign budget/funding records; replace broad admin ALL before scoped offer operations.
 
 These policies reinforce role-assignment protection: profile.role is not the team-membership source, and store owner is not interchangeable with a staff role. Preserve separate identity, ownership, membership, and operational authority.
+
+
+## Service-only provider payment and recovery boundary cross-check (2026-11-25)
+
+Source review of migrations 028/029 on web-portal and the staging ACL inventory:
+
+- create_payment_attempt: service-only; binds order to user, card method/state, immutable checkout snapshot hash, exact minor amount/currency/exponent, idempotency key and persisted provider reference. Reuses existing attempt when matching, rejects mismatch. Caller is trusted service, not client-supplied user authority.
+- record_payment_attempt_initialization: service-only; locked attempt, accepts initialization outcome only from initializing state, bounded gateway message/failure fields, preserves terminal states.
+- record_verified_provider_event: service-only; inserts HMAC-verified event metadata and sanitized payload into inbox idempotently; duplicate event key returns duplicate status.
+- settle_verified_payment_attempt: service-only; locks attempt/order, verifies order-user/snapshot/hash/amount/currency/exponent, exact provider transaction identity, and handles duplicate/second charge, failed/cancelled attempts, paid-after-cancel, missing order and mismatches by reconciliation rather than automatic settlement. Provider verification is caller responsibility and the edge path must perform authoritative Paystack verification before calling.
+- mark_provider_event_processed: service-only compatibility status RPC. Migration 029 also adds claim/finish lease RPCs with bounded batches/lease durations/attempts, SKIP LOCKED, lease-token completion and exponential backoff/dead-letter handling.
+- The payment recovery Edge Function uses service role, verifies transactions against Paystack and calls settlement/recovery RPCs; worker should remain service-only, with environment-specific secret and scheduled invocation controls.
+
+These controls are an example of the intended B2 boundary: client-facing authenticated RPCs should not invoke or simulate provider-confirmed financial authority. Maintain service-only ACL regression tests for exact signatures and webhook HMAC/verification before settlement. This source review does not prove the deployed Edge Function version or scheduler is active; staging schema/CI evidence is distinct from deployment evidence.
