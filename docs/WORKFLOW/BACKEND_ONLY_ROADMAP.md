@@ -1,7 +1,7 @@
 # Everneed Backend Roadmap — ChatGPT/Codex ownership
 **Canonical backend scope | Staging-first | Production protected**
 
-The nine frontend agents and AI #10 coordinate frontend planning, implementation and review across web and Android. ChatGPT/Codex owns backend end-to-end and supplies reliable contracts and evidence.
+Claude 1–9 are specialist frontend builders working across web and Android; Claude 10 is the tenth agent and master planner/researcher/analyst/design strategist/reviewer/debugger/moderator/integrator coordinating them end-to-end. ChatGPT/Codex owns backend end-to-end and supplies reliable contracts and evidence.
 
 ## Backend principles
 - Backend is the security and business source of truth. Fail closed, validate every request and resource scope, use idempotency and audit.
