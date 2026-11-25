@@ -63,3 +63,14 @@
 - GitHub code search did not return indexed results for broad REST patterns, so this is a manually selected source-path scan, not exhaustive. App source, remaining website JS modules, Edge Functions, triggers and SQL dependencies still need inspection.
 - No SQL, ACL, policy, data, configuration, or deployment change was made. No migration drafted.
 - Next: complete call-site scan (including root `js/`, Android generated build inputs, support/admin modules, Edge Functions and storage), query column-level grants and existing/default ACLs on staging, then develop negative-access tests and an allowlist proposal. Staging rehearsal requires owner-approved workflow; production changes require explicit owner approval.
+
+## Staging ACL snapshot (read-only, 25 Nov)
+Queried Everneed-staging information_schema table privileges and pg_default_acl. Results:
+- `anon`: 22 table objects with TRUNCATE, 21 objects each with INSERT/UPDATE/DELETE, 22 with REFERENCES and TRIGGER, 21 SELECT.
+- `authenticated`: 36 table objects with TRUNCATE, 36 with INSERT/UPDATE/DELETE, 49 with REFERENCES and TRIGGER, 54 SELECT.
+- Anon TRUNCATE objects include operational/data objects `orders`, `products`, `profiles`, `stores`, `product_variants`, `product_inventory_movements`, `product_media`, `product_price_tiers`, `product_variant_private`, plus public views. Views should be distinguished from base tables in any remediation.
+- Default ACLs for both `supabase_admin` and `postgres` in `public` grant anon/authenticated broad table privileges (`arwdDxtm`), sequence privileges (`rwU`), and function EXECUTE (`X`). This confirms the same default-ACL root cause in staging; do not treat it as evidence that the production ACLs are identical without separately querying production.
+- This SQL snapshot does not establish PostgREST reachability of TRUNCATE or exploitability. It confirms excessive SQL grants and the default-ACL configuration. No changes were made.
+
+## Root app source paths added to scan
+Static inspection also confirms direct writes in `js/merchant/merchant.js`: stores, store_private/store_applications, products and product_private are edited through REST, and product status is directly updated for draft/review. Admin-sellers uses RPCs for approve/reject/reinstate/review/suspend. `js/adminx.js` directly toggles offers, inserts offer records, and may update order state through a legacy store abstraction; payment confirmation uses RPC/Paystack. `js/shop.js` directly inserts reviews. The exact mapping for every app flow and table/column is still incomplete; missing paths in this connector scan are not evidence they do not exist.
