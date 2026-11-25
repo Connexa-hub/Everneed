@@ -39,6 +39,41 @@ create table if not exists public.access_role_permissions (
   primary key (role_key, permission_key)
 );
 
+-- Prevent cross-plane or scope-incompatible permission bundles from being seeded.
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+
+create or replace function private.access_role_permission_scope_guard()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+declare
+  v_role_scope text;
+  v_permission_scope text;
+begin
+  select scope_type into v_role_scope
+  from public.access_role_catalog
+  where role_key=new.role_key;
+
+  select scope_type into v_permission_scope
+  from public.access_permission_catalog
+  where permission_key=new.permission_key;
+
+  if v_role_scope is null or v_permission_scope is null then
+    raise exception 'ACCESS_ROLE_PERMISSION_INVALID' using errcode='23503';
+  end if;
+
+  if v_role_scope <> v_permission_scope
+     and not (v_role_scope='branch' and v_permission_scope='store') then
+    raise exception 'ACCESS_ROLE_PERMISSION_SCOPE_MISMATCH' using errcode='23514';
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function private.access_role_permission_scope_guard() from public, anon, authenticated;
+
 create table if not exists public.access_role_assignments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -96,11 +131,12 @@ insert into public.access_permission_catalog(permission_key,domain,scope_type,de
 ('platform.audit.read','platform','platform','Read security and audit events','critical'),
 ('platform.analytics.read','platform','platform','Read platform analytics','sensitive'),
 ('platform.compliance.review','platform','platform','Review compliance cases','sensitive'),
+('platform.hubs.read','platform','platform','Read platform hub operations','sensitive'),
 ('logistics.dispatch.read','partner','platform','Read dispatch queues within assigned scope','sensitive'),
 ('logistics.dispatch.assign','partner','platform','Assign dispatch jobs within assigned scope','critical'),
 ('logistics.route.plan','partner','platform','Plan routes within assigned scope','sensitive'),
-('logistics.jobs.read','partner','partner','Read assigned delivery jobs','sensitive'),
-('logistics.jobs.accept','partner','partner','Accept or decline assigned jobs','sensitive'),
+('logistics.jobs.read','partner','job','Read assigned delivery jobs','sensitive'),
+('logistics.jobs.accept','partner','job','Accept or decline assigned jobs','sensitive'),
 ('logistics.location.share','partner','job','Share location while on assigned duty','sensitive'),
 ('logistics.delivery.confirm','partner','job','Confirm delivery on assigned job','critical'),
 ('logistics.pod.capture','partner','job','Capture proof of delivery','sensitive'),
@@ -198,7 +234,7 @@ insert into public.access_role_permissions(role_key,permission_key) values
 ('platform_logistics_supervisor','logistics.dispatch.read'),
 ('platform_logistics_supervisor','logistics.dispatch.assign'),
 ('platform_logistics_supervisor','logistics.route.plan'),
-('platform_logistics_supervisor','logistics.hub.read'),
+('platform_logistics_supervisor','platform.hubs.read'),
 ('platform_logistics_supervisor','logistics.zone.manage'),
 ('platform_dispatcher','logistics.dispatch.read'),
 ('platform_dispatcher','logistics.dispatch.assign'),
@@ -255,6 +291,10 @@ insert into public.access_role_permissions(role_key,permission_key) values
 ('store_pos_cashier','pos.sales.create')
 on conflict do nothing;
 
+create trigger access_role_permissions_scope_guard
+before insert or update on public.access_role_permissions
+for each row execute function private.access_role_permission_scope_guard();
+
 create or replace function public.my_access()
 returns jsonb
 language sql
@@ -273,7 +313,7 @@ as $function$
       r.role_key,
       r.display_name,
       coalesce(array_agg(rp.permission_key order by rp.permission_key)
-        filter (where rp.permission_key is not null), array[]::text[]) as permissions,
+        filter (where rp.permission_key is not null and pc.permission_key is not null), array[]::text[]) as permissions,
       'assignment'::text as source,
       case when a.scope_type='store' then s.name else null end as scope_name,
       case when a.scope_type='store' then s.is_official else false end as official
@@ -281,6 +321,7 @@ as $function$
     join caller c on c.user_id=a.user_id
     join public.access_role_catalog r on r.role_key=a.role_key and r.plane=a.plane and r.active
     left join public.access_role_permissions rp on rp.role_key=r.role_key
+    left join public.access_permission_catalog pc on pc.permission_key=rp.permission_key and pc.active
     left join public.stores s on a.scope_type='store' and s.id=a.scope_id
     where a.revoked_at is null
       and a.starts_at <= now()
