@@ -370,6 +370,10 @@ This reconciles the earlier high-level snapshot: **36 are service-only**; 47 are
 - `chat_set(uuid,text,uuid,text[],integer)`
 - `chat_start(text,text,text,text,text,uuid)`
 
+**Public aggregate/config surfaces (anon-executable; also authenticated)**
+- `store_reply_stats()`
+- `support_sla_public()`
+
 **Compatibility helper**
 - `is_admin()`
 - `my_role()`
