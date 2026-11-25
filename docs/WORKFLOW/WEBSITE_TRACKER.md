@@ -562,3 +562,5 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - **Status: IN PROGRESS** — Owner: ChatGPT coordinator; Branch: `web-portal`.
 - Protocol requires all app and website development on `web-portal`; PR #43's separate feature branch is a review source only, not an integration target.
 - Scope: isolate the native Android sign-in changes from PR #43, compare against the current shared app, and provide Claude an exact port/review handoff. Do not merge PR #43, alter Supabase provider settings, or deploy.
+
+- **R24 handoff added:** `docs/WORKFLOW/NATIVE_GOOGLE_SIGNIN_CLAUDE_HANDOFF.md`. PR #43 was reviewed file-by-file; its 23-file diff mixes native auth with unrelated payment and seller/admin UI work. Claude is asked to port only native auth to `web-portal`, use the confirmed Web client ID, verify plugin logout/cancellation APIs, preserve website/iOS flows, and provide CI + Hot 70 APK evidence. PR #43 remains draft and unmerged. Handoff commit: b229d34c29b055ee4a01c3f6b182241989284083.
