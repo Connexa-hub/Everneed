@@ -90,6 +90,42 @@ if (existsSync(recoveryWorkerPath)) {
   }
 }
 
+// 4d. Native Android Google sign-in must use the Web OAuth client ID and preserve browser PKCE.
+const googleConfigSource = readFileSync('js/config.js', 'utf8');
+const googleAuthSource = readFileSync('js/auth.js', 'utf8');
+const googleAppSource = readFileSync('js/app.js', 'utf8');
+const googleSupaSource = readFileSync('js/supa.js', 'utf8');
+const googleMainActivitySource = readFileSync('android/app/src/main/java/com/everneed/store/MainActivity.java', 'utf8');
+const googlePackage = JSON.parse(readFileSync('package.json', 'utf8'));
+for (const [file, source, required] of [
+  ['js/config.js', googleConfigSource, 'googleWebClientId:"659136945947-dlum233ke4ruu48uk9ir0bli0nvfcs60.apps.googleusercontent.com"'],
+  ['js/auth.js', googleAuthSource, 'function googleNativeAndroid()'],
+  ['js/auth.js', googleAuthSource, 'plugin.initialize({google:{webClientId:clientId}})'],
+  ['js/auth.js', googleAuthSource, 'plugin.login({provider:"google",options:{}})'],
+  ['js/auth.js', googleAuthSource, 'Supa.signInIdToken("google",token)'],
+  ['js/auth.js', googleAuthSource, 'nativeGoogleAccountReauthFailure'],
+  ['js/auth.js', googleAuthSource, 'location.href=url'],
+  ['js/supa.js', googleSupaSource, 'grant_type=id_token'],
+  ['js/supa.js', googleSupaSource, 'id_token:idToken'],
+  ['js/app.js', googleAppSource, 'function clearNativeGoogleProvider()'],
+  ['js/app.js', googleAppSource, 'p.logout({provider:"google"})'],
+  ['js/app.js', googleAppSource, 'function signOutCurrentUser()'],
+  ['MainActivity.java', googleMainActivitySource, 'ModifiedMainActivityForSocialLoginPlugin'],
+  ['MainActivity.java', googleMainActivitySource, 'handleGoogleLoginIntent(requestCode, data)'],
+]) if (!source.includes(required)) fail(file + ' is missing native Google sign-in requirement: ' + required);
+if (!googlePackage.dependencies || !googlePackage.dependencies['@capgo/capacitor-social-login']) {
+  fail('package.json must include @capgo/capacitor-social-login for native Android Google sign-in');
+}
+if (googleConfigSource.includes('googleWebClientId:"659136945947-tv0q8nrivcca6rv5areu2vrtca1qnekm.apps.googleusercontent.com"')) {
+  fail('js/config.js must not use the Android OAuth client ID as googleWebClientId');
+}
+if (!googleAuthSource.includes('code_challenge_method=s256') && !googleSupaSource.includes('code_challenge_method=s256')) {
+  fail('website Google sign-in must retain OAuth PKCE');
+}
+if (!googleAppSource.includes('else if(k==="out"){signOutCurrentUser()}') || !googleAppSource.includes('signout:function(){signOutCurrentUser()}')) {
+  fail('all explicit sign-out entry points must clear native Google state');
+}
+
 // 4d. Staging migrations must never deploy on a branch push.
 const stagingWorkflowPath = '.github/workflows/staging-db.yml';
 if (existsSync(stagingWorkflowPath)) {
