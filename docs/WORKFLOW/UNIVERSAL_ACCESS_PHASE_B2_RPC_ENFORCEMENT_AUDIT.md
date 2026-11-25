@@ -558,3 +558,16 @@ Live policy expressions checked on staging:
 - store_private: owner insert/update, owner/admin SELECT. Team access must be narrow by purpose (review notes, verification status, seller-safe status), not wholesale access to internal store metadata.
 
 The audit reiterates the RLS migration rule: before introducing role-specific policies, replace broad legacy-admin permissive branches for the relevant command/table. A new narrow policy alone does not reduce existing access.
+
+## Public RPC, policy acceptance and seller consent body pass (2026-11-25)
+
+- accept_policy(document,country): auth.uid-bound; accepts only published, effective, region-matching documents requiring acceptance; idempotent insert keyed by user/document. Preserve immutable version identity and country. No admin override or impersonation should be introduced.
+- next_slug(name): authenticated-only; slugifies bounded name and returns a collision-free suggestion by probing global stores. It does not reserve the slug; stores_guard performs uniqueness loop at insert. Treat as non-sensitive utility; frontend must not rely on returned slug being reserved.
+- seller_plan_catalog(): anon/authenticated public RPC returns active plans, pricing/period, product limits, commission discount, features and verification flags. Keep fields intentionally public and validate features JSON allowlist; never add internal margin/entitlement or operational notes to the response.
+- store_reply_stats(): anon/authenticated returns 30-day median reply minutes and chat count per store, only when at least 3 conversations. Keep aggregate disclosure limited; ensure no timestamps, message content, or user identifiers are added. Consider rate-limiting/caching against enumeration.
+- support_sla_public(): anon/authenticated returns public SLA minutes setting. Ensure only public-safe SLA config key is exposed and not private support settings.
+- set_offer_store_funding_consent(): authenticated store owner only; validates active offer and funding bps 0–10000; upserts current consent and clears revocation fields. Consent trigger records history. Treat resetting revoked consent as an explicit new consent event, never staff delegation without seller authority.
+- revoke_offer_store_funding_consent(): authenticated owner only; revokes active consent with bounded reason and returns whether a row changed. Preserve seller-controlled revocation; do not let platform or store staff silently restore consent.
+- set_store_terms(store,commission,trusted): legacy admin only; commission 0–60 and audit action, but audit call has no before-state and no reason. trusted may enable auto-approval behavior via product guard settings. Replace with separate scoped commercial-terms and trust/auto-approval permissions, require reason and before/after values, and consider maker-checker for trusted status/high commission. Do not bundle these high-impact powers in a generic store manager role.
+
+Read-only review. No policy acceptance, consent, terms, or public RPC calls were executed against staging data.
