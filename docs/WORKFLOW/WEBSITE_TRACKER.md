@@ -220,6 +220,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 | WEB-Q02 | Smoke test: sign up, apply, approve, list product, publish | P1 | TODO | | | | Do after F11 and ENV01, on staging. Include the full six-step setup with a real phone and a Nigerian bank. |
 | WEB-Q03 | Accessibility pass (focus, labels, contrast, 200% text) | P2 | TODO | | | | The setup scenes are decorative (`aria-hidden`) and still when reduced motion is on; check the step rail and the hours picker with a keyboard. |
 | WEB-Q04 | Performance pass (Lighthouse, image sizes, script count) | P3 | TODO | | | | 23 scripts load in sequence today (`geo.js`, `workspace.js`, `how.js`, `setup-art.js` and `setup.js` were added 13 to 14 Nov). Merge or defer the ones only needed on some pages. |
+| WEB-Q05 | Four-agent frontend integration and design-contract audit (shopper, seller, admin, public site, app shell) | P0 | IN PROGRESS | `docs/WORKFLOW/CLAUDE_TEAM_WORKSPACE.md`, `docs/WORKFLOW/FOUR_AGENT_FRONTEND_REVIEW_2026-11-25.md` | ChatGPT coordinator | web-portal | Auditing proposed Claude 1–4 lanes, shared frontend/app packaging, design-system consistency, integration ownership and device/performance gates. Do not mark DONE until owners confirm assignments and CI + phone/desktop evidence exists. |
 
 ---
 
