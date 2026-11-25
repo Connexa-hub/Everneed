@@ -181,3 +181,10 @@ These findings are discovery-only. No migration, grant, row, or policy was chang
 ## Cross-phase dependency review — B1 logistics scope contract
 
 A review of the unmerged B1 migration found a role-template mismatch: `platform_dispatcher` is platform-plane/platform-scope, while dispatch and route planning permissions are also platform-scope. This would represent a globally scoped dispatcher, not a zone-scoped dispatcher. Before B1 merge, the coordinator should keep platform logistics supervisor oversight separate from operational dispatch assignments and add a partner-plane/zone-scoped dispatcher role (or equivalent scope model); dispatch/route permissions must resolve the assignment's zone and prove cross-zone denial. This is a B1 catalogue/contract blocker, not something to patch during B2 enforcement. The B1 role-permission scope guard should also reject inactive roles/permissions, in addition to scope mismatches.
+
+
+## Frontend context-contract review (2026-11-25)
+
+A fresh Codex review of B1 identified a response-shape mismatch in the existing frontend access adapter `web/assets/js/ds-access.js`: `clean()` consumes `store_id` and `store_name`, while B1 `my_access()` emits generic `scope_id` and `scope_name`. Store context identifiers therefore normalize to null and store-specific gates cannot match. Add backward-compatible store aliases to the RPC response or coordinate a deliberate client contract update; include a regression assertion in test 039 before the gates are enabled.
+
+The current frontend adapter also filters contexts to `plane='platform'` or `plane='store'`, dropping `partner` plane contexts. Hub, courier, dispatcher/zone and other partner contexts will not be visible/selectable until the adapter/context-switcher explicitly supports partner plane and its scopes. This is a cross-layer contract blocker for logistics roles. Keep it in the B1/B4 acceptance gate; do not enable partner assignments while the client discards them.
