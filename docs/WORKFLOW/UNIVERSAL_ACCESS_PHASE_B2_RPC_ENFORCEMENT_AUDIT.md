@@ -208,3 +208,69 @@ Spot-checked policy expressions:
 - `notifications` SELECT owner/admin and UPDATE owner-only; `cards` SELECT/delete owner-only. These are user-specific and should not be widened through staff/store roles.
 
 This is a targeted policy spot-check, not complete verification of every policy expression. A full B2.0 checklist must still map all 92 policies to table sensitivity, read/write command, current predicate, target permission, exact scope, and test coverage.
+
+
+## B2.0 source-policy family inventory — migration 006 (2026-11-25)
+
+A source-level name inventory of the 38 policy definitions created in `006_marketplace_rls.sql` was added as a bounded audit slice. It is **not** a substitute for the live 92-policy staging inventory: baseline policies, later replacement/addition migrations, and dynamic policy definitions still need reconciliation against the final catalog.
+
+### Public/customer catalogue reads
+- `stores`: **stores public read**
+- `products`: **products public read**
+- `offers`: **offers public auto**
+
+### Store owner and application
+- `stores`: **stores owner read**
+- `stores`: **stores admin read**
+- `stores`: **stores owner create**
+- `stores`: **stores owner update**
+- `store_private`: **store_private owner**
+- `store_private`: **store_private owner insert**
+- `store_private`: **store_private owner update**
+- `store_applications`: **applications read**
+- `store_applications`: **applications owner insert**
+- `store_applications`: **applications owner update**
+
+### Plan/subscription access
+- `store_plans`: **plans read**
+- `store_plans`: **plans admin**
+- `store_subscriptions`: **subscriptions read**
+- `store_payments`: **store payments read**
+
+### Product catalogue/private
+- `products`: **products public read**
+- `products`: **products owner read**
+- `products`: **products owner insert**
+- `products`: **products owner update**
+- `products`: **products owner delete**
+- `product_private`: **product_private read**
+- `product_private`: **product_private owner insert**
+- `product_private`: **product_private owner update**
+
+### Order and seller fulfilment
+- `order_items`: **order_items read**
+- `order_item_fees`: **order_item_fees read**
+- `seller_orders`: **seller_orders read**
+- `deliveries`: **deliveries read**
+- `order_secrets`: **order_secrets read**
+
+### Finance/refund/dispute
+- `ledger_entries`: **ledger read**
+- `payouts`: **payouts read**
+- `refunds`: **refunds read**
+- `disputes`: **disputes read**
+- `disputes`: **disputes open**
+
+### User/system data
+- `notifications`: **notifications own**
+- `notifications`: **notifications mark read**
+- `audit_log`: **audit admin**
+- `settings`: **settings merchant hub**
+
+### Follow-up review rules
+
+- For each policy above, reconcile table privileges and the final live policy expression; record command (SELECT/INSERT/UPDATE/DELETE/ALL), role, USING and WITH CHECK, sensitivity, ownership/resource scope, and required negative test.
+- Public read policies are intentionally separate from signed-in staff contexts. Keep storefront/catalogue access available to anonymous shoppers only where the final predicate permits it.
+- Store owner policy groups must be converted to store membership only after explicit store-scope assignment is proven; do not broaden with a permissive OR that retains a global admin predicate unintentionally.
+- Order, order-item, seller-order, delivery-secret, finance, dispute, notification, and audit policies are high-sensitivity. Access expansion must be accompanied by data projection and role-specific tests; courier must not gain direct secret access.
+- This slice does not modify schema, data, grants, RLS, staging, or production.
