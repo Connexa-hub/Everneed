@@ -55,6 +55,17 @@ var ob=0,pend=null,permMode=false;
 var INTRO=[{k:"intro",ic:"home",t:"Everything you need, delivered",d:"Groceries, electricals, accessories and skincare, brought to your door."},{k:"intro",ic:"shop",t:"Shop in your country",d:"Prices, offers and delivery follow where you are, so what you see is what you can get."},{k:"intro",ic:"bag",t:"Checkout made simple",d:"Pay by bank transfer and follow every order from your phone."}];
 var PERMS=[{k:"loc",ic:"pin",t:"Find your country",d:"Allow location so we can show the right prices, offers and delivery. It is only used to detect your country.",b:"Allow location"},{k:"ntf",ic:"bell",t:"Stay in the loop",d:"Allow notifications for order updates and offers.",b:"Allow notifications"},{k:"cam",ic:"cam",t:"Scan and search by photo",d:"Allow the camera to scan barcodes and search with a photo.",b:"Allow camera"}];
 var CP=function(n){return window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins[n]};
+function clearNativeGoogleProvider(){
+  var p=CP("SocialLogin");
+  if(!p||typeof p.logout!=="function")return;
+  try{var r=p.logout({provider:"google"});if(r&&typeof r.catch==="function")r.catch(function(){});}catch(e){}
+}
+function signOutCurrentUser(){
+  /* Provider logout clears the native Credential Manager state so the next sign-in can show the picker.
+     It is best-effort: local Everneed/Supabase sign-out must never depend on the plugin being available. */
+  clearNativeGoogleProvider();
+  user=null;S.set("user",null);Supa.out();S.load();hdr();location.hash="#/hello";route();notify("Signed out");
+}
 function askPerm(k){
 if(k==="loc"){var G=CP("Geolocation"),get=G?G.requestPermissions().then(function(r){return(r.location==="granted"||r.coarseLocation==="granted")?G.getCurrentPosition({enableHighAccuracy:false,timeout:12000}).then(function(x){return x||{granted:1}},function(){return{granted:1}}):null}):new Promise(function(res){navigator.geolocation?navigator.geolocation.getCurrentPosition(res,function(){res(null)},{timeout:12000}):res(null)});
 return get.then(function(p){if(p&&p.granted&&!p.coords)return true;if(!p||!p.coords)return false;return fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude="+p.coords.latitude+"&longitude="+p.coords.longitude+"&localityLanguage=en").then(function(r){return r.json()}).then(function(j){if(j.countryCode&&CFG.countries[j.countryCode]){Ctx.set(j.countryCode);window.PermNote="Showing "+ctx().name+" prices and offers"}return true}).catch(function(){return true})}).catch(function(){return false})}
@@ -200,7 +211,7 @@ else if(k==="login")login();else if(k==="otp")otpSheet();else if(k==="obnext")ob
 else if(k==="drawer")drawer(1);
 else if(k==="dclose")drawer(0);
 else if(k==="close")sheet(null);
-else if(k==="out"){user=null;S.set("user",null);Supa.out();S.load();hdr();location.hash="#/hello";route();notify("Signed out")}
+else if(k==="out"){signOutCurrentUser()}
 else if(k==="paid"){Supa.rpcAuth("report_payment",{order_id:d.id,reference:"",note:""}).then(function(){return S.load()}).then(refresh).catch(netErr)}
 else if(k==="delp"){S.remove("p",d.id).then(refresh)}
 else if(k==="delb"){S.remove("b",d.id).then(refresh)}else{(window.Merchant&&Merchant.act(k,d,a,e))||(window.AdmS&&AdmS.act(k,d,a,e))||(window.Stores&&Stores.act(k,d,a,e))||(window.AdmX&&AdmX.act(k,d,a,e))||(window.Auth&&Auth.act(k,d,a,e))||(window.Adm&&Adm.act(k,d,a,e))||(window.Cards&&Cards.act(k,d,a,e))||(window.Shop&&Shop.act(k,d,a,e))}});
@@ -228,7 +239,7 @@ document.addEventListener("touchmove",function(e){if(y0==null)return;pull=Math.m
 document.addEventListener("touchend",function(){if(y0==null)return;var go=pull>110;y0=null;pull=0;if(!go){reset();return}
 ind.className="spin";ind.style.transform="translate(-50%,52px)";reload(true).then(reset)});
 })();
-window.A={card:card,grid:grid,cart:function(){return cart},setLine:setLine,removeLine:removeLine,optText:optText,clearCart:clearCart,toCart:toCart,byId:byId,addCart:addCart,base:function(n){return Ctx.money(n,Ctx.base())},cmoney:function(n){return Ctx.money(n,(CFG.countries[ctx().code]||{}).cur)},$:$,esc:esc,fmt:fmt,tint:tint,ico:ico,notify:notify,sheet:sheet,field:field,fileBtn:fileBtn,shrink:shrink,withImg:withImg,ctx:ctx,cols:cols,refresh:refresh,bar:bar,empty:empty,legal:legal,authed:authed,netErr:netErr,oauthReset:oauthReset,cur:cur,user:function(){return user},au:function(v){if(v)au=v;return au},signout:function(){user=null;S.set("user",null);Supa.out();S.load();location.hash="#/hello";route();notify("Signed out")}};
+window.A={card:card,grid:grid,cart:function(){return cart},setLine:setLine,removeLine:removeLine,optText:optText,clearCart:clearCart,toCart:toCart,byId:byId,addCart:addCart,base:function(n){return Ctx.money(n,Ctx.base())},cmoney:function(n){return Ctx.money(n,(CFG.countries[ctx().code]||{}).cur)},$:$,esc:esc,fmt:fmt,tint:tint,ico:ico,notify:notify,sheet:sheet,field:field,fileBtn:fileBtn,shrink:shrink,withImg:withImg,ctx:ctx,cols:cols,refresh:refresh,bar:bar,empty:empty,legal:legal,authed:authed,netErr:netErr,oauthReset:oauthReset,cur:cur,user:function(){return user},au:function(v){if(v)au=v;return au},signout:function(){signOutCurrentUser()}};
 setupOAuthLinks();if(location.search.indexOf("code=")>-1||location.search.indexOf("error=")>-1){var oq=location.search;history.replaceState(null,"",location.pathname+location.hash);oauthComplete(location.href.split("?")[0]+"?"+oq.slice(1))}
 theme();var first=!S.get("onb",0)&&!location.hash.replace(/^#\/?/,"");if(first){history.replaceState(null,"","#/welcome");refresh()}else{$("#app").innerHTML=skel()}permPending().then(function(p){pend=p});Promise.all([S.load(),Promise.race([Ctx.loadRates(),new Promise(function(r){setTimeout(r,4000)})])]).then(function(){if(user&&Supa.on()&&!Supa.sess()){user=null;S.set("user",null)}return user&&Supa.on()?Supa.profile().then(function(p){user.admin=p.role==="admin";S.set("user",user)}).catch(function(){}):0}).then(function(){ready=true;Busy.mute=false;if(first&&cur()[0]==="welcome")return;route()});
 })();
