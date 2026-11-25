@@ -31,4 +31,4 @@ Release: PR `web-portal → main`, reviewed CI and owner approval. Update tracke
 
 ## 5. Handoffs
 Use concise docs: **Summary; owner/lane; files; contract/version (inputs/outputs, permissions/scopes, states/errors); mock vs live; tests/evidence; gaps/risks; requested next action.** Update tracker and the contract, not a separate long-lived narrative report.
-AI #10 moderates conflicts using accepted contracts and records owner decisions. If a standard needs change, propose it with rationale; do not silently diverge.
+Claude 10 moderates conflicts using accepted contracts and records owner decisions. If a standard needs change, propose it with rationale; do not silently diverge.
