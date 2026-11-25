@@ -640,3 +640,8 @@ The catalog is now a table-by-table policy migration backlog. Any future migrati
 ## SECURITY DEFINER search-path hardening cross-check (2026-11-25)
 
 Live staging catalog verified all 83 public SECURITY DEFINER functions have explicit function-level search_path configuration (83/83; none missing). All currently set an empty search_path (`search_path=""`), requiring schema-qualified references and avoiding mutable search-path resolution. This is a positive hardening baseline; retain it in future functions and regression tests. The three anon-executable SECURITY DEFINER RPCs are exactly seller_plan_catalog(), store_reply_stats(), and support_sla_public(), and each also has authenticated execute; no other public SECURITY DEFINER RPC is anon-executable in this snapshot.
+
+
+## SECURITY DEFINER ownership and PUBLIC ACL cross-check (2026-11-25)
+
+Live staging catalog shows all 83 public SECURITY DEFINER functions owned by postgres (single owner) and none has an explicit EXECUTE grant to pseudo-role PUBLIC. This is a positive ACL baseline: function execution is granted through named role ACLs, with the role-effective inventory documented above. Preserve tests that assert no PUBLIC EXECUTE and no unexpected anon/authenticated grants; review the ownership model when deploying migrations under a different database owner.
