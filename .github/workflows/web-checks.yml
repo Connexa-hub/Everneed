@@ -16,6 +16,8 @@ on:
       - 'fonts/**'
       - 'netlify.toml'
       - '.github/workflows/web-checks.yml'
+      - 'tools/package-seller.mjs'
+      - 'tools/check-seller-package.mjs'
   pull_request:
     paths:
       - 'web/**'
@@ -24,6 +26,8 @@ on:
       - 'css/**'
       - 'fonts/**'
       - 'netlify.toml'
+      - 'tools/package-seller.mjs'
+      - 'tools/check-seller-package.mjs'
   workflow_dispatch:
 
 permissions:
@@ -78,6 +82,11 @@ jobs:
           done
           if [ "$fail" -ne 0 ]; then exit 1; fi
           echo "All referenced files exist."
+
+      - name: Stage and validate native seller workspace
+        run: |
+          node tools/package-seller.mjs
+          node tools/check-seller-package.mjs
 
       - name: Script globals are defined before they are used
         shell: bash

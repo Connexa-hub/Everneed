@@ -1,0 +1,14 @@
+import fs from "node:fs";
+import assert from "node:assert/strict";
+assert.ok(fs.existsSync("www/seller/index.html"), "seller index staged");
+assert.ok(fs.existsSync("www/seller/assets/js/ds-app.js"), "seller app shell asset staged");
+assert.ok(fs.existsSync("www/seller/assets/css/ds.css"), "seller CSS staged");
+const html=fs.readFileSync("www/seller/index.html","utf8");
+assert.ok(html.includes('EV_SESSION_KEY = "en_sess"'), "shared session bootstrap present");
+assert.ok(html.includes("EV_NATIVE_SELLER = true"), "native seller marker present");
+assert.ok(html.includes("/seller/assets/"), "seller assets are isolated under seller prefix");
+const core=fs.readFileSync("www/seller/assets/js/core.js","utf8");
+assert.ok(core.includes('p.indexOf("/seller")===0'), "seller router strips its prefix");
+assert.ok(core.includes('to.indexOf("/seller/")!==0'), "seller navigation preserves its prefix");
+assert.ok(!html.includes('href="/assets/'), "seller entrypoint does not load shopper-root assets");
+console.log("Seller packaging checks passed");
