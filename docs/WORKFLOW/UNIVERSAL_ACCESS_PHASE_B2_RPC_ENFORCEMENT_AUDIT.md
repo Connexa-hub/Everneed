@@ -499,3 +499,16 @@ A read-only trigger catalog query checked campaign budgets, funding consent, inv
 - No trigger rows were returned for `private.offer_campaign_budgets`, `public.payouts`, `public.refunds`, `public.product_inventory_movements`, `public.conversations`, or `public.store_subscriptions` in this query. This corroborates the campaign-budget history gap and highlights that history must be written by guarded RPCs or dedicated append-only tables, not assumed from RLS or ledger guards.
 
 Trigger inventory is limited to these tables and event types; no schema changes were made.
+
+
+## Customer order lifecycle body pass (2026-11-25)
+
+- `cancel_order(text,text)` requires authentication, throttles, and delegates to `private.cancel_order_core` with a legacy-admin override flag. Customer cancellation requires ownership and all seller legs still pending/cancelled/rejected; admin override bypasses that seller-started restriction but still rejects delivered/cancelled parent orders. Future platform cancellation/intervention must be narrowly permissioned, order-scoped, reasoned, and audited; don't let ordinary support use the global override.
+- `private.cancel_so` restores reserved inventory; for released paid seller orders it creates a `refunds` row with status `approved`, reverses sale/commission ledger entries, sets order partial/refunded status, and sends customer “refund is on its way” plus admin refund-due notification. This remains an internal approval/bookkeeping event, not provider confirmation; reconcile this notification wording with the Paystack provider-refund lifecycle before calling it paid back.
+- `confirm_received(text)` binds the order to `auth.uid()`, throttles, then invokes the delivery workflow. Preserve buyer-only confirmation and the out-for-delivery state requirement.
+- `order_tracking(text)` binds to the buyer and returns parent/seller status plus delivery JSON with delivery/order IDs omitted. Verify the delivery payload projection remains customer-safe when adding tracking/POD fields; don't expose courier private identifiers or internal evidence to unrelated users.
+- `my_seller_orders(text)` is seller-owner scoped and released-only; it conditionally reveals customer name/phone/address for direct route at selected statuses, while hub route reveals reduced information. B3 team access must preserve this exact purpose/stage-based PII projection.
+- `report_payment(text,text,text)` updates only caller-owned orders in `awaiting_transfer`, throttles, stores reference/note and notifies admins. It is a customer report, not proof of payment; admin confirmation remains separate and must use verified evidence/manual review.
+- `request_store_activation(text)` locks owner store and checks approved application, suspension, active subscription/plan entitlements, regional verification rules and required verified checks before activation; missing checks queue reminders. `submit_store(text)` locks owner store, restricts draft/rejected states, validates business application and latest regional policy acceptances. Preserve these owner/state/compliance gates when adding store-team roles.
+
+Read-only body review; no customer or seller records changed.
