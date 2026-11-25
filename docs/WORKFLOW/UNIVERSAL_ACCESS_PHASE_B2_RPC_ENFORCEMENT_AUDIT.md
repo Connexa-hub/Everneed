@@ -571,3 +571,20 @@ The audit reiterates the RLS migration rule: before introducing role-specific po
 - set_store_terms(store,commission,trusted): legacy admin only; commission 0–60 and audit action, but audit call has no before-state and no reason. trusted may enable auto-approval behavior via product guard settings. Replace with separate scoped commercial-terms and trust/auto-approval permissions, require reason and before/after values, and consider maker-checker for trusted status/high commission. Do not bundle these high-impact powers in a generic store manager role.
 
 Read-only review. No policy acceptance, consent, terms, or public RPC calls were executed against staging data.
+
+
+## Finance, order, delivery and support RLS cross-check (2026-11-25)
+
+Read-only live policy expressions checked:
+
+- orders SELECT: buyer or legacy admin; UPDATE: legacy admin only. Future support and logistics must use order-scoped RPCs and not gain direct order UPDATE.
+- seller_orders SELECT: released orders for store owner or legacy admin. Team fulfilment access should be store-scoped, released-only, and preserve existing stage/route-based PII projection in seller RPCs.
+- order_secrets and deliveries SELECT: buyer or legacy admin. Do not widen to seller staff or couriers; courier verification should resolve assigned-job proof via minimal RPC.
+- refunds SELECT: buyer, seller for matching seller_order, or legacy admin. Preserve buyer/seller split and avoid provider identifiers/other sellers' financial details in staff projections.
+- disputes INSERT: buyer-owned order and opener must equal auth.uid(), status must be open; SELECT: opener, seller for matching seller_order, or legacy admin. Staff dispute access should be assignment scoped, and private evidence/internal notes separated from parties' visible content.
+- ledger_entries SELECT: legacy admin or owning store. Store finance-viewer access needs explicit store scope and a projection; do not permit direct writes.
+- payouts, store_payments and store_subscriptions SELECT: owning store or legacy admin. Staff finance visibility should be purpose-limited and store-scoped, while payment execution/reconciliation stays service-only.
+- notifications SELECT: recipient or legacy admin; UPDATE mark-read restricted to recipient. Staff should not access customer notifications globally.
+- conversations SELECT: admin or conversation member; UPDATE admin only. messages SELECT: admin or member excluding kind='note'; preserve internal-note confidentiality and avoid global support access.
+
+All listed policies are permissive. Converting admin branches requires replacing/altering the existing policy while preserving each buyer, seller, recipient, and participant branch. No order/payment/support records were read or changed by this audit query.
