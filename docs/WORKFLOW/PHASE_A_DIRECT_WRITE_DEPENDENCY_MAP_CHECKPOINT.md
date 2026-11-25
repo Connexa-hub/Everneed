@@ -19,7 +19,11 @@ This checkpoint captures verified browser/shared client call sites found on `web
 | `notifications` | `web/assets/js/notify.js` | UPDATE by id | Set recipient's `read_at` timestamp; also batch mark-read. | Column-only update grant for read state; recipient-only RLS. |
 | `profiles` | `shared/supa.js`; `js/theme.js` | UPDATE self via `patchProfile`; Auth metadata update via `setUserData` | Theme preference save writes `settings` JSON (mode/palette/AMOLED) to profile. Auth metadata helper exists; callers still need full inventory. | Column/field allowlist; role/email/identity/security fields protected. Prefer supported profile RPC for sensitive updates. |
 
-## Native/app bundle note\n\nThe native app uses the shared seller web bundle/session. The additional `js/mode.js` direct REST call is a read-only store lookup filtered by `owner_id`; it does not add a table write. `js/theme.js` adds the profile settings write noted above. This repo search found no direct `Supa.delete` wrapper/call pattern; that is not proof there are no raw fetches or other paths.\n\n## Client write surface
+## Native/app bundle note
+
+The native app uses the shared seller web bundle/session. The additional `js/mode.js` direct REST call is a read-only store lookup filtered by `owner_id`; it does not add a table write. `js/theme.js` adds the profile settings write noted above. This repo search found no direct `Supa.delete` wrapper/call pattern; that is not proof there are no raw fetches or other paths.
+
+## Client write surface
 
 The shared wrapper in `shared/supa.js` provides:
 - `Supa.insert(table, body)` → REST POST
