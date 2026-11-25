@@ -86,7 +86,7 @@ begin
   -- Transaction fixture proves one user can hold platform + store contexts with explicit scope.
   insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
     values(test_uid,'authenticated','authenticated',email_addr,'',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
-  insert into public.profiles(id,name,email,role) values(test_uid,'Universal Access CI',email_addr,'merchant');
+  insert into public.profiles(id,name,email,role) values(test_uid,'Universal Access CI',email_addr,'merchant') on conflict(id) do update set name=excluded.name,email=excluded.email,role=excluded.role;
   insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
     values(fixture_store,test_uid,'ua-ci-'||test_uid,'Universal Access CI Store','approved','live','NG','Africa/Lagos');
   insert into public.access_role_assignments(user_id,role_key,plane,scope_type,scope_id,reason)
@@ -110,7 +110,7 @@ begin
   -- Legacy admin remains a compatibility context only, never auto-promoted to owner or permissions.
   insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
     values(legacy_admin_uid,'authenticated','authenticated',legacy_admin_email,'',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
-  insert into public.profiles(id,name,email,role) values(legacy_admin_uid,'Legacy Admin CI',legacy_admin_email,'admin');
+  insert into public.profiles(id,name,email,role) values(legacy_admin_uid,'Legacy Admin CI',legacy_admin_email,'admin') on conflict(id) do update set name=excluded.name,email=excluded.email,role=excluded.role;
   perform set_config('request.jwt.claim.sub',legacy_admin_uid::text,true);
   ctx := public.my_access();
   if jsonb_array_length(ctx) <> 1
