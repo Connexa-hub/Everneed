@@ -12,6 +12,7 @@ declare
   ];
   missing text[];
   ctx jsonb;
+  denied boolean := false;
   test_uid uuid := gen_random_uuid();
 begin
   if to_regclass('public.access_permission_catalog') is null
@@ -51,6 +52,18 @@ begin
     or not has_function_privilege('authenticated','public.my_access()','execute') then
     raise exception 'FAIL: my_access execute ACL is incorrect';
   end if;
+
+  if not exists(select 1 from pg_trigger where tgname='access_role_permissions_scope_guard' and not tgisinternal) then
+    raise exception 'FAIL: permission scope guard trigger missing';
+  end if;
+
+  -- A platform-scoped dispatcher must not receive a job-scoped permission.
+  begin
+    insert into public.access_role_permissions(role_key,permission_key)
+      values('platform_dispatcher','logistics.jobs.read');
+  exception when check_violation then denied:=true;
+  end;
+  if not denied then raise exception 'FAIL: cross-scope role permission grant was accepted'; end if;
 
   if (select count(*) from public.access_role_assignments) <> 0 then
     raise exception 'FAIL: migration must not auto-assign roles, including legacy admins';
