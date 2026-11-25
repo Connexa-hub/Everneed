@@ -337,7 +337,7 @@ as $function$
       'store_owner'::text as role_key,
       'Store Owner'::text as display_name,
       coalesce(array_agg(rp.permission_key order by rp.permission_key)
-        filter (where rp.permission_key is not null), array[]::text[]) as permissions,
+        filter (where rp.permission_key is not null and pc.permission_key is not null), array[]::text[]) as permissions,
       'legacy_owner'::text as source,
       s.name as scope_name,
       s.is_official as official
@@ -345,6 +345,7 @@ as $function$
     join caller c on c.user_id=s.owner_id
     join public.access_role_catalog r on r.role_key='store_owner' and r.active
     left join public.access_role_permissions rp on rp.role_key=r.role_key
+    left join public.access_permission_catalog pc on pc.permission_key=rp.permission_key and pc.active
     group by s.id,s.name,s.is_official
   ),
   contexts as (
