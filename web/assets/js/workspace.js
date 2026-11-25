@@ -299,8 +299,9 @@
   function drawMedia(){
     var box=$("#wsmedia");if(!box)return;
     box.innerHTML=E.items.map(function(it,i){
-      return'<div class="it"><img alt="" src="'+esc(it.url||it.preview)+'">'+(i===0?'<span class="cover">Cover</span>':'<button type="button" class="mk" data-mk="'+i+'" aria-label="Make this the cover">'+(window.DS?DS.icon("star",14):"★")+'</button>')+'<button type="button" class="rm" data-rm="'+i+'" aria-label="Remove this photo">✕</button></div>';
-    }).join("")+(E.items.length<MAX_PHOTOS?'<label class="it add"><input type="file" id="wsfile" accept="image/*" multiple hidden><span>+ Add photos</span></label>':"");
+      return'<div class="it'+(it.err?" bad":"")+'"><img alt="" src="'+esc(it.url||it.preview)+'">'+(it.err?'<span class="st" title="'+esc(it.err)+'">Not uploaded</span>':"")+(i===0?'<span class="cover">Cover</span>':'<button type="button" class="mk" data-mk="'+i+'" aria-label="Make this the cover">'+(window.DS?DS.icon("star",14):"★")+'</button>')+'<button type="button" class="rm" data-rm="'+i+'" aria-label="Remove this photo">✕</button></div>';
+    }).join("")+(E.items.length<MAX_PHOTOS?'<label class="it add"><input type="file" id="wsfile" accept="image/*" multiple hidden><span>+ Add photos</span></label>':"")
+      +(E.upErr?'<p class="ph-err" role="alert">'+esc(E.upErr)+(E.retry?' <button type="button" class="btn s" data-retryph>Try again</button>':"")+"</p>":"");
   }
   function drawVariants(){
     var box=$("#wstbl");if(!box)return;
@@ -338,14 +339,15 @@
     function trk(){if(qi)qi.hidden=!(tr&&tr.checked)}
     if(tr){tr.addEventListener("change",trk);trk()}
     f.addEventListener("click",function(e){
-      var rm=e.target.closest("[data-rm]"),mk=e.target.closest("[data-mk]");
+      var rm=e.target.closest("[data-rm]"),mk=e.target.closest("[data-mk]"),rt=e.target.closest("[data-retryph]");
+      if(rt){if(E.retry)E.retry();return}
       if(rm){var i=+rm.getAttribute("data-rm"),it=E.items[i];if(it&&it.preview){try{URL.revokeObjectURL(it.preview)}catch(x){}}E.items.splice(i,1);drawMedia();return}
       if(mk){var j=+mk.getAttribute("data-mk"),moved=E.items.splice(j,1)[0];E.items.unshift(moved);drawMedia()}
     });
     f.addEventListener("change",function(e){
       var t=e.target;
       if(t.id==="wsfile"){
-        var room=MAX_PHOTOS-E.items.length,files=[].slice.call(t.files||[]).filter(function(x){return /^image\//.test(x.type)});
+        var room=MAX_PHOTOS-E.items.length,files=[].slice.call(t.files||[]).filter(function(x){return /^image\//.test(x.type)||(!x.type&&/\.(jpe?g|png|webp|gif|heic|heif|avif)$/i.test(x.name||""))});
         if(files.length>room)C.toast("Only "+MAX_PHOTOS+" photos are allowed. Extra ones were skipped.",true);
         files.slice(0,room).forEach(function(file){E.items.push({file:file,preview:URL.createObjectURL(file)})});
         drawMedia();return;
@@ -387,15 +389,23 @@
       img.src=url;
     });
   }
+  /* Checks every new photo first (readable, real image type, size), so a bad file is named before any network use. Then uploads one by one through
+     EVUpload (clear errors, retries, timeout). A photo that uploaded keeps its URL, so Try again only sends the rest. */
   function uploadAll(){
-    var urls=[],total=E.items.filter(function(i){return i.file}).length,n=0;
-    return E.items.reduce(function(chain,it){
-      return chain.then(function(){
-        if(it.url){urls.push(it.url);return}
-        n++;C.toast("Uploading photo "+n+" of "+total+"…");
-        return shrink(it.file).then(function(f){return Supa.upload(f,"stores/"+W.store.id)}).then(function(u){urls.push(u)});
-      });
-    },Promise.resolve()).then(function(){return urls});
+    var pend=E.items.filter(function(i){return i.file&&!i.url}),total=pend.length,n=0;
+    E.upErr="";E.items.forEach(function(i){i.err=""});
+    function bad(it,e){var m="Photo "+(E.items.indexOf(it)+1)+": "+(e&&e.message||"did not upload.");it.err=m;E.upErr=m;e.photo=true;throw e}
+    var U=window.EVUpload,prep=U?pend.reduce(function(ch,it){return ch.then(function(){if(it.blob)return;return U.prepare(it.file).then(function(b){it.blob=b},function(e){bad(it,e)})})},Promise.resolve()):Promise.resolve();
+    return prep.then(function(){
+      return E.items.reduce(function(chain,it){
+        return chain.then(function(){
+          if(it.url)return;
+          n++;C.toast("Uploading photo "+n+" of "+total+"…");
+          var up=U?U.put(it.blob,"stores/"+W.store.id):shrink(it.file).then(function(f){return Supa.upload(f,"stores/"+W.store.id)});
+          return up.then(function(u){it.url=u},function(e){bad(it,e)});
+        });
+      },Promise.resolve());
+    }).then(function(){return E.items.map(function(i){return i.url})});
   }
 
   /* ---------- product editor: save ---------- */
@@ -464,6 +474,8 @@
     }).then(function(){
       var msg=action==="review"?"Sent for review":(ex&&ex.status==="published"&&row.status==="pending_review"?"Saved. Because the name, photos or description changed, Everneed will review it again before it goes back live.":"Saved");
       C.toast(msg);return load(true);
-    }).then(function(){C.go("/portal/products")}).catch(function(err){all.forEach(function(b){b.disabled=false});fail(err)});
+    }).then(function(){C.go("/portal/products")}).catch(function(err){all.forEach(function(b){b.disabled=false});
+      if(err&&err.photo){E.retry=err.retry===false?null:function(){try{if(f.requestSubmit)f.requestSubmit(btn);else if(btn)btn.click()}catch(x){}};if(!E.retry)E.upErr+=" Remove or replace it, then save again.";drawMedia();C.toast(E.upErr,true);return}
+      fail(err)});
   };
 })();
