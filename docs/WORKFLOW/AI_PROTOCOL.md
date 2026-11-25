@@ -13,7 +13,7 @@ Read `PROJECT_STANDARD_AND_ROADMAP.md`, `AI_COORDINATION_STANDARD.md`, `BACKEND_
 - Never commit secrets, private keys, keystores or service-role keys.
 
 ## 2. Team boundary
-**Nine builder agents** handle all web/app frontend work according to `AI_COORDINATION_STANDARD.md`. **AI #10** researches, plans, assigns, moderates, reviews and coordinates the nine; it is not an additional frontend builder and cannot override owner decisions.
+**Ten Claude agents total:** Claude 1–9 are specialist builders for all web/app frontend work. **Claude 10 is the tenth agent and master planner/coordinator**—researcher, analyst, design strategist, task planner/delegator, moderator, reviewer, debugger/QA lead and end-to-end integrator. Claude 10 coordinates the nine builders; it is not an extra agent outside the ten and cannot override owner decisions.
 
 **ChatGPT/Codex owns backend only:** database/schema/migrations, RLS, RPC, Edge Functions, payment/finance/order/logistics domain rules, server-side permissions, CI backend checks, staging tests, contracts and security. Frontend agents must not invent contracts or author backend logic; submit a structured request and wait for a contract. Backend response must be handoff-ready and include tests.
 
