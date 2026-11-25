@@ -556,3 +556,9 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - **Blocking credential mismatch:** PR head `js/config.js` assigns `659136945947-tv0q8nrivcca6rv5areu2vrtca1qnekm.apps.googleusercontent.com` to `CFG.googleWebClientId`. Owner has confirmed this is the Android OAuth client. The Web OAuth client is `659136945947-dlum233ke4ruu48uk9ir0bli0nvfcs60.apps.googleusercontent.com`; native plugin must use the Web client ID as its server/web client ID, while Android OAuth registration separately matches package `com.everneed.store` and the staging APK SHA-1. Review finding posted on PR #43.
 - **Repeat-login review:** native sign-out path currently calls `Supa.out()` only; no SocialLogin provider logout is invoked. Verify plugin logout semantics and clear provider credential state safely on explicit sign-out, without breaking Supabase session restoration. This is a plausible repeat-auth issue to test, not a confirmed explanation of error [16].
 - Required before merge: port/rebase the PR onto latest `web-portal`; correct client ID; inspect native logout/cancel/error handling; green CI and installable staging APK; Hot 70 tests for picker, cancellation, first sign-in, logout/repeat sign-in, and email/password fallback. No merge, Supabase dashboard change, production change or deployment performed.
+
+
+## 25 Nov 2026 — APP-13 native Google sign-in integration review (ChatGPT)
+- **Status: IN PROGRESS** — Owner: ChatGPT coordinator; Branch: `web-portal`.
+- Protocol requires all app and website development on `web-portal`; PR #43's separate feature branch is a review source only, not an integration target.
+- Scope: isolate the native Android sign-in changes from PR #43, compare against the current shared app, and provide Claude an exact port/review handoff. Do not merge PR #43, alter Supabase provider settings, or deploy.
