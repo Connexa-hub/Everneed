@@ -3,7 +3,7 @@
 **Date:** 25 November 2026  
 **Owner:** ChatGPT/Codex (backend)  
 **Branch:** `codex/universal-access-phase-b1`  
-**Scope:** Read-only audit of Everneed-staging and implementation plan. No schema changes applied. Production untouched.
+**Scope:** Read-only staging audit plus draft migration, regression tests and CI wiring. The migration was replayed in local CI only; staging and production remain untouched.
 
 ## Accepted direction
 
@@ -65,4 +65,4 @@ Anonymous caller, missing profile, legacy admin compatibility, store owner conte
 
 Claude 10 should add B1 backend dependency to the live team board and coordinate frontend access/context work against the documented `my_access()` contract. UI may use labelled mocks for design only; it must not invent grants or bypass missing backend functionality.
 
-**Status:** Audit complete; B1 migration, SQL checks and CI wiring are drafted in PR #49. Migration replay and regression CI are pending. No schema has been applied to staging or production.
+**Status (25 Nov 2026):** PR #49 remains open. Local migration replay succeeded. Universal-access regression test 039 passed (catalogue, templates, scope guard, RLS/ACL, empty context, multiple contexts and legacy-admin compatibility). Install/test, Cloudflare Pages and migration-order checks passed. The full database job still fails later in the pre-existing `phase2_checks.sql` at line 300 when an authenticated fixture insert invokes `private.stores_guard()` → `private.slugify()` and encounters `permission denied for schema private`. Test 039 runs before that blocker. No migration has been applied to staging or production. Independent coordinator review and the baseline CI issue remain outstanding.
