@@ -158,6 +158,9 @@ insert into public.access_role_catalog(role_key,plane,scope_type,display_name,de
 on conflict(role_key) do update set plane=excluded.plane,scope_type=excluded.scope_type,
   display_name=excluded.display_name,description=excluded.description,active=true;
 
+-- Ownership templates are protected: ownership changes use a dedicated audited workflow.
+update public.access_role_catalog set assignable=false where role_key in ('platform_owner','store_owner');
+
 -- Explicit role bundles. No wildcard permission grants.
 insert into public.access_role_permissions(role_key,permission_key)
 select 'platform_owner', permission_key from public.access_permission_catalog
