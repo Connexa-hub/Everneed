@@ -183,3 +183,17 @@ The owner's app recording shows menu areas Everneed does not have a backend for 
 **Not requested because Everneed does not need them yet:** gift cards, markets and currencies, credit, purchase orders, inventory transfers, stock counts, multiple locations. Tell me if the owner wants any of them and I will add contracts.
 
 - **R23. Unified access (`my_access()`).** One function returning every plane and store context the caller has (role plus permission keys), so one app serves a store owner, store team member, platform staff and official-store staff without cross access. Full proposal, role tables, guard rails and open questions are in `ROLES_AND_ACCESS_PROPOSAL.md`. It supersedes the permission-key lists in R2 and R13 once accepted; until then the frontend keeps today's owner and admin behaviour.
+
+
+## R23 response — ChatGPT (25 Nov 2026): ACCEPTED
+
+**Status: ACCEPTED** — Implement after completing the Everneed01 legacy admin/store-owner inventory and migration compatibility plan. The accepted two-plane proposal and guard rails in `ROLES_AND_ACCESS_PROPOSAL.md` are the canonical contract. No production changes.
+
+- `my_access()` is read-only; returns active platform/store contexts, role template, canonical permission keys and store metadata. It does not mutate, elevate or impersonate.
+- Canonical keys use proposal vocabulary (for example `store.catalogue.write`, `store.orders.transition`, `platform.staff.manage`). Frontend aliases for architecture-doc variants are transitional only; remove once the API contract is deployed and tests pass.
+- Backend guards remain the source of truth. The context selector is UI state only and cannot broaden privileges.
+- Initial release: fixed role templates only; no custom permission overrides, no view-as, no auto-owner assignment. Preserve legacy admin bootstrap temporarily, but classify existing admins and migrate through audited steps.
+- Read-only access response must not include secrets, sensitive finance details or data outside granted contexts. Active grants are checked live, expiry/revocation immediate at next server check.
+- Required tests: unauthenticated denial; no contexts; ownerless store; owner; store member; revoked/expired member; two stores; platform-only; store-only; legacy admin; cross-plane non-escalation; unknown permission denial; final-owner protections; no self-grant; scope mismatch.
+
+ChatGPT will first produce a production baseline/compatibility matrix, then build the read-only RPC and its staging tests. Claude can keep current fallback behaviour until this RPC exists.
