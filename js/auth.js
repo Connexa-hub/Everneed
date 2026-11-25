@@ -39,9 +39,11 @@ window.Auth=(function(){
     var platform=window.Capacitor&&Capacitor.getPlatform?Capacitor.getPlatform():"web";
     if(platform==="android"){googleNativeAndroid();return}
     if(!window.crypto||!crypto.subtle||!crypto.getRandomValues||!window.TextEncoder){notify("Secure Google sign-in isn't supported by this browser. Update your browser and try again.","err");return}
-    var redirect=location.origin+location.pathname;
+    var native=platform!=="web",redirect=native?"com.everneed.store://auth/callback":location.origin+location.pathname;
     var bytes=new Uint8Array(32);crypto.getRandomValues(bytes);var verifier=b64url(bytes);
-    crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier)).then(function(hash){var challenge=b64url(new Uint8Array(hash));S.set("oauth_pkce",{verifier:verifier,created:Date.now()});var url=Supa.oauthUrl("google",redirect,challenge);location.href=url;
+    crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier)).then(function(hash){var challenge=b64url(new Uint8Array(hash));S.set("oauth_pkce",{verifier:verifier,created:Date.now()});var url=Supa.oauthUrl("google",redirect,challenge);
+      if(native){var B=Capacitor.Plugins&&Capacitor.Plugins.Browser;if(!B||!B.open){S.set("oauth_pkce",null);notify("Google sign-in is not available in this build yet.","err");return}B.open({url:url}).catch(function(e){S.set("oauth_pkce",null);A.netErr(e)})}
+      else location.href=url;
     }).catch(function(e){notify("Could not start secure Google sign-in. Please try again.","err");A.netErr(e)});
   }
   function page(){var a=A.au(),c=A.ctx();
