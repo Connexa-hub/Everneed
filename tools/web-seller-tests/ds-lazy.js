@@ -16,4 +16,7 @@ function setup(mode){const x=make({});const calls=[];const base=p=>Promise.resol
    global.__q='';global.__s={};let x=setup();await x.ctx.Core.V.portal(['team']);await x.ctx.Core.V.admin(['staff']);assert.equal(x.added.length,0);
    global.__q='?proto=roles';x=setup();const r=await x.ctx.Core.V.portal(['team']);assert.equal(x.added.length,1);assert.equal(x.added[0].src,'/seller/assets/js/ds-team.js');
    await x.ctx.Core.V.portal(['orders']);assert.equal(x.added.length,1);global.__q='?proto=off';x=setup();await x.ctx.Core.V.portal(['team']);assert.equal(x.added.length,0);global.__q='';global.__s={}})
+ await t('dispatcher preview: admin route only, only with the flag',async()=>{
+   global.__q='?proto=1';global.__s={};let x=setup();await x.ctx.Core.V.portal(['dispatch']);assert.equal(x.added.length,0);await x.ctx.Core.V.admin(['dispatch']);assert.equal(x.added.length,1);assert.equal(x.added[0].src,'/seller/assets/js/ds-dispatch.js');
+   global.__q='';global.__s={};x=setup();await x.ctx.Core.V.admin(['dispatch']);assert.equal(x.added.length,0);global.__q='';global.__s={}})
  console.log(pass+' passed, '+fail+' failed')})();

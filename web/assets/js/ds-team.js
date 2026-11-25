@@ -2,7 +2,7 @@
    Contract: ROLES_AND_ACCESS_PROPOSAL.md (accepted 25 Nov 2026) and PHASE_A_KICKOFF_CLAUDE_HANDOFF.md.
    Everything here is MOCK. No request is sent, nothing is saved, and the page says so. Every action that needs the backend is shown
    disabled with its reason. Role UI is not offered in the real menu until backend enforcement exists (owner decision 8.6g).
-   Routes: /portal/team (store team) and /admin/staff (platform staff), reachable only with ?proto=roles (turn off with ?proto=off). */
+   Routes: /portal/team (store team) and /admin/staff (platform staff), reachable only with ?proto=1 (turn off with ?proto=off). */
 (function(){
   var C=window.Core,D=window.DS,esc=C.esc,V=C.V,A=C.A;if(!C||!D)return;
   var STORE={
@@ -36,16 +36,20 @@
     +".ds-tmp{display:grid;gap:10px;margin:0 0 var(--ds-s4,16px)}.ds-rc{display:flex;gap:12px;align-items:flex-start;width:100%;min-height:56px;padding:14px;border:1.5px solid var(--border);border-radius:var(--r-card,16px);background:var(--surface-1);color:var(--text-1);text-align:left;font:inherit;cursor:pointer}"
     +".ds-rc[aria-pressed=true]{border-color:var(--brand);background:var(--brand-soft)}.ds-rc b{display:block}.ds-rc small{display:block;color:var(--text-2);margin-top:2px}.ds-why{margin:8px 2px 0;color:var(--text-2);font:500 13px/1.4 var(--font-body)}"
     +".ds-perm{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}.ds-perm li{display:flex;gap:10px;align-items:center;min-height:32px}.ds-perm .no{color:var(--text-3)}.ds-perm svg{flex:none;color:var(--success)}.ds-perm .no svg{color:var(--text-3)}"
+    +".ds-tm-seats{display:flex;align-items:center;gap:14px;margin:0 0 var(--ds-s4,16px);padding:14px;border:1px solid var(--border);border-radius:var(--r-card,16px);background:var(--surface-1)}.ds-tm-seats small{display:block;color:var(--text-2)}"
+    +".ds-tm .ds-stack>*,.ds-tm-seats{animation:tmr .5s var(--ease,ease) both}.ds-tm .ds-stack>*:nth-child(2){animation-delay:.05s}.ds-tm .ds-stack>*:nth-child(3){animation-delay:.1s}.ds-tm .ds-stack>*:nth-child(4){animation-delay:.15s}.ds-tm .ds-stack>*:nth-child(n+5){animation-delay:.2s}"
+    +".ds-rc{transition:transform .15s,background-color .2s,border-color .2s}.ds-rc:active{transform:scale(.98)}.ds-rc[aria-pressed=true]{animation:tmp .3s var(--ease,ease)}.ds-perm li{animation:tmr .35s both}"
+    +"@keyframes tmr{from{opacity:0;transform:translateY(12px)}}@keyframes tmp{50%{transform:scale(1.02)}}@media(prefers-reduced-motion:reduce){.ds-tm .ds-stack>*,.ds-tm-seats,.ds-rc,.ds-perm li{animation:none!important;transition:none!important}}"
     +".ds-tmh{margin:var(--ds-s5,24px) 0 var(--ds-s3,12px);font:700 15px var(--font-body);color:var(--text-2)}";document.head.appendChild(s)}
   function stChip(p){return p.st==="active"?D.chip("Active","ok","okc"):p.st==="invited"?D.chip("Invited","","clock"):D.chip("Waiting for approval","warn","clock")}
   function page(plane){
     style();var set=plane==="store"?STORE:PLAT,list=PEOPLE[plane==="store"?"store":"plat"],t=plane==="store"?"Team":"Staff";
-    var h='<div class="ds-mock" role="note">'+D.icon("alert",18)+"<span>Preview with sample people. Nothing is sent or saved.</span></div>"
+    var h='<div class="ds-tm"><div class="ds-mock" role="note">'+D.icon("alert",18)+"<span>Preview with sample people. Nothing is sent or saved.</span></div>"
       +'<div class="ds-headrow"><h1 class="ds-title">'+t+'</h1><button type="button" class="ds-btn s" data-act="ds-tm-invite" data-id="'+plane+'">'+D.icon("plus",16)+" Invite</button></div>"
-      +(plane==="store"?'<div class="ds-stats">'+D.stat({icon:"users",value:SEATS.used+" of "+SEATS.total,label:"Seats used"})+"</div>":"")
+      +(plane==="store"?'<div class="ds-tm-seats">'+D.ring(SEATS.used/SEATS.total*100,"ok",SEATS.used+"/"+SEATS.total)+'<div><b>'+SEATS.used+" of "+SEATS.total+" seats used</b><small>"+(SEATS.total-SEATS.used)+" left on your plan</small></div></div>":"")
       +'<h2 class="ds-tmh">People</h2><div class="ds-stack">'+list.map(function(p){return D.row({icon:"users",title:p.name,sub:set[p.role][0]+(p.ends?" · until "+p.ends:""),end:stChip(p),act:"ds-tm-person",id:plane+":"+p.id})}).join("")+"</div>"
       +'<h2 class="ds-tmh">Roles</h2><div class="ds-stack">'+Object.keys(set).map(function(r){return D.row({icon:"crown",title:set[r][0],sub:set[r][1],act:"ds-tm-role",id:plane+":"+r})}).join("")+"</div>"
-      +(plane==="plat"?'<h2 class="ds-tmh">Waiting for approval</h2><div class="ds-stack">'+D.row({icon:"clock",title:"Finance role for Sample Finance",sub:"Sensitive roles need a second person to approve."})+"</div>":"");
+      +(plane==="plat"?'<h2 class="ds-tmh">Waiting for approval</h2><div class="ds-stack">'+D.row({icon:"clock",title:"Finance role for Sample Finance",sub:"Sensitive roles need a second person to approve."})+"</div>":"")+"</div>";
     return h}
   function perms(plane,r){var set=plane==="store"?STORE:PLAT,have=keysOf(plane,r),all=Object.keys(LABEL).filter(function(k){return k.indexOf(plane+".")===0});
     return'<ul class="ds-perm">'+all.map(function(k){var on=have.indexOf(k)>-1;return'<li class="'+(on?"":"no")+'">'+D.icon(on?"check":"x",18)+"<span>"+esc(LABEL[k])+(on?"":" (not included)")+"</span></li>"}).join("")+"</ul>"}
@@ -58,7 +62,7 @@
     D.sheet({title:p.name,html:'<div class="ds-chips">'+D.chip(set[p.role][0])+stChip(p)+"</div><p class=\"lead\">"+esc(p.email)+"</p><h3 class=\"ds-tmh\">What this role can do</h3>"+perms(a[0],p.role)+(p.role==="owner"?'<p class="ds-why">The owner cannot be removed or changed here.</p>':disabledBtn("Change role","edit")+'<div style="height:10px"></div>'+disabledBtn("Remove access","x"))})};
   A["ds-tm-role"]=function(b){var a=(b.getAttribute("data-id")||"").split(":"),set=a[0]==="store"?STORE:PLAT;if(!set[a[1]])return;
     D.sheet({title:set[a[1]][0],html:'<p class="lead">'+esc(set[a[1]][1])+"</p>"+perms(a[0],a[1])})};
-  function flagOn(){try{return sessionStorage.getItem("ev-proto")==="roles"}catch(e){return false}}
+  function flagOn(){try{return sessionStorage.getItem("ev-proto")==="1"}catch(e){return false}}
   var op=V.portal,oa=V.admin;
   V.portal=function(p){if(p&&p[0]==="team"&&flagOn())return{layout:"portal",active:"portal/team",title:"Team",html:page("store")};return op(p)};
   V.admin=function(p){var me=C.me&&C.me();if(p&&p[0]==="staff"&&flagOn()&&me&&me.role==="admin")return{layout:"admin",active:"admin/staff",title:"Staff",html:page("plat")};return oa(p)};

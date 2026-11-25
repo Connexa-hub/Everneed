@@ -5,7 +5,7 @@
 (function(){
   var C=window.Core;if(!C||!C.V||!C.V.portal)return;
   var me=document.currentScript&&document.currentScript.src,base=me?me.replace(/ds-lazy\.js.*$/,""):"/assets/js/",got={},pend={};
-  function proto(){try{if(/[?&]proto=roles\b/.test(location.search))sessionStorage.setItem("ev-proto","roles");if(/[?&]proto=off\b/.test(location.search))sessionStorage.removeItem("ev-proto");return sessionStorage.getItem("ev-proto")==="roles"}catch(e){return false}}
+  function proto(){try{if(/[?&]proto=(1|on|roles)\b/.test(location.search))sessionStorage.setItem("ev-proto","1");if(/[?&]proto=off\b/.test(location.search))sessionStorage.removeItem("ev-proto");return sessionStorage.getItem("ev-proto")==="1"}catch(e){return false}}
   proto(); /* read the flag once at load, before the router rewrites the address */
   function load(f){
     if(got[f])return Promise.resolve();if(pend[f])return pend[f];
@@ -14,7 +14,7 @@
   function need(kind,p){
     if(!p)return"";
     if(kind==="portal"){if(p[0]==="product")return"ds-editor.js";if(p[0]==="team"&&proto())return"ds-team.js"}
-    if(kind==="admin"&&p[0]==="staff"&&proto())return"ds-team.js";
+    if(kind==="admin"&&proto()){if(p[0]==="staff")return"ds-team.js";if(p[0]==="dispatch")return"ds-dispatch.js"}
     return"";
   }
   ["portal","admin"].forEach(function(k){
@@ -24,5 +24,5 @@
       return load(f).then(function(){return C.V[k](p)},function(){return old(p)});
     };
   });
-  window.EVLazy={editor:function(){return load("ds-editor.js")},team:function(){return load("ds-team.js")}};
+  window.EVLazy={editor:function(){return load("ds-editor.js")},team:function(){return load("ds-team.js")},dispatch:function(){return load("ds-dispatch.js")}};
 })();
