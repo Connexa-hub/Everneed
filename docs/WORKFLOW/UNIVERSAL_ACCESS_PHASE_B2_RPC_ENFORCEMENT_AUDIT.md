@@ -176,3 +176,8 @@ The read-only snapshot now covers public SECURITY DEFINER function counts and AC
 | `support_sla_public` / `seller_plan_catalog` / `seller_product_category_schema` | read-only public/config surfaces (grant varies) | Confirm allowlisted fields and stable public contracts |
 
 These findings are discovery-only. No migration, grant, row, or policy was changed on staging. The audit branch remains documentation-only and must not be merged as an enforcement change.
+
+
+## Cross-phase dependency review — B1 logistics scope contract
+
+A review of the unmerged B1 migration found a role-template mismatch: `platform_dispatcher` is platform-plane/platform-scope, while dispatch and route planning permissions are also platform-scope. This would represent a globally scoped dispatcher, not a zone-scoped dispatcher. Before B1 merge, the coordinator should keep platform logistics supervisor oversight separate from operational dispatch assignments and add a partner-plane/zone-scoped dispatcher role (or equivalent scope model); dispatch/route permissions must resolve the assignment's zone and prove cross-zone denial. This is a B1 catalogue/contract blocker, not something to patch during B2 enforcement. The B1 role-permission scope guard should also reject inactive roles/permissions, in addition to scope mismatches.
