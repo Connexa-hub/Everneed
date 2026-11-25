@@ -544,7 +544,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 
 
 ## 25 Nov 2026 — ChatGPT claim: ACL dependency map
-- **Task:** Phase A privilege hardening dependency map (existing table grants, frontend direct reads/writes, RPCs, triggers, role needs). **Status: IN PROGRESS** — owner ChatGPT, branch `web-portal`.
+- **Task:** Phase A privilege hardening dependency map (existing table grants, frontend direct reads/writes, RPCs, triggers, role needs). **Status: IN PROGRESS** — owner ChatGPT, checkpoint PR #52 `codex/phase-a-dependency-map-checkpoint` → `web-portal` (documentation-only).
 - Before drafting a migration, map direct client calls and required table/column privileges; staging-only validation. Production remains read-only.
 
 
@@ -558,6 +558,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 
 ### Environment ledger refresh (25 Nov, read-only)
 - Rechecked migration ledgers via Supabase: Everneed01 production remains on timestamped migrations through `20261111073610` (`015_support_sla_public`); Everneed-staging contains legacy 000–033 and numerous timestamped migrations through Nov 22. This reinforces that frontend/backend contracts on web-portal cannot be assumed live in production. No schema changes applied.
+- **25 Nov follow-up:** PR #52 records verified browser/native shared direct-write dependencies (`stores`, `store_applications`, `products`, `product_private`, `store_private`, `notifications`, `profiles.settings`) and isolates service-role Paystack operations. This is preliminary only; raw REST/fetch, Android/native package paths, RPC/trigger and full Edge Function dependencies remain to be mapped. Migration-readiness is NOT met; no ACL changes.
 - Phase A static frontend ACL map and staging grant snapshots are documented; next task remains completing the code call-site scan and preparing staging-only tests, not a production migration.
 
 - **Production ACL baseline refreshed (read-only):** Everneed01 has anon TRUNCATE on 15 public objects, anon 42 write grants; authenticated TRUNCATE on 29 objects and 82 write grants; both object owners have broad default ACLs. Focused anon TRUNCATE list includes banners, collections, offers, orders, products, profiles, reviews, settings, size_charts, stores. This is catalog privilege excess; API reachability/exploitability not established. Documented in ACL dependency map commit `2801ff484f8852ea3d5eb9b7b83b637bfe3d6348`. Production unchanged.
