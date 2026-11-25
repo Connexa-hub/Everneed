@@ -425,3 +425,26 @@ This reconciles the earlier high-level snapshot: **36 are service-only**; 47 are
 - `apply_rental_payment()` and `set_store_terms()` are finance/entitlement-sensitive; narrow permissions, immutable audit, and multi-store explicit context are required.
 - `support_sla_sweep()` is authenticated-executable but admin/service-gated and destructive to stale queue records; prefer service-only invocation if no supported admin UI path exists, otherwise test non-admin denial and retention.
 - This inventory is the exact signature/ACL baseline; body-level review and dependency mapping for all 47 remains open. No grants, functions, or data changed.
+
+
+## High-risk function-body review — targeted live staging sample (2026-11-25)
+
+Read-only `pg_get_functiondef` review was performed for eight currently executable RPCs. This adds concrete call-path details; it is not the complete 47-function review.
+
+| Function | Body evidence / existing checks | B2 review requirement |
+|---|---|---|
+| `admin_confirm_payment(text)` | Calls `private.need_admin()`, throttles, then `private.confirm_payment_core(order,null,auth.uid())`. | Map UI call sites, transfer proof and lifecycle validation inside core; ensure explicit manual-review permission and audit trail. Consider removing authenticated execution if replaced by provider/service-only path, but only after call-site/settlement tests. |
+| `admin_store_workspace_context(text)` | Legacy admin gate; returns store/subscription state, owner name/email/phone/photo, catalogue counts and module readiness. Calls `seller_product_capabilities(store)`. | Store-review/support/operations roles must be separately scoped; contact PII should be minimized and access reason audited; avoid granting global support access. |
+| `apply_rental_payment(text,text,numeric,text,text)` | Legacy admin gate + throttle, delegates to rental core with `admin_recorded` and actor `auth.uid()`. | Narrow subscription/finance permission, explicit store scope, validated payment reference and duplicate/idempotency checks; actor/reason immutable audit. |
+| `approve_offer_campaign_budget(text,text,bigint,text)` | Direct profile-role admin check; validates currency/budget/note/offer; upsert overwrites approval actor/time/note; no explicit audit call or history trigger found in targeted trigger inventory. | Replace inconsistent role check with scoped campaign permission; append immutable approval/change history, preserve previous value and actor/reason; maker/checker for material budget changes. |
+| `dispatch(text,jsonb)` | Legacy admin gate + throttle; order lock and ready/hub-route checks; requires delivery row; accepts courier name/phone/note from JSON; advances delivery/seller/order states and audits payload. | Replace global admin with zone/dispatch assignment; courier must be verified entity/job assignment rather than free-text identity; retain locking/state checks; data minimization and evidence requirements. |
+| `seller_transition(text,text,jsonb)` | Resolves seller order/store from DB; legacy admin or store owner; released/state guard; prevents seller setting delivered/at_hub/consolidated; seller direct route may write courier metadata and delivery row; issue/cancel/reject restrictions; audit + order sync. | Team fulfilment access must be store-scoped; retain the transition matrix and forbidden states; direct courier metadata should be treated as seller-submitted, not verified courier assignment/POD. |
+| `set_store_terms(text,numeric,boolean)` | Legacy admin gate; commission bound 0–60; upserts commission override/trusted; audit records action but no before-state supplied in call. | Narrow store-commercial/commission permission, scope check, before/after audit, approval policy for official/trusted or high-impact commission changes. |
+| `support_sla_sweep()` | Authenticated path explicitly rejects non-admin; service role allowed; escalates open overdue conversations; deletes support queue entries older than 1 day or closed entries unseen for 1 hour. | Keep scheduler/service-only if no admin console need; otherwise support-operations permission and tested non-admin denial. Confirm retention requirements before deletion policy changes. |
+
+### New design dependencies
+
+- Admin confirmation of payments and manual rental-payment recording must remain separate from provider webhook/service settlement; never allow staff role to forge provider evidence.
+- Courier metadata in legacy dispatch/direct-seller functions is not a substitute for the FIN-02/B5 assignment, custody, proof-of-delivery, and exception lifecycle.
+- Finance/commercial operations should use actor-bound immutable audit records with before/after, reason, correlation/idempotency reference and approval state, not only the latest mutable row or a generic audit payload.
+- The targeted body review remains read-only. No staging mutation, role simulation, grant change, or production access was performed.
