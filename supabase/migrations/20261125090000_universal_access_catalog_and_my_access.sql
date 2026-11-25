@@ -24,9 +24,10 @@ create table if not exists public.access_role_catalog (
   active boolean not null default true,
   created_at timestamptz not null default now(),
   unique (role_key, plane),
+  unique (role_key, plane, scope_type),
   check (
     (plane = 'platform' and scope_type = 'platform')
-    or (plane = 'store' and scope_type = 'store')
+    or (plane = 'store' and scope_type in ('store','branch','terminal'))
     or (plane = 'partner' and scope_type in ('partner','hub','zone','branch','terminal','job'))
   )
 );
@@ -41,7 +42,7 @@ create table if not exists public.access_role_permissions (
 create table if not exists public.access_role_assignments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  role_key text not null references public.access_role_catalog(role_key) on delete restrict,
+  role_key text not null,
   plane text not null check (plane in ('platform','store','partner')),
   scope_type text not null check (scope_type in ('platform','store','partner','hub','zone','branch','terminal','job')),
   scope_id text,
@@ -55,9 +56,10 @@ create table if not exists public.access_role_assignments (
   check (expires_at is null or expires_at > starts_at),
   check (
     (plane = 'platform' and scope_type = 'platform')
-    or (plane = 'store' and scope_type = 'store')
+    or (plane = 'store' and scope_type in ('store','branch','terminal'))
     or (plane = 'partner' and scope_type in ('partner','hub','zone','branch','terminal','job'))
-  )
+  ),
+  foreign key (role_key,plane,scope_type) references public.access_role_catalog(role_key,plane,scope_type) on delete restrict
 );
 
 create index if not exists access_role_assignments_user_active_idx
@@ -94,9 +96,9 @@ insert into public.access_permission_catalog(permission_key,domain,scope_type,de
 ('platform.audit.read','platform','platform','Read security and audit events','critical'),
 ('platform.analytics.read','platform','platform','Read platform analytics','sensitive'),
 ('platform.compliance.review','platform','platform','Review compliance cases','sensitive'),
-('logistics.dispatch.read','partner','partner','Read dispatch queues within assigned scope','sensitive'),
-('logistics.dispatch.assign','partner','partner','Assign dispatch jobs within assigned scope','critical'),
-('logistics.route.plan','partner','partner','Plan routes within assigned scope','sensitive'),
+('logistics.dispatch.read','partner','platform','Read dispatch queues within assigned scope','sensitive'),
+('logistics.dispatch.assign','partner','platform','Assign dispatch jobs within assigned scope','critical'),
+('logistics.route.plan','partner','platform','Plan routes within assigned scope','sensitive'),
 ('logistics.jobs.read','partner','partner','Read assigned delivery jobs','sensitive'),
 ('logistics.jobs.accept','partner','partner','Accept or decline assigned jobs','sensitive'),
 ('logistics.location.share','partner','job','Share location while on assigned duty','sensitive'),
@@ -106,7 +108,7 @@ insert into public.access_permission_catalog(permission_key,domain,scope_type,de
 ('logistics.hub.read','partner','hub','Read hub operations','sensitive'),
 ('logistics.custody.scan','partner','hub','Record parcel custody scans','critical'),
 ('logistics.consolidate','partner','hub','Consolidate parcels at authorized hub','critical'),
-('logistics.zone.manage','partner','zone','Manage zones in assigned scope','sensitive'),
+('logistics.zone.manage','partner','platform','Manage zones in assigned scope','sensitive'),
 ('store.catalogue.read','store','store','Read store catalogue','normal'),
 ('store.catalogue.write','store','store','Create and edit catalogue items','sensitive'),
 ('store.catalogue.publish','store','store','Publish and unpublish catalogue items','sensitive'),
