@@ -105,6 +105,8 @@ for (const [file, source, required] of [
   ['js/auth.js', googleAuthSource, 'Supa.signInIdToken("google",token)'],
   ['js/auth.js', googleAuthSource, 'nativeGoogleAccountReauthFailure'],
   ['js/auth.js', googleAuthSource, 'location.href=url'],
+  ['js/auth.js', googleAuthSource, 'com.everneed.store://auth/callback'],
+  ['js/auth.js', googleAuthSource, 'Capacitor.Plugins.Browser'],
   ['js/supa.js', googleSupaSource, 'grant_type=id_token'],
   ['js/supa.js', googleSupaSource, 'id_token:idToken'],
   ['js/app.js', googleAppSource, 'function clearNativeGoogleProvider()'],
