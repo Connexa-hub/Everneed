@@ -14,6 +14,8 @@ declare
   ctx jsonb;
   denied boolean := false;
   test_uid uuid := gen_random_uuid();
+  fixture_store text := gen_random_uuid()::text;
+  email_addr text := 'universal-access-ci-'||gen_random_uuid()||'@example.test';
 begin
   if to_regclass('public.access_permission_catalog') is null
     or to_regclass('public.access_role_catalog') is null
@@ -69,10 +71,34 @@ begin
     raise exception 'FAIL: migration must not auto-assign roles, including legacy admins';
   end if;
 
-  -- Confirm caller-specific introspection returns an empty list for a new identity.
+  -- Confirm empty introspection for an unassigned identity.
   perform set_config('request.jwt.claim.sub',test_uid::text,true);
   ctx := public.my_access();
   if ctx <> '[]'::jsonb then raise exception 'FAIL: unassigned identity got contexts: %',ctx; end if;
+
+  -- Transaction fixture proves one user can hold platform + store contexts with explicit scope.
+  insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
+    values(test_uid,'authenticated','authenticated',email_addr,'',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
+  insert into public.profiles(id,name,email,role) values(test_uid,'Universal Access CI',email_addr,'merchant');
+  insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
+    values(fixture_store,test_uid,'ua-ci-'||test_uid,'Universal Access CI Store','approved','live','NG','Africa/Lagos');
+  insert into public.access_role_assignments(user_id,role_key,plane,scope_type,scope_id,reason)
+    values(test_uid,'platform_dispatcher','platform','platform',null,'transactional SQL test fixture');
+
+  ctx := public.my_access();
+  if jsonb_array_length(ctx) <> 2 then
+    raise exception 'FAIL: expected separate platform and store contexts, got %',ctx;
+  end if;
+  if not (ctx @> jsonb_build_array(jsonb_build_object(
+    'plane','platform','scope_type','platform','scope_id',null,
+    'role','platform_dispatcher','permissions',jsonb_build_array('logistics.dispatch.assign','logistics.dispatch.read','logistics.route.plan')))) then
+    raise exception 'FAIL: platform dispatcher context/permissions missing or wrong scope: %',ctx;
+  end if;
+  if not (ctx @> jsonb_build_array(jsonb_build_object(
+    'plane','store','scope_type','store','scope_id',fixture_store,
+    'role','store_owner','source','legacy_owner'))) then
+    raise exception 'FAIL: legacy store-owner context missing: %',ctx;
+  end if;
 
   raise notice 'PASS: universal access catalogue, scope templates, RLS, grants and empty-context introspection';
 end $$;
