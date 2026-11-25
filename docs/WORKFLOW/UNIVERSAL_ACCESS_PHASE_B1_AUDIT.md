@@ -43,6 +43,19 @@ Introduce server-side permission/context helpers and convert protected RPCs/RLS 
 ### B1.4 — Team management
 Only after enforcement: invite/accept, role assignment, revoke, expiry, seat/plan constraints, last-owner protection, approval/separation-of-duty controls and audit/activity feed. Tokens are single-use, expiring and bound to the signed-in identity.
 
+## B1 role permission bundles (proposed, not yet enforced)
+
+These initial logistics bundles are explicit proposals for the catalogue only. They do not authorize existing RPCs, grant database access, or replace the separate B5 logistics domain contract and owner review:
+
+| Template | Scope | Proposed permission keys | Limits before B5 |
+|---|---|---|---|
+| Platform logistics supervisor | Platform | `logistics.dispatch.read`, `logistics.dispatch.assign`, `logistics.route.plan`, `platform.hubs.read`, `logistics.zone.manage` | Platform-wide oversight template; zone/resource scoping must be implemented and tested before enforcement. |
+| Platform dispatcher | Platform | `logistics.dispatch.read`, `logistics.dispatch.assign`, `logistics.route.plan` | Dispatch/route planning only; no courier delivery confirmation, finance, refunds, or hub custody permissions. |
+| Partner hub staff | Hub | `logistics.hub.read`, `logistics.custody.scan`, `logistics.consolidate` | Hub-scoped only; no dispatch assignment, customer money, or delivery completion. |
+| Partner courier | Job | `logistics.jobs.read`, `logistics.jobs.accept`, `logistics.location.share`, `logistics.delivery.confirm`, `logistics.pod.capture`, `logistics.exception.report` | Job-scoped only; no route assignment, hub custody, payout, or access to unrelated deliveries. |
+
+Permission definitions are catalogue labels, not a finished operational contract. B5 must confirm lifecycle transitions, assignment/acceptance rules, location privacy, custody events, proof-of-delivery, exception escalation, and cross-scope checks. These templates remain non-enforcing until B2/B5 add request-time checks and regression tests.
+
 ## Security invariants
 
 - Platform and store permissions never implicitly cross planes.
