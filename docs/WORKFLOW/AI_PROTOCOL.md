@@ -58,3 +58,8 @@ Never claim the branches are identical unless their commit histories confirm it.
 
 ## If something breaks on the live site
 The site has a boot screen (`web/assets/js/boot.js`). It prints the failing file and line. Fix that file only, push, and add a row to the tracker under `Foundation` describing what happened.
+
+
+## Universal modular platform direction (owner-approved)
+
+Before adding a new role, department, app, logistics workflow, POS or integration, read `EVERNEED_UNIVERSAL_PLATFORM_ARCHITECTURE.md`. Do not hardcode role names as authorization rules or create isolated permission systems per app. Use permission keys, explicit context scopes, backend enforcement, versioned configuration and shared domain contracts. New roles should be assignable from the safe permission registry; new capabilities that require backend code/security checks still require reviewed implementation and tests. Dispatcher/logistics, tracking, courier, support, POS and future applications are planned as modules sharing platform core. This is a long-term architecture: implement progressively and do not ship speculative infrastructure or production migrations without staging review and owner approval.
