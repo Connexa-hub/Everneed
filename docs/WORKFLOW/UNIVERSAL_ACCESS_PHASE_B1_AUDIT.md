@@ -65,4 +65,4 @@ Anonymous caller, missing profile, legacy admin compatibility, store owner conte
 
 Claude 10 should add B1 backend dependency to the live team board and coordinate frontend access/context work against the documented `my_access()` contract. UI may use labelled mocks for design only; it must not invent grants or bypass missing backend functionality.
 
-**Status:** Audit complete. B1 migration/function implementation is the next backend work; this document is not a migration and has not been applied to staging or production.
+**Status:** Audit complete; B1 migration, SQL checks and CI wiring are drafted in PR #49. Migration replay and regression CI are pending. No schema has been applied to staging or production.
