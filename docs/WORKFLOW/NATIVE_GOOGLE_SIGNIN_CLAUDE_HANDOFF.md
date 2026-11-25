@@ -99,3 +99,18 @@ The owner asked ChatGPT to implement directly because Claude is unavailable. Thi
 ### Follow-up preservation check (25 Nov 2026)
 - Kept the pre-existing iOS native Browser + custom callback flow intact. Only Android routes to Credential Manager; website continues with browser OAuth/PKCE. Regression markers were added for the iOS callback and Browser plugin.
 - Follow-up commits: `b07f3d1` (iOS flow preservation), `6e3afaa` (regression guard).
+
+
+## Owner device confirmation and signing-certificate follow-up — 25 Nov 2026
+
+The owner has now confirmed native Google Sign-In succeeds on the current staging APK after registering the fingerprint that matches that artifact.
+
+- **Verified current test APK SHA-1:** `B8:44:54:C7:27:E7:B9:5E:5F:59:8D:E4:83:35:FC:81:66:06:69:AF`
+- **Verified current test APK SHA-256:** `95:71:3B:9A:60:FF:3F:4C:88:92:BC:87:4A:68:01:6E:84:83:5F:40:47:D6:04:3A:4A:8B:4B:3B:38:C7:8A:34`
+- Package remains `com.everneed.store`; the Web OAuth client remains the native plugin's server client ID.
+
+**Important build-pipeline correction:** the current `.github/workflows/build.yml` still generates a fresh temporary debug keystore whenever `ANDROID_DEBUG_KEYSTORE_BASE64` is absent. Therefore this fingerprint is stable only if that repository Actions secret is configured with the matching keystore. Otherwise a later APK build can have a different SHA-1 and native Google Sign-In can fail again. The tracker previously said CI required the secret; that statement was inaccurate and is corrected there.
+
+Owner action before another staging APK: add/verify `ANDROID_DEBUG_KEYSTORE_BASE64` for the exact key whose certificate SHA-1 is above, then build and inspect the APK certificate again. Never upload the keystore to the repository or chat. For production, register the actual release/Play App Signing certificate separately if it differs; the test fingerprint does not guarantee production sign-in.
+
+**Status:** native sign-in confirmed working by owner on the current test artifact. Stable CI signing identity remains NEEDS OWNER; production signing verification remains a pre-release gate.
