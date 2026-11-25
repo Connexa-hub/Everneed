@@ -41,7 +41,9 @@ create table if not exists public.access_role_permissions (
 
 -- Prevent cross-plane or scope-incompatible permission bundles from being seeded.
 create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
+-- Preserve the existing authenticated USAGE grant required by marketplace RLS and stores_guard().
+-- The new helper itself remains non-executable by client roles.
+revoke all on schema private from public, anon;
 
 create or replace function private.access_role_permission_scope_guard()
 returns trigger
