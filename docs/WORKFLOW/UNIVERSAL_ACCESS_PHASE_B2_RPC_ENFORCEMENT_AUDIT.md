@@ -80,3 +80,20 @@ This audit reviewed `supabase/migrations/004_marketplace_core.sql`, `006_marketp
 ## Evidence and limitations
 
 This is a preliminary design audit based on source migrations, not runtime validation. Existing functions and policies may have changed in later migrations; B2 implementation must inspect the current final schema and effective ACLs on staging before edits.
+
+## Live staging ACL inventory (read-only snapshot — 2026-11-25)
+
+Verified against **Everneed-staging** project ref `vjiadqygpyebpisxslbx`; production was not queried for this inventory.
+
+- Staging migration history currently ends at `20261122140408 fin03_verified_payment_journal_posting`; B1 migration is not applied.
+- Catalog snapshot: 83 public SECURITY DEFINER functions; 47 are executable by `authenticated`; 3 are executable by `anon`; 81 are executable by `service_role`. (These counts are ACL snapshot, not a vulnerability count.)
+- `admin_set_plan_entitlements`, `admin_set_verification_scope`, `admin_store_workspace_context`, `apply_rental_payment`, seller approval/rejection/suspension, dispatch/hub operations, payouts/refunds and terms functions are authenticated-executable but call legacy `private.need_admin()` in inspected definitions.
+- `approve_offer_campaign_budget` uses a direct `profiles.role='admin'` check rather than `private.need_admin()`; review whether the current legacy admin compatibility behavior is intended and replace with explicit finance/campaign permission in B2.
+- `seller_adjust_variant_stock` allows legacy `public.is_admin()` or `private.owns_store()`; migration to store-scoped inventory permission should preserve owner isolation and audit requirements.
+- `seller_transition` uses legacy admin/store owner and workflow guards; must support team fulfilment membership without bypassing state rules.
+- `dispatch`, `hub_receive`, and `hub_consolidate` use broad legacy admin checks; target role/scope must be narrowed by actual hub, zone, assigned delivery, and order route, not just role label.
+- `admin_store_workspace_context` exposes store owner contact data, counts, and capability state to legacy admins; support/operations access needs scope and audit.
+- Service-only functions include payment initialization/recovery, verified-event settlement, journal posting/reversal, scheduled workers, order create/confirm wrappers, and finance recovery. Preserve service-only ACLs.
+- Anonymous-executable public functions in this snapshot: `seller_plan_catalog`, `store_reply_stats`, `support_sla_public`. These require explicit public-data/abuse assessment; do not automatically revoke without frontend contract review.
+
+This snapshot is a discovery baseline. B2 must inspect each function definition, effective grants, table policies, triggers, dependencies and call paths before changing enforcement. The source migration audit alone is insufficient because later migrations have replaced or extended several functions.
