@@ -544,3 +544,17 @@ Read-only targeted review of seven RPCs and inventory/product/store guard trigge
 - Stock movement triggers provide movement records, but not a substitute for a role-scoped read policy, immutable movement history, or high-risk stock adjustment approval.
 
 No changes to inventory, catalogue, store applications, plan entitlements, verification rules or production were made.
+
+## Scoped RLS policy cross-check for catalogue and seller onboarding (2026-11-25)
+
+Live policy expressions checked on staging:
+
+- product_inventory_movements: authenticated SELECT only when legacy admin or store owner. Future inventory staff should be scoped to assigned store and movement-history visibility; don't grant global SELECT.
+- product_variants: permissive authenticated ALL policy allows legacy admin or store owner; separate public read policy requires active variant, published/public product, publish_at reached, and live store. New inventory staff write policy must not coexist with broad ALL in a way that retains global admin bypass.
+- products: legacy admin ALL policy OR owner policies (insert/update, owner read, delete only draft/rejected) OR public read (published/public, publish_at reached, live store). Because all policies are permissive, admin ALL remains a broad bypass until intentionally replaced. Preserve the owner deletion and public visibility conditions.
+- seller_plan_entitlements: authenticated admin-only SELECT. New plan-management role should have only required plan fields and not private subscription/financial data.
+- seller_verification_rules: enabled rules are readable by authenticated users; legacy admin can read disabled rows and insert/update/delete. A compliance policy role should be explicit and audited; public/app clients shouldn't receive disabled/internal policy data unless justified.
+- store_applications: owner insert; owner SELECT or legacy admin; owner UPDATE only while decision is NULL. Reviewers need scoped queue access and must not be able to edit application submissions or self-review.
+- store_private: owner insert/update, owner/admin SELECT. Team access must be narrow by purpose (review notes, verification status, seller-safe status), not wholesale access to internal store metadata.
+
+The audit reiterates the RLS migration rule: before introducing role-specific policies, replace broad legacy-admin permissive branches for the relevant command/table. A new narrow policy alone does not reduce existing access.
