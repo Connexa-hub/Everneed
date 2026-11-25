@@ -15,7 +15,7 @@ window.Auth=(function(){
       var token=res&&res.result&&res.result.idToken;
       if(!token){notify("Google didn't return a secure sign-in token. Please try again.","err");return}
       return Supa.signInIdToken("google",token).then(A.authed);
-    }).catch(function(e){var m=String(e&&e.message||e);if(/cancel|user cancelled|user canceled/i.test(m)){notify("Google sign-in cancelled.");return}A.netErr(e)});
+    }).catch(function(e){var m=String(e&&e.message||e||"Unknown Google sign-in error"),code=String(e&& (e.code||e.errorCode)||"");if(/cancel|user cancelled|user canceled/i.test(m)){notify("Google sign-in cancelled.");return}console.warn("Everneed native Google sign-in failed", {code:code,message:m.slice(0,240)});notify("Google sign-in failed"+(code?" ["+code+"]":"")+": "+m.slice(0,180),"err")});
   }
   function google(){if(A.oauthReset)A.oauthReset();if(!Supa.on()){notify("Sign-in is unavailable while offline.","err");return}
     var platform=window.Capacitor&&Capacitor.getPlatform?Capacitor.getPlatform():"web";
