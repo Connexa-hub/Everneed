@@ -86,7 +86,7 @@ This is a preliminary design audit based on source migrations, not runtime valid
 Verified against **Everneed-staging** project ref `vjiadqygpyebpisxslbx`; production was not queried for this inventory.
 
 - Staging migration history currently ends at `20261122140408 fin03_verified_payment_journal_posting`; B1 migration is not applied.
-- Catalog snapshot: 83 public SECURITY DEFINER functions; 47 are executable by `authenticated`; 3 are executable by `anon`; 81 are executable by `service_role`. (These counts are ACL snapshot, not a vulnerability count.)
+- Catalog snapshot: 83 public SECURITY DEFINER functions; 47 are executable by `authenticated`; 3 are executable by `anon`; 80 are executable by `service_role`. (These counts are ACL snapshot, not a vulnerability count.)
 - `admin_set_plan_entitlements`, `admin_set_verification_scope`, `admin_store_workspace_context`, `apply_rental_payment`, seller approval/rejection/suspension, dispatch/hub operations, payouts/refunds and terms functions are authenticated-executable but call legacy `private.need_admin()` in inspected definitions.
 - `approve_offer_campaign_budget` uses a direct `profiles.role='admin'` check rather than `private.need_admin()`; review whether the current legacy admin compatibility behavior is intended and replace with explicit finance/campaign permission in B2.
 - `seller_adjust_variant_stock` allows legacy `public.is_admin()` or `private.owns_store()`; migration to store-scoped inventory permission should preserve owner isolation and audit requirements.
