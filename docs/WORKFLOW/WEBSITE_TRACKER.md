@@ -1,3 +1,11 @@
+# ACTIVE COORDINATION STANDARD (25 Nov 2026)
+
+**Current model:** Nine frontend builder agents across app + web, coordinated by AI #10 (researcher/analyst/planner/reviewer/moderator). ChatGPT/Codex is backend-only: migrations, RLS, RPC/Edge Functions, backend business logic, security, CI, staging verification and contracts. See [AI_COORDINATION_STANDARD](AI_COORDINATION_STANDARD.md), [PROJECT_STANDARD_AND_ROADMAP](PROJECT_STANDARD_AND_ROADMAP.md), and [BACKEND_ONLY_ROADMAP](BACKEND_ONLY_ROADMAP.md). This supersedes the historical four-agent roster. Tracker entries and dated evidence below are retained as history; check current commits/status before relying on old snapshots.
+
+**Doc cleanup:** consolidated project standards and agent/backend responsibilities. Redundant dated audits and obsolete handoffs are being removed after their conclusions are preserved. Detailed active contracts (DB, roles, payment, finance, entitlements, seller backend) remain.
+
+---
+
 **25 Nov 2026 — four-agent frontend review:** WEB-Q05 claimed by ChatGPT coordinator. Reviewed Claude 2's proposed four-Claude workspace against the current AI protocol, accepted roles contract, universal architecture and both design-system documents. Added `docs/WORKFLOW/FOUR_AGENT_FRONTEND_REVIEW_2026-11-25.md` and appended a review note to `CLAUDE_TEAM_WORKSPACE.md`. Key gaps: shopper app and web portal remain separate frontends; seller APK packaging is only a bridge; team roster and branch changes remain proposed pending owner confirmation; design tokens/components and shared session/API/status contracts need explicit integration gates. No application, database, Google Cloud, Supabase or production changes. Device/browser/E2E checks remain outstanding.
 
 **17 Nov 2026 — social sharing preview:** Added server-delivered Open Graph and Twitter Card metadata to `web/index.html`, including Everneed site name, title, description, canonical URL and a 1200×630 branded PNG preview served by the Pages Function `functions/og-image.png.js`. This is intended for WhatsApp and other link-preview crawlers; the preview must be fetched from the deployed public URL, and platform caches may need refreshing. Change is on `web-portal` only; production `main` is untouched pending PR review/merge.
