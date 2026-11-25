@@ -542,3 +542,8 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - This is incomplete: root app `js/`, additional web modules, Edge Functions, storage and Realtime are not fully mapped; GitHub code search index returned no matches. No migration drafted/applied. Everneed01 unchanged.
 
 - Follow-up read-only staging ACL snapshot: `anon` has table TRUNCATE on 22 objects and broad write-like grants; `authenticated` has TRUNCATE on 36 objects and broad write-like grants. Default ACLs for both `supabase_admin` and `postgres` grant broad table/sequence/function privileges. Directly used tables were catalogued. Report updated at `PHASE_A_FRONTEND_ACL_DEPENDENCY_MAP.md` commit `268c3ed9bdfd4e94e3752b34138bcdc90fd18254`. Staging only; do not extrapolate exact grants to production; no changes applied.
+
+
+### Environment ledger refresh (25 Nov, read-only)
+- Rechecked migration ledgers via Supabase: Everneed01 production remains on timestamped migrations through `20261111073610` (`015_support_sla_public`); Everneed-staging contains legacy 000–033 and numerous timestamped migrations through Nov 22. This reinforces that frontend/backend contracts on web-portal cannot be assumed live in production. No schema changes applied.
+- Phase A static frontend ACL map and staging grant snapshots are documented; next task remains completing the code call-site scan and preparing staging-only tests, not a production migration.
