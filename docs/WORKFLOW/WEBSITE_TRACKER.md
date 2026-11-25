@@ -511,3 +511,9 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - Next: staged table/column grant allowlist audit and negative-access test matrix; then role/membership migration plan and read-only `my_access()` implementation on staging.
 
 **Last updated:** 25 Nov 2026 (ChatGPT coordinator) — Protocol and cross-AI handoff requirement acknowledged; R23 answered; production audit remains read-only.
+
+
+### Follow-up grant finding (25 Nov)
+- Base-table refinement: no anon-granted base table in the queried public set had RLS disabled; RLS-disabled catalogue/public objects are `security_invoker=true` views, so base policies remain relevant.
+- Confirmed excess anon SQL grants include `TRUNCATE` and broad write/trigger/reference privileges on multiple RLS-enabled tables. TRUNCATE bypasses RLS; REST reachability is not established, but the grants are not justified by RLS and are high-priority to harden.
+- FIN-01 next subtask: staging privilege allowlist migration and regression suite; production unchanged.
