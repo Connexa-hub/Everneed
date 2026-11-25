@@ -108,3 +108,39 @@ This snapshot is a discovery baseline. B2 must inspect each function definition,
 - Public read policies for published catalogue/storefront content must not be coupled to signed-in role contexts or unintentionally lose anon access.
 
 B2 must inventory effective table grants alongside RLS (RLS alone does not protect tables from grants that bypass policies), and validate all policy/function behavior with role-scoped SQL tests after every migration.
+
+
+## Expanded live staging audit — direct table grants and guard paths (2026-11-25)
+
+Read-only SQL was run against the same **Everneed-staging** project. No data was changed and no role simulation/write test was attempted.
+
+### Table privilege/RLS results
+
+- No public base table with anon/authenticated INSERT, UPDATE, or DELETE privileges was found with RLS disabled. This is a positive structural check, not a full bypass proof.
+- Anonymous role has broad direct DML grants on some public tables (including products, product_variants, profiles, orders, offers, and settings), but the inspected anon policy set contains only SELECT policies—no anon INSERT/UPDATE/DELETE policies. With RLS enabled, those grants should not authorize row mutation; this should be asserted in role-scoped regression tests before any grants are tightened.
+- Authenticated has direct DML grants on many public tables. The mutation paths are policy-restricted, with examples: products has owner insert/update and draft/rejected-only delete, plus admin policy; profiles UPDATE is self-only with role = my_role() in WITH CHECK; stores INSERT requires caller owner and draft/pending state, UPDATE is owner-bound; store applications owner update only while decision IS NULL; conversations has admin update; support and platform-config tables use admin policies. These policies are permissive OR-composed, so B2 must ensure a narrow permission policy does not accidentally combine with a broad legacy policy and expand access.
+- kv and rate_limits have RLS enabled but no policies; authenticated direct grants therefore currently have no policy path. Keep intentional denial documented and test it, or remove unused grants after dependency review.
+- Private schema USAGE is granted to anon/authenticated/service_role, but the read-only catalog check found zero private tables selectable by anon or authenticated. USAGE is not table data access. Do not revoke schema USAGE casually because existing policy helpers depend on it.
+
+### Function and trigger guard paths
+
+- public.is_admin() resolves to public.my_role()='admin'; private.need_admin() delegates to that helper. This is the current central legacy-admin gate, not the new universal permission system.
+- private.profiles_guard() rejects role/email changes unless private.is_privileged(); the profile UPDATE RLS policy additionally requires row id = auth.uid() and role unchanged (role = my_role()). This is a defense-in-depth pair; preserve and test both while modernizing role mutation.
+- approve_store() legitimately sets an owner profile from customer to merchant during the approved workflow; this privileged transition is protected by its legacy admin gate and audited. Do not replace it with a general team-role write path.
+- approve_offer_campaign_budget() is a confirmed inconsistent authorization path: direct profile role lookup (role='admin') instead of private.need_admin(); it is authenticated-executable, not service-role-only. B2 should migrate to a narrow campaign-budget permission and audit reason/actor, with negative tests for non-admin and cross-scope actors.
+- admin_store_workspace_context() exposes owner name/email/phone/photo and store/subscription metrics to legacy admins. Before converting to support/store-review roles, require an explicit scoped permission, reason/audit trail, and data-minimized response shape for roles that do not need owner contact data.
+- seller_transition() resolves the seller-order and store from DB, then requires legacy admin or store owner; state transitions are checked and seller cannot directly set delivered/at_hub/consolidated. Retain those invariants and add team fulfilment membership only after B3 membership semantics are defined.
+- hub_receive() validates exact per-item check coverage, item membership, status values, then updates custody state and audit. hub_consolidate() verifies every seller leg is at hub and uses route/state guards. dispatch() requires ready-for-delivery hub order, existing delivery record, updates courier details, and audits. The authorization gate is currently broad legacy admin; B5 must add assigned hub/zone/dispatch context without weakening these operational guards.
+- mark_delivered() requires a valid code and allows admin or store owner on direct-route orders; rate-limits code attempts. Future courier permissions must bind authenticated actor to an assigned delivery job and preserve code/POD evidence.
+- record_payout() locks the store, checks positive amount/reference and current balance, records payout plus ledger entry, notifies owner and audits. It is still behind broad legacy admin and needs finance permissions plus maker/checker separation.
+- refund() locks order and seller-order, checks paid/refundable state and total cap, records processed refund and ledger reversals/commission restoration, notifies and audits. The operation currently executes under broad admin; introduce narrow refund permission, reason, and explicit approval/processing controls while preserving transactional/idempotency protections.
+
+### Public anon RPCs — data review
+
+- seller_plan_catalog() returns active public plan pricing, product quota, commission discount, features and verification flags. Public storefront plan comparison is likely intended; confirm only public-facing fields are returned and maintain a response-contract test.
+- store_reply_stats() exposes store id, median reply minutes, and chat count for the last 30 days, requiring at least three conversations. It returns aggregate—not message or customer data—but still needs a public contract/privacy review and anti-scraping/rate consideration.
+- support_sla_public() exposes the configured support SLA minutes. Keep only if this is intentionally public; ensure the selected support_settings value is a public-safe setting, not an arbitrary internal key.
+
+### B2.0 inventory completion status
+
+The read-only snapshot now covers public SECURITY DEFINER function counts and ACL, named high-impact function definitions, RLS policy totals and selected policy bodies, direct table privilege patterns, anon policy surface, private-schema table grants, trigger definitions, and selected role/profile guard helpers. **It is not yet a complete line-by-line audit of all 47 authenticated-executable functions or all 92 policy expressions.** The next audit pass must finish that list and classify each function/policy into: public read, user-owned, store-scoped, platform-admin, logistics, finance, support, or service-only. Enforcement implementation remains blocked on B1 security review/staging validation and must not be started from this incomplete inventory.
