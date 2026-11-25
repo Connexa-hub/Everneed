@@ -315,6 +315,7 @@ as $function$
       coalesce(array_agg(rp.permission_key order by rp.permission_key)
         filter (where rp.permission_key is not null and pc.permission_key is not null), array[]::text[]) as permissions,
       'assignment'::text as source,
+      false::boolean as compatibility,
       case when a.scope_type='store' then s.name else null end as scope_name,
       case when a.scope_type='store' then s.is_official else false end as official
     from public.access_role_assignments a
@@ -339,6 +340,7 @@ as $function$
       coalesce(array_agg(rp.permission_key order by rp.permission_key)
         filter (where rp.permission_key is not null and pc.permission_key is not null), array[]::text[]) as permissions,
       'legacy_owner'::text as source,
+      false::boolean as compatibility,
       s.name as scope_name,
       s.is_official as official
     from public.stores s
@@ -348,10 +350,28 @@ as $function$
     left join public.access_permission_catalog pc on pc.permission_key=rp.permission_key and pc.active
     group by s.id,s.name,s.is_official
   ),
+  legacy_platform_admins as (
+    select
+      'platform'::text as plane,
+      'platform'::text as scope_type,
+      null::text as scope_id,
+      'legacy_admin'::text as role_key,
+      'Legacy Admin (compatibility)'::text as display_name,
+      array[]::text[] as permissions,
+      'legacy_profile'::text as source,
+      true::boolean as compatibility,
+      null::text as scope_name,
+      false::boolean as official
+    from public.profiles p
+    join caller c on c.user_id=p.id
+    where p.role='admin'
+  ),
   contexts as (
     select * from assigned_contexts
     union all
     select * from legacy_store_owners
+    union all
+    select * from legacy_platform_admins
   )
   select coalesce(jsonb_agg(jsonb_build_object(
     'plane',plane,
@@ -362,6 +382,7 @@ as $function$
     'display_name',display_name,
     'permissions',permissions,
     'source',source,
+    'compatibility',compatibility,
     'official',official
   ) order by plane,scope_type,scope_id,role_key),'[]'::jsonb)
   from contexts
