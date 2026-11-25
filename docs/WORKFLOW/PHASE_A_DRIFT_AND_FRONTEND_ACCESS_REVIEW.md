@@ -118,3 +118,29 @@ Read-only production definitions inspected for `seller_transition`, `dispatch`, 
 6. **Refund bounds:** cumulative processed/approved refunds are compared against order total; run adversarial tests for concurrent refund requests, partial seller allocations, commission math, and order/payment-status consistency.
 
 No functions, rows, grants or migrations were changed. These are source observations and proposed tests, not confirmed exploit findings.
+
+
+## 7. Production RLS policy and table-grant review (read-only)
+
+The public-schema RLS policy inventory was queried from Everneed01.
+
+### Policy coverage summary
+- Protected tables have RLS enabled (verified in baseline); policy predicates are generally owner/admin scoped for private records.
+- Orders: buyer/admin SELECT; admin UPDATE. No anon policy; direct grants still exist for anon on table operations, so RLS is the blocking layer. This illustrates why grants and RLS must be audited together.
+- Seller orders: admin or released seller-order rows for store owner; sellers cannot read unreleased seller orders through this policy.
+- Order items: buyer/admin or seller owner where seller order released.
+- Delivery and order secrets: buyer/admin read. Delivery code is buyer-visible through order_secrets policy; verify code rotation/expiry/one-use and ensure seller/courier paths cannot expose it.
+- Ledger, payout, store payments, subscriptions: admin or store owner.
+- Product private: admin or owning store. Public products read only published/live product rows.
+- Store private: admin or owner. Stores: owner/admin/public live-approved read; owner create/update has owner_id guard, create status limited to draft/pending.
+- Refunds/disputes: buyer/admin or associated seller (seller read only); dispute opening requires buyer/order ownership.
+- Profiles: self/admin SELECT, self UPDATE with role invariant. Anon table grants are present but policies deny access.
+- Chat: member/admin SELECT; messages restrict internal notes from ordinary members. Admin updates conversation; membership predicate is used for reads.
+
+### Grant observation (high-priority least-privilege review; not yet a confirmed exploit)
+The database role-table-grant inventory shows broad default table privileges for `anon` and `authenticated` on some tables (including SELECT/INSERT/UPDATE/DELETE/TRUNCATE), while RLS is intended to block unauthorized rows/actions. Some tables have grants broader than their policy set requires. RLS is not a substitute for minimizing SQL privileges. Review the exact table/column grants and default privileges, then create a staging-only revocation/allowlist migration and API regression tests. Do not revoke in production during this audit.
+
+The `private` schema has USAGE granted to anon and authenticated in this production snapshot. This does not prove PostgREST exposes it; API exposed-schema settings could not be confirmed via the SQL connector. Confirm Supabase API settings (exposed schemas and search path) through dashboard or config evidence. Restrict private schema USAGE/EXECUTE to minimum necessary if compatible with existing functions; test all dependencies first.
+
+### R23 response — accepted contract, implementation not yet started
+The two-plane proposal is accepted. Use its canonical permission keys (e.g. `store.catalogue.write`, `store.orders.transition`, `platform.staff.manage`) rather than architecture-document aliases in new backend contract. Frontend compatibility aliases are transitional and should be removed after the backend/UI contract aligns. R23 `my_access()` is read-only introspection and must be based on active membership/assignment records; it must not grant or mutate access. It will be staged only after role inventory, orphaned/ownerless stores and legacy admin account classification. No automatic owner assignment, no view-as, no custom role permissions in initial release. Bootstrap preserves legacy admin only as a compatibility/emergency path until controlled audited migration.
