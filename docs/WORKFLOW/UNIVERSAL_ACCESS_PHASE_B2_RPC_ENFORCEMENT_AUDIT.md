@@ -303,3 +303,121 @@ Counts in predicate columns overlap with each other and with other policies. Thi
 - `order_secrets` and `deliveries` remain buyer/admin read surfaces; seller/courier roles should use minimal RPC projections rather than direct table access.
 
 This remains a source-and-catalogue inventory. Every policy's final expression and grant interaction still needs explicit test mapping; no staging writes or production access occurred.
+
+
+## SECURITY DEFINER effective-execute inventory — exact signature snapshot (2026-11-25)
+
+A staging catalog query using `has_function_privilege` enumerated the full current set (not a name heuristic):
+
+| Effective access | Count | Anon-executable | Service-role-executable |
+|---|---:|---:|---:|
+| Authenticated-executable | 47 | 3 | 44 |
+| Service-only | 36 | 0 | 36 |
+| **Total** | **83** | **3** | **80** |
+
+This reconciles the earlier high-level snapshot: **36 are service-only**; 47 are authenticated-executable; among those, exactly three are also anon-executable (`seller_plan_catalog()`, `store_reply_stats()`, `support_sla_public()`). Counts are role-effective ACLs, not vulnerability findings.
+
+### Authenticated-executable functions by workstream (47)
+
+**Identity / user / customer-owned**
+- `accept_policy(text,text)`
+- `cancel_order(text,text)`
+- `confirm_received(text)`
+- `order_tracking(text)`
+- `report_payment(text,text,text)`
+- `next_slug(text)`
+
+**Seller / store / catalogue**
+- `apply_rental_payment(text,text,numeric,text,text)`
+- `choose_plan(text)`
+- `my_seller_orders(text)`
+- `my_store_entitlements()`
+- `request_store_activation(text)`
+- `seller_adjust_variant_stock(uuid,integer,text,text)`
+- `seller_product_capabilities(text)`
+- `seller_product_category_schema(text)`
+- `seller_transition(text,text,jsonb)`
+- `set_offer_store_funding_consent(text,text,integer)`
+- `revoke_offer_store_funding_consent(text,text,text)`
+- `set_store_terms(text,numeric,boolean)`
+- `store_balance(text)`
+- `submit_store(text)`
+- `seller_plan_catalog()`
+
+**Platform/admin and sensitive operational**
+- `admin_confirm_payment(text)`
+- `admin_set_plan_entitlements(text,integer,boolean,integer,boolean,boolean,text)`
+- `admin_set_verification_scope(text,text,text,text)`
+- `admin_store_workspace_context(text)`
+- `approve_offer_campaign_budget(text,text,bigint,text)`
+- `approve_store(text,text)`
+- `dispatch(text,jsonb)`
+- `hub_consolidate(text)`
+- `hub_receive(text,jsonb)`
+- `mark_delivered(text,text)`
+- `record_payout(text,numeric,text,text)`
+- `refund(text,text,numeric,text)`
+- `reject_store(text,text)`
+- `review_product(text,text,text)`
+- `suspend_store(text,text)`
+- `support_sla_sweep()`
+
+**Chat / support interaction**
+- `chat_escalate(uuid,text)`
+- `chat_member(uuid)`
+- `chat_read(uuid)`
+- `chat_send(uuid,text,boolean)`
+- `chat_set(uuid,text,uuid,text[],integer)`
+- `chat_start(text,text,text,text,text,uuid)`
+
+**Compatibility helper**
+- `is_admin()`
+- `my_role()`
+
+### Service-only functions (36; exact ACL snapshot)
+
+- `apply_rental_payment_for(text,text,numeric,text)`
+- `cancel_order_for(text,uuid,text,boolean)`
+- `chat_escalate_core(uuid,text,integer)`
+- `chat_notification_contract()`
+- `chat_triage()`
+- `claim_provider_event_recovery(integer,integer,integer)`
+- `claim_stale_payment_attempt_recovery(integer,integer,integer,integer)`
+- `confirm_payment(text,text,uuid)`
+- `confirm_received_for(text,uuid)`
+- `create_order(uuid,jsonb,text,text,jsonb,numeric,text,numeric,jsonb,numeric,text)`
+- `create_order_with_snapshot(uuid,jsonb,text,text,jsonb,numeric,text,numeric,jsonb,numeric,text,jsonb)`
+- `create_order_with_financial_snapshot_v2(uuid,jsonb,text,text,jsonb,numeric,text,numeric,jsonb,numeric,text,jsonb)`
+- `create_payment_attempt(text,uuid,text)`
+- `expire_rentals()`
+- `expire_unpaid_checkout_orders(timestamp with time zone,integer,text)`
+- `finish_provider_event_recovery(uuid,uuid,text,text,text,integer)`
+- `finish_stale_payment_attempt_recovery(uuid,uuid,text,text,text,integer)`
+- `get_payment_attempt_recovery_context(text)`
+- `join_waitlist(text,text,text,text,text,text)`
+- `mark_provider_event_processed(text,text,text,text)`
+- `on_signup()`
+- `persist_order_financial_snapshot_v2(text,jsonb,uuid[])`
+- `post_finance_journal(text,text,text,text,text,jsonb,jsonb)`
+- `rate_hit(uuid,text,integer,integer)`
+- `record_payment_attempt_initialization(uuid,boolean,text,text)`
+- `record_verified_provider_event(text,text,text,text,jsonb)`
+- `redeem_offer(text)`
+- `release_earnings()`
+- `reverse_finance_journal(uuid,text,text,jsonb)`
+- `run_scheduled_jobs()`
+- `settle_verified_payment_attempt(text,text,bigint,text)`
+- `support_guest_close(text)`
+- `support_guest_open(text,text,text,text)`
+- `support_guest_ping(text)`
+- `support_sla_minutes(text)`
+- `support_tier(text)`
+
+### ACL review actions
+
+- Preserve the 36 service-only functions as service-role-only; add ACL regression checks for the exact signatures, including recovery and finance-journal functions.
+- For each authenticated-executable function, review the actual body and any called SECURITY DEFINER helpers, resource resolution, state transitions, data returned, and actor/scope provenance; the inventory does not imply all 47 are protected by the same class of authorization.
+- `admin_confirm_payment()` is a special high-risk legacy callable: review its exact lifecycle path and remove client-callability if it is redundant with verified service/provider paths. Do not alter it until call sites and payment state tests are mapped.
+- `apply_rental_payment()` and `set_store_terms()` are finance/entitlement-sensitive; narrow permissions, immutable audit, and multi-store explicit context are required.
+- `support_sla_sweep()` is authenticated-executable but admin/service-gated and destructive to stale queue records; prefer service-only invocation if no supported admin UI path exists, otherwise test non-admin denial and retention.
+- This inventory is the exact signature/ACL baseline; body-level review and dependency mapping for all 47 remains open. No grants, functions, or data changed.
