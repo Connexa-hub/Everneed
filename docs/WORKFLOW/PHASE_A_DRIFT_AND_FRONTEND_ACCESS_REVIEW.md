@@ -66,3 +66,32 @@ Files reviewed:
 3. Build actor/resource/action matrix and cross-store threat tests.
 4. Review order/payment/ledger/payout/dispatch lifecycle and current delivery model.
 5. Produce staged compatibility rollout with rollback and tests; production migration only after explicit owner approval.
+
+
+## 5. Everneed01 SECURITY DEFINER privilege inventory — initial pass
+
+Read-only query on production project `zpgasfweaixwsktlueje`, 25 Nov 2026. This is an inventory, not a complete function-body or exploit test.
+
+### Positive observations
+- Sensitive operational helpers/functions including `cancel_order_for`, `confirm_payment`, `create_order`, `release_earnings`, `run_scheduled_jobs`, `chat_escalate_core`, `chat_triage`, and `apply_rental_payment_for` are not executable by anon/authenticated based on current privilege checks.
+- Owner helpers `private.buys`, `private.owns_store`, `private.sells`, `private.my_store` are SECURITY DEFINER but use `auth.uid()` in their ownership predicates and have an empty search_path.
+- Most inspected public SECURITY DEFINER functions use fixed `search_path=public`; private helpers commonly set an empty search_path and qualify referenced objects.
+
+### Functions callable by anon at the database privilege level — require exposure/config and abuse review
+- `public.join_waitlist`: input validation, bounded text, allowed role values and unique-email conflict handling present. Check rate limiting and public schema exposure.
+- `public.support_guest_open`: validates guest ID format and limits field lengths; has a count-based recent-queue throttle. Evaluate whether the throttle is robust under concurrency and whether guest identifiers are unguessable.
+- `public.support_guest_ping`: updates last_seen by guest ID. Identifier secrecy/entropy and public API exposure need review.
+- `public.support_guest_close`: closes queue row by guest ID only. Confirm ID entropy, abuse/race handling and that a visitor cannot close another visitor's session.
+- `public.support_sla_public`: returns public SLA JSON; verify only non-sensitive public configuration is returned.
+- `public.store_reply_stats`: returns aggregated store response statistics; currently filters to stores with >=3 chats and 30-day window. Review whether this aggregate is intended to be public and whether store IDs are public identifiers.
+- Private helpers `my_store`, `owns_store`, `buys`, `sells`, `store_live` have anon EXECUTE privilege according to PostgreSQL ACLs; their definitions are ownership/context predicates, but confirm that the `private` schema is not exposed through PostgREST/Data API and retain least-privilege grants regardless.
+
+### ACL caveat
+An EXECUTE grant is not by itself proof that a function is reachable over HTTP. Verify Supabase Data API exposed schemas and schema USAGE privileges separately. No API schema configuration was changed or verified in this pass.
+
+### Next focused checks
+- Verify exposed schema configuration and schema USAGE grants.
+- Audit all public SECURITY DEFINER function bodies for authorization, IDOR, state-transition rules, argument validation, and data leakage.
+- Review support guest abuse/rate-limiting behavior.
+- Review financial functions for four-eyes controls and direct state mutation paths.
+- Do not revoke or change grants in production without a staging rehearsal and owner approval.
