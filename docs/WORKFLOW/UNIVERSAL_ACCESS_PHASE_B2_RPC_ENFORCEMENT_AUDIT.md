@@ -486,3 +486,16 @@ No multi-store fixtures or write tests were run. These body-level findings confi
 - `chat_start(...)` binds store chat to an approved store, disallows owner messaging own store, and validates optional order belongs to buyer/store. Seller-admin chat requires caller own store. The `admin_user` branch requires legacy admin and creates user/staff membership; no user target eligibility or order association validation is performed in this branch, so the support/admin workflow must be reviewed for recipient and context correctness before it is delegated to support roles.
 
 The current support model is still legacy admin-global. B2/B3 should introduce case assignment and store/subject scope, not a role that inherits global `is_admin()` chat policies. Internal notes must be excluded from customer-visible RPCs and public conversation views. This pass is read-only.
+
+
+## Trigger / audit-history corroboration (2026-11-25)
+
+A read-only trigger catalog query checked campaign budgets, funding consent, inventory movements, payouts, refunds, conversations/messages, ledger entries, store-private settings and subscriptions:
+
+- The private seller funding-consent table has AFTER INSERT/UPDATE `offer_funding_consent_audit` trigger; retain it and verify actor/reason history semantics before team delegation.
+- `public.ledger_entries` has BEFORE UPDATE/DELETE `ledger_guard`; this is a write-protection guard, not an audit event trigger. Journal and reversal flows remain service-only.
+- `public.messages` has BEFORE INSERT `chat_guard`, AFTER INSERT triage, and notification-contract triggers. No explicit conversation-assignment/status audit trigger was returned for the checked tables.
+- `public.store_private` has BEFORE INSERT/UPDATE guard; the checked table list did not return a history trigger for commission/trusted terms changes.
+- No trigger rows were returned for `private.offer_campaign_budgets`, `public.payouts`, `public.refunds`, `public.product_inventory_movements`, `public.conversations`, or `public.store_subscriptions` in this query. This corroborates the campaign-budget history gap and highlights that history must be written by guarded RPCs or dedicated append-only tables, not assumed from RLS or ledger guards.
+
+Trigger inventory is limited to these tables and event types; no schema changes were made.
