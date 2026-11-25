@@ -577,3 +577,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 - **Status remains PARTIAL:** CI/APK result and Hot 70 device acceptance still pending. Plugin v6 is compatible with Capacitor 6 but upstream marks v6 unmaintained. Google Cloud Android client registration for the exact APK signing SHA-1 remains to be confirmed. No Supabase dashboard, Google Cloud, database, production or `main` changes.
 
 - Follow-up review: restored the existing iOS Browser/custom-scheme OAuth path; Android alone uses native Credential Manager. Added regression markers. Commits `b07f3d1` and `6e3afaa`; final CI and APK evidence still pending.
+
+
+## 25 Nov 2026 — newer universal direction handed to Claude 2
+
+- Owner requested that Claude 2 build from the newer and safest architecture direction. Created `docs/WORKFLOW/CLAUDE_2_R23_UNIVERSAL_ACCESS_HANDOFF.md`.
+- Claude 2 must target accepted R23 `public.my_access()` and the universal modular platform architecture, using one access/context adapter and backend-enforced permissions. Staging inspection confirms `my_access()` is not deployed; retain the current owner lookup/admin compatibility fallback until Codex delivers the staging migration and security matrix. No role-name authorization or client-side grants.
+- Shell acceptance gates include one shared session refresh lock/adoption/logout protocol, deterministic staging build stamping, complete seller bundle assets, runtime route base, nested-route/reload/history/Android Back tests, and Hot 70 evidence. Production untouched.
+- Staging order fixture authorization: 10 clearly identified orders (5 unpaid, 5 simulated-paid) using test accounts. Existing checkout/report/admin-confirm RPCs identified. The paid half must execute through authenticated staging customer/admin flows or a dedicated test-only authenticated harness; no direct payment-status/released/ledger writes and no fabricated Paystack references. Stock and ledger/audit effects must be recorded. No fixture rows have been created yet because the available SQL session cannot safely represent the authenticated admin actor required by `admin_confirm_payment`.
+
+**Last updated:** 25 Nov 2026 — ChatGPT / Codex handoff.
