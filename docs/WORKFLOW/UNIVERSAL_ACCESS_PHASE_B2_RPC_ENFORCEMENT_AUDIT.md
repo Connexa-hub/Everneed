@@ -475,3 +475,14 @@ This is a high-priority finance blocker/contract note, not a production incident
 | `revoke_offer_store_funding_consent(text,text,text)` | Caller-owned store only; updates active consent with timestamp/reason. | Keep seller-controlled revocation, audit reason, and prevent staff/admin overriding consent. |
 
 No multi-store fixtures or write tests were run. These body-level findings confirm that context selection is a contract issue to resolve before universal team roles are allowed to call seller RPCs.
+
+
+## Chat/support RPC body and policy cross-check (2026-11-25)
+
+- `chat_member(uuid)` is a caller-membership boolean based on `auth.uid()` and conversation membership; retain its narrow helper contract.
+- `chat_read(uuid)` updates the caller's own membership unread/read timestamp; a legacy admin also clears the conversation-wide admin-unread flag. That admin branch is global, so future support staff must only clear assigned-case visibility and should not gain unrestricted conversation access.
+- `chat_send(uuid,text,boolean)` validates caller/member or admin, body length (1–2000), throttles, and only allows internal notes for admin. Admin can join/assign themselves on non-note sends. Preserve participant checks, anti-abuse throttle, note separation, and do not expose internal notes to customers/sellers.
+- `chat_set(uuid,text,uuid,text[],integer)` allows admins to change status, assignee, tags and priority; conversation members can only resolve. Future support-role write permission must bind to assigned/authorized conversation, restrict assignee selection to active staff, validate tags/priority, and preserve audit/history. Current body has no explicit reason/audit call for these admin changes.
+- `chat_start(...)` binds store chat to an approved store, disallows owner messaging own store, and validates optional order belongs to buyer/store. Seller-admin chat requires caller own store. The `admin_user` branch requires legacy admin and creates user/staff membership; no user target eligibility or order association validation is performed in this branch, so the support/admin workflow must be reviewed for recipient and context correctness before it is delegated to support roles.
+
+The current support model is still legacy admin-global. B2/B3 should introduce case assignment and store/subject scope, not a role that inherits global `is_admin()` chat policies. Internal notes must be excluded from customer-visible RPCs and public conversation views. This pass is read-only.
