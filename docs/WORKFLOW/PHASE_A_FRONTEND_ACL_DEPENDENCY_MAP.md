@@ -74,3 +74,13 @@ Queried Everneed-staging information_schema table privileges and pg_default_acl.
 
 ## Root app source paths added to scan
 Static inspection also confirms direct writes in `js/merchant/merchant.js`: stores, store_private/store_applications, products and product_private are edited through REST, and product status is directly updated for draft/review. Admin-sellers uses RPCs for approve/reject/reinstate/review/suspend. `js/adminx.js` directly toggles offers, inserts offer records, and may update order state through a legacy store abstraction; payment confirmation uses RPC/Paystack. `js/shop.js` directly inserts reviews. The exact mapping for every app flow and table/column is still incomplete; missing paths in this connector scan are not evidence they do not exist.
+
+## Focused table grants for observed client paths (staging)
+- `products`, `collections`, `offers`, `orders`, `profiles`, `size_charts`, `reviews`: anon and authenticated table-level grants include broad CRUD plus REFERENCES/TRIGGER/TRUNCATE (review view exceptions and base-table status before remediation).
+- `product_private`: authenticated broad CRUD plus REFERENCES/TRIGGER/TRUNCATE; anon not granted.
+- `store_applications`, `store_private`: authenticated SELECT plus REFERENCES/TRIGGER/TRUNCATE (no table-level INSERT/UPDATE in this snapshot; column grants and policy are likely part of supported seller writes and must be inspected specifically).
+- `stores`: authenticated SELECT plus REFERENCES/TRIGGER/TRUNCATE; anon REFERENCES/TRIGGER/TRUNCATE but no SELECT. This is particularly relevant to seller direct create/update and storefront grants; inspect column grants and RLS before drafting.
+- `support_queue`, `support_rules`, `support_settings`: authenticated broad CRUD and truncate/trigger/reference grants; actual support flows use direct writes as identified above.
+- `notifications`: authenticated SELECT only at table-level, with excess REFERENCES/TRIGGER; no anon grant.
+- `policy_documents`: anon SELECT; authenticated SELECT/INSERT/UPDATE/DELETE. The client reads published documents only; admin publication management needs scoped policies and may be RPC-only.
+These are catalog grant observations on Everneed-staging, not production and not a full column ACL matrix. No tests or changes were applied.
