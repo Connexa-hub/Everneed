@@ -50,6 +50,10 @@ begin
     raise exception 'FAIL: required explicit role grants missing';
   end if;
 
+  if not has_schema_privilege('authenticated','private','usage') then
+    raise exception 'FAIL: migration removed existing authenticated USAGE on private schema';
+  end if;
+
   if has_table_privilege('anon','public.access_role_assignments','select')
     or has_table_privilege('authenticated','public.access_role_assignments','select')
     or has_table_privilege('anon','public.access_role_catalog','select')
