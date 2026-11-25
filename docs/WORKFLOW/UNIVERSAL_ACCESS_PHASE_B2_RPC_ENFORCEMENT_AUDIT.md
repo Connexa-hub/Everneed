@@ -615,3 +615,23 @@ Source review of migrations 028/029 on web-portal and the staging ACL inventory:
 - The payment recovery Edge Function uses service role, verifies transactions against Paystack and calls settlement/recovery RPCs; worker should remain service-only, with environment-specific secret and scheduled invocation controls.
 
 These controls are an example of the intended B2 boundary: client-facing authenticated RPCs should not invoke or simulate provider-confirmed financial authority. Maintain service-only ACL regression tests for exact signatures and webhook HMAC/verification before settlement. This source review does not prove the deployed Edge Function version or scheduler is active; staging schema/CI evidence is distinct from deployment evidence.
+
+
+## Complete legacy-admin policy replacement inventory (2026-11-25)
+
+The live query enumerated every public policy expression containing is_admin() in its USING or WITH CHECK clause. This is the concrete table/policy replacement inventory for implementation planning (not every row needs replacement; owner/customer branches must be preserved):
+
+- Platform/catalog/configuration: audit_log, banners, category_attributes, collections, offers, settings, size_charts, store_plans, seller_plan_entitlements, seller_verification_rules, policy_documents, waitlist.
+- Seller/store administration: stores (admin read), store_applications, store_private, store_payments, store_subscriptions, store_verification_checks, product_inventory_movements, product_links, product_media, product_price_tiers, product_private, product_variant_private, product_variants, products, seller_orders.
+- Customer/order/finance: orders (read + update), order_items, order_item_fees, order_secrets, deliveries, refunds, disputes, payouts, ledger_entries, policy_acceptances, profiles, reviews (delete).
+- Support/chat/communications: canned_replies, conversation_members, conversations (read + update), messages, notifications, support_queue, support_rules, support_settings.
+
+### Migration design warnings from the exact expressions
+
+- Some admin access is embedded inside combined owner/customer expressions (canned_replies, conversation_members, deliveries, disputes, ledger_entries, messages, notifications, order_items, order_item_fees, policy_acceptances, product_private, refunds, reviews, seller_orders, store_private, store_* finance/verification). Split only the admin branch while preserving the non-admin expression and column/data restrictions.
+- Several broad ALL policies are standalone admin bypasses: banners, category_attributes, collections, offers, settings, size_charts, store_plans, support_queue/rules/settings, waitlist, products, product_variants and private product adjunct tables. These are high-risk candidates for intentional replacement with per-command permissions, not policy layering.
+- RLS policies on product media/links/price tiers/private variant data grant owner OR admin; team catalog roles should be store-scoped, while admin access should become scoped platform review/ops where applicable.
+- Profile and notifications admin reads are broad PII/user visibility. Keep self/recipient access and replace global staff visibility with explicit purpose scopes/projections.
+- Audit log remains admin read only; future compliance/finance reviewers need filters and scope, not general audit-log access by default.
+
+The catalog is now a table-by-table policy migration backlog. Any future migration should include role-context negative tests and legacy-admin compatibility tests, verifying that each new policy actually replaces broad admin access rather than merely adding an OR branch.
