@@ -193,3 +193,18 @@ The current frontend adapter also filters contexts to `plane='platform'` or `pla
 ## Rollout compatibility gate — legacy admin UI
 
 B1 intentionally returns a `legacy_admin` compatibility context with an empty permission array (no auto-promotion). The current `EVAccess` client treats a successful `my_access()` RPC as available; its `can()` then returns false for this context and `gate()` overrides legacy UI checks. If B1 is deployed before a verified platform assignment/bootstrap or an explicit transitional client rule, the existing admin may lose gated platform UI even though backend legacy `is_admin()` checks still authorize existing operations. Add a rollout gate: either compatibility-only context retains legacy UI fallback (explicitly temporary and not backend authorization) or a verified platform role is bootstrapped before turning on the access adapter gates. Do not silently auto-promote legacy admins.
+
+
+## Sensitive-data RLS matrix spot-check (2026-11-25)
+
+Catalog snapshot: 51 public base tables; RLS enabled on all 51; none currently FORCE RLS. This confirms RLS is present structurally, but table owners/SECURITY DEFINER functions/service_role can bypass it depending on execution context; protected RPCs must perform explicit authorization and resource checks.
+
+Spot-checked policy expressions:
+- `orders` SELECT is buyer owner or legacy admin; UPDATE is legacy-admin-only. `order_secrets` and `deliveries` SELECT are buyer (`private.buys`) or legacy admin only. Keep delivery secrets out of courier direct reads; courier verification should use an assigned-job RPC that verifies code without exposing secret values.
+- `seller_orders` SELECT requires released + store owner or admin. `my_seller_orders()` is a separate owner-bound RPC that limits customer phone/address exposure to direct-route orders in selected fulfilment stages; hub route returns limited city. Team access must preserve least-privilege field projection and stage-based reveal.
+- `refunds` SELECT is buyer, selling store for the related seller-order, or admin. `disputes` SELECT is opener, seller on associated seller-order, or admin; INSERT requires buyer-owned order and open status. Preserve both customer and seller isolation.
+- `ledger_entries`, `payouts`, `store_payments`, `store_subscriptions`, and `store_verification_checks` are owner or admin scoped. Store finance viewer/team access must be an explicit store-scoped policy and data projection, never platform-wide.
+- `product_private` insert/update are store-owner only; SELECT owner or admin. Inventory movement SELECT owner/admin. Keep adjustment write via audited RPC and inventory reason/reference, not broad direct table grants.
+- `notifications` SELECT owner/admin and UPDATE owner-only; `cards` SELECT/delete owner-only. These are user-specific and should not be widened through staff/store roles.
+
+This is a targeted policy spot-check, not complete verification of every policy expression. A full B2.0 checklist must still map all 92 policies to table sensitivity, read/write command, current predicate, target permission, exact scope, and test coverage.
