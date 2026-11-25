@@ -522,3 +522,8 @@ Goal: the app and the website use the same files, labels, money rules and look.
 ### Default ACL root-cause confirmed (25 Nov)
 - `pg_default_acl` shows public-schema default table ACLs for owners `supabase_admin` and `postgres` grant broad table privileges (including TRUNCATE/trigger/reference) to anon and authenticated; default function/sequence grants are also broad.
 - Grant-hardening scope must include existing-object ACLs **and both owners' default ACLs**. Add tests that newly created table/function/sequence ACLs are least-privilege. See audit report section 9. No live changes.
+
+
+### Privilege-hardening plan drafted (25 Nov)
+- `docs/WORKFLOW/PHASE_A_PRIVILEGE_HARDENING_PLAN.md` documents the staging-only least-privilege approach, dependency map, tests and acceptance criteria. It is a plan only; no SQL migration drafted/applied.
+- Next dependency: map all direct table/column writes from app/web/shared code and RPC/trigger dependencies before creating migration.
