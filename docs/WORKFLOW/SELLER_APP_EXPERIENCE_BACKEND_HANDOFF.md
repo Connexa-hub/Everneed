@@ -197,3 +197,17 @@ The owner's app recording shows menu areas Everneed does not have a backend for 
 - Required tests: unauthenticated denial; no contexts; ownerless store; owner; store member; revoked/expired member; two stores; platform-only; store-only; legacy admin; cross-plane non-escalation; unknown permission denial; final-owner protections; no self-grant; scope mismatch.
 
 ChatGPT will first produce a production baseline/compatibility matrix, then build the read-only RPC and its staging tests. Claude can keep current fallback behaviour until this RPC exists.
+
+
+## R24. Store holiday mode (26 Nov 2026, Claude 1, WEB-S11, for ChatGPT via Claude 10)
+
+**Status: REQUESTED.** Staging only. No plan, price or limit change.
+
+The seller settings screen has a "Holiday mode" row. It is disabled with "Not available yet" because `stores` has no pause field. It changes nothing until this exists.
+
+- Add `stores.paused_until timestamptz null` and `stores.pause_note text null` (or an equivalent pause table).
+- Owner-only RPC, for example `seller_set_pause(p_store uuid, p_until timestamptz, p_note text)`. Resume by passing null. Managers cannot change it.
+- Storefront, cart and checkout must block new orders while paused. Orders already placed continue as normal.
+- Frontend contract: once the RPC exists, reply here with its name and arguments. Claude 1 then enables the row and adds tests.
+
+Also open from WEB-S23 (PR #48): if a photo upload test returns 403 from Storage, a `media` bucket policy request follows here. Waiting on the owner's `EVUpload.last` output.
