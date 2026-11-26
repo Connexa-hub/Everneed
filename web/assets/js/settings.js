@@ -46,7 +46,8 @@
       img.src=url;
     });
   }
-  function uploadImage(file,folder){return shrink(file).then(function(f){return Supa.upload(f,folder)})}
+  /* Uses the hardened uploader (clear errors, retries, timeout) when it is loaded, and the old path otherwise. */
+  function uploadImage(file,folder){var U=window.EVUpload;if(U&&U.prepare)return U.prepare(file).then(function(b){return U.put(b,folder)});return shrink(file).then(function(f){return Supa.upload(f,folder)})}
 
   /* ---------- opening hours, returns and delivery: choices in, plain sentences out ---------- */
   var DAYS=[["mon","Monday","Mon"],["tue","Tuesday","Tue"],["wed","Wednesday","Wed"],["thu","Thursday","Thu"],["fri","Friday","Fri"],["sat","Saturday","Sat"],["sun","Sunday","Sun"]];
@@ -139,7 +140,7 @@
   A.setgo=function(b){C.go(b.getAttribute("data-to"))};
   function index(){
     return'<div class="sech"><h1 style="font-size:2.2rem">Settings</h1></div><p class="m">Manage how your store looks and works. Changes appear on your store page right away.</p>'
-      +'<div class="g2" style="margin-top:16px">'+SECTIONS.map(function(s){return'<a class="card" style="display:block;text-decoration:none;color:inherit" href="/portal/settings/'+s[0]+'"><h3 style="margin:0 0 4px">'+esc(s[1])+'</h3><p class="sm" style="margin:0">'+esc(s[2])+"</p></a>"}).join("")+"</div>";
+      +'<div class="g2" style="margin-top:16px">'+SECTIONS.map(function(s){return'<a class="card" style="display:block;text-decoration:none;color:inherit" href="/portal/settings/'+s[0]+'"><h3 style="margin:0 0 4px">'+esc(s[1])+'</h3><p class="sm" style="margin:0">'+esc(s[2])+"</p></a>"}).join("")+'<div class="card" aria-disabled="true" style="opacity:.8"><h3 style="margin:0 0 4px">Holiday mode</h3><p class="sm" style="margin:0 0 8px">Pause new orders while you are away.</p><span class="chip">Not available yet</span><p class="sm" style="margin:8px 0 0">It needs a store pause feature on the Everneed side, which is not built yet. Nothing changes on your store.</p></div></div>';
   }
   function head(sec){
     var cur=SECTIONS.filter(function(x){return x[0]===sec})[0];
