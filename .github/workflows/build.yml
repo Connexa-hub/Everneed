@@ -24,6 +24,28 @@ jobs:
         run: npm test
       - name: Tokens are up to date
         run: node tools/build-tokens.mjs && git diff --exit-code css/tokens.css
+      # QA-01: real-browser smoke at 360 px, axe accessibility and bundle budget. See tools/qa/README.md.
+      - name: Assemble the website (same copy step as Cloudflare Pages)
+        run: |
+          mkdir -p web/assets/css web/assets/js
+          cp css/tokens.css css/fonts.css web/assets/css/
+          cp -r fonts web/assets/fonts
+          cp js/theme.js web/assets/js/
+          cp shared/*.js web/assets/js/
+      - name: Bundle budget (QA-01)
+        run: node tools/qa/bundle-budget.mjs --site web
+      - name: 360 px smoke and accessibility (QA-01)
+        env:
+          QA_CHROMIUM_CHANNEL: chrome
+        run: node tools/qa/smoke.mjs --site web --require-axe
+      - name: Keep 360 px screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-smoke-360
+          path: tools/qa/out
+          if-no-files-found: ignore
+          retention-days: 7
   database:
     name: Database tests
     runs-on: ubuntu-latest
