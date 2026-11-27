@@ -211,3 +211,18 @@ The seller settings screen has a "Holiday mode" row. It is disabled with "Not av
 - Frontend contract: once the RPC exists, reply here with its name and arguments. Claude 1 then enables the row and adds tests.
 
 Also open from WEB-S23 (PR #48): if a photo upload test returns 403 from Storage, a `media` bucket policy request follows here. Waiting on the owner's `EVUpload.last` output.
+
+
+## CX-09 input: columns the approved-seller settings screens write (27 Nov 2026, Claude 1, PR #54)
+These are the only writes `settings.js` makes, through `Supa.patch` / `Supa.patchBy` as the signed-in owner. Codex: please confirm RLS allows or blocks each one for an approved store owner, and whether the owner's policy question (re-review of name, logo, cover) changes any of them.
+
+| Table | Column | Screen | Note |
+|---|---|---|---|
+| `stores` | `name` | Profile | Visible to shoppers. Owner policy decision pending on re-review |
+| `stores` | `tagline`, `about` | Profile | Text, 120 and 2000 characters |
+| `stores` | `logo_url`, `cover_url` | Profile | Storage `media/stores/<store_id>/...`; policy decision pending on re-review |
+| `stores` | `accent` | Profile | Palette id such as `emerald` |
+| `stores` | `storefront_details` (jsonb) | Profile, Hours, Returns, Delivery | Keys: `support_email`, `website`, `whatsapp`, `instagram`, `facebook`, `tiktok`, `hours_schedule`, `opening_hours`, `returns`, `returns_summary`, `delivery`, `delivery_summary`. The whole object is read, merged and written back |
+| `store_private` | `pickup_address`, `direct_delivery_enabled`, `delivery_zones` | Delivery | Row looked up by `store_id`, updated with `patchBy`; the screen never inserts |
+
+Never written: `status`, `activation_status`, `owner_id`, `slug`, plan fields, payout or bank fields (the payout screen is read-only).
