@@ -70,3 +70,16 @@ Earlier default-ACL inspection reported broad defaults for `postgres` and `supab
 
 ### Remaining Phase A gate
 Raw REST/fetch, complete Android packaged path, RPC and trigger dependency mapping, Edge Function operations, per-column grants, default ACL owner/schema scope and CI negative tests are not complete. No staging grants or default ACLs changed. Production remains untouched.
+
+## 27 Nov — wrapper/caller second pass (web-portal)
+
+- `shared/supa.js` supports REST GET/POST/PATCH and RPC/Edge Function calls; no DELETE wrapper. Observed writes remain in the caller list above, plus the seller product status transitions detailed below.
+- The older root `js/supa.js` wrapper also exposes `upsert`, `del`, and generic `q(path, method)`. Repository search found no direct `Supa.del`, `Supa.upsert`, or generic `Supa.q` mutation call sites; this is a search result, not proof no dynamically constructed/raw mutation exists.
+- `web/assets/js/workspace.js` writes `products.status` directly for seller review submission (`pending_review`), bulk review, archive and restore; product edit/create fields are also REST writes. These are real dependencies to preserve or replace with narrowly scoped RPCs/column grants. Review submission should not be treated as publish authority; published/rejected outcomes remain server/admin-controlled.
+- `js/theme.js` writes profile `settings` preferences using self-profile PATCH; `shared/supa.js` also exposes Auth user-metadata PUT, but no caller for that helper was located during this pass.
+- Storage upload dependency: shared seller image uploader writes to the `media` bucket at `stores/<store-id>/<timestamp>.<ext>` using authenticated REST. Separate Storage policies and upsert semantics must be audited independently; do not conflate them with table grants.
+- Edge Function `paystack` uses service-role Supabase client for provider-confirmed order/payment operations and saved-card authorization. `public-forms` uses service-role client only to call allowlisted RPCs after Turnstile/origin/rate-limit validation. Service-role writes do not justify client-role DML.
+- Root app wrapper exposes table `DELETE`, upsert and generic methods, but direct mutation call-site searches were empty for `Supa.del`, `Supa.upsert`, `Supa.q`; the root app code needs raw `fetch` and indirect call review before this can be considered complete.
+
+### Next mapping tranche
+Review raw fetch/REST in all web and root `js/` modules; auth/profile paths; Storage policies; RPC EXECUTE and SECURITY DEFINER signatures/bodies; trigger tables/functions; views and sequence grants; Android packaged bundle and build-generated copies. Only after this inventory, define column-level grants and replacement RPCs, then stage a narrow revocation migration with rollback and client-flow regression tests.
