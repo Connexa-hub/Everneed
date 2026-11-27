@@ -202,10 +202,10 @@ ChatGPT will first produce a production baseline/compatibility matrix, then buil
 ## Owner decisions and backend implementation update (27 Nov 2026)
 
 ### R24 — holiday/pause mode
-Accepted: implement a real temporary pause, not a placeholder. Backend proposal in PR #66 adds `stores.paused_until` and owner-only `seller_set_pause(p_paused_until timestamptz)`. `NULL` resumes; timestamps are absolute and the seller UI must interpret/display them in `stores.business_timezone`. Pause expiry is bounded to 90 days. Storefront visibility and checkout reject new purchases through the shared `private.store_live` gate. Existing order/payment/inventory/delivery records are unaffected. Official store cannot be paused through this seller RPC. Pending staging apply/test.
+Accepted: implement a real temporary pause, not a placeholder. Backend proposal in PR #69 adds `stores.paused_until` and owner-only `seller_set_pause(p_paused_until timestamptz)`. `NULL` resumes; timestamps are absolute and the seller UI must interpret/display them in `stores.business_timezone`. Pause expiry is bounded to 90 days. Storefront visibility and checkout reject new purchases through the shared `private.store_live` gate. Existing order/payment/inventory/delivery records are unaffected. Official store cannot be paused through this seller RPC. Pending staging apply/test.
 
 ### R25 — store identity
-Accepted: **one owner = one store**. Keep the existing `UNIQUE(owner_id)` constraint. Store names are globally unique, case-insensitive after trimming/collapsing whitespace. Duplicate names are rejected with a friendly error; no silent rename. Slugs remain unique. PR #66 adds normalization/index regression coverage. No multiple-store context work is authorized.
+Accepted: **one owner = one store**. Keep the existing `UNIQUE(owner_id)` constraint. Store names are globally unique, case-insensitive after trimming/collapsing whitespace. Duplicate names are rejected with a friendly error; no silent rename. Slugs remain unique. PR #69 adds normalization/index regression coverage. No multiple-store context work is authorized.
 
 ### CX-09 approved profile edits
 Current owner policy allows profile fields and `store_private` settings subject to owner isolation and store guard. Routine profile edits (name/logo/cover/etc.) do not automatically revoke approval or force re-review; admins may manually review suspicious changes. Do not add a frontend blocker pending an owner-approved policy change.
