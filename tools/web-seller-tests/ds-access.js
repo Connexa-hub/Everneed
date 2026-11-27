@@ -30,4 +30,28 @@ const PLAT={plane:'platform',role:'reviewer',permissions:['platform.sellers.read
  await t('one call per session; reset on sign-out; signed out means unavailable',async()=>{
    const x=setup(()=>Promise.resolve([STORE]));const a=x.ctx.EVAccess;await a.load();await a.load();assert.equal(x.calls,1);a.reset();assert.equal(a.available(),false);
    const y=setup(()=>Promise.resolve([STORE]),null);await y.ctx.EVAccess.load();assert.equal(y.calls,0)});
+ // ---- my_access() shape from PR #49 (scope_id / scope_name), Claude 2 X2 follow-up
+ const SHAPE=[
+  {plane:'platform',scope_type:'platform',scope_id:null,scope_name:null,role:'platform_dispatcher',display_name:'Dispatcher',permissions:['logistics.dispatch.assign','logistics.dispatch.read','logistics.route.plan'],source:'assignment',compatibility:false,official:false},
+  {plane:'store',scope_type:'store',scope_id:'s1',scope_name:'Ada Store',role:'store_owner',display_name:'Store Owner',permissions:['store.orders.read','store.orders.transition','store.team.manage'],source:'legacy_owner',compatibility:false,official:false},
+  {plane:'partner',scope_type:'hub',scope_id:'hub-1',scope_name:null,role:'partner_hub_staff',display_name:'Hub Staff',permissions:['logistics.hub.read','logistics.custody.scan'],source:'assignment',compatibility:false,official:false}];
+ await t('generic scope_id / scope_name fill store_id / store_name for store contexts; partner contexts are kept, never given a store id',async()=>{
+   const x=setup(()=>Promise.resolve(SHAPE));const a=x.ctx.EVAccess;await a.load();const c=a.contexts();assert.equal(c.length,3);
+   const st=c.find(k=>k.plane==='store'),pa=c.find(k=>k.plane==='partner'),pl=c.find(k=>k.plane==='platform');
+   assert.equal(st.store_id,'s1');assert.equal(st.store_name,'Ada Store');assert.equal(st.scope_id,'s1');assert.equal(st.source,'legacy_owner');
+   assert.equal(pa.store_id,null);assert.equal(pa.scope_type,'hub');assert.equal(pa.scope_id,'hub-1');assert.equal(pl.store_id,null);assert.equal(pl.scope_type,'platform')});
+ await t('gates work on the new shape: store scope, dispatch, and no cross-plane leakage',async()=>{
+   const x=setup(()=>Promise.resolve(SHAPE));const a=x.ctx.EVAccess;await a.load();
+   assert.equal(a.can('orders.act','s1'),true);assert.equal(a.can('orders.act','s2'),false);assert.equal(a.can('team.manage','s1'),true);assert.equal(a.can('catalogue.edit','s1'),false);
+   assert.equal(a.can('dispatch.assign'),true);assert.equal(a.can('sellers.review'),false)});
+ await t('a branch or terminal scope id is not mistaken for a store id',async()=>{
+   const x=setup(()=>Promise.resolve([{plane:'store',scope_type:'terminal',scope_id:'t9',role:'store_pos_cashier',permissions:['pos.sales.create']}]));const a=x.ctx.EVAccess;await a.load();
+   assert.equal(a.contexts()[0].store_id,null);assert.equal(a.can('orders.act','t9'),false)});
+ await t('legacy admin compatibility context: platform gates keep today\'s behaviour (null), store gates stay denied, nothing is promoted',async()=>{
+   const x=setup(()=>Promise.resolve([{plane:'platform',scope_type:'platform',scope_id:null,role:'legacy_admin',display_name:'Legacy Admin (compatibility)',permissions:[],source:'legacy_profile',compatibility:true,official:false}]));
+   const a=x.ctx.EVAccess;await a.load();assert.equal(a.available(),true);assert.equal(a.can('sellers.review'),null);assert.equal(a.gate('sellers.review',true),true);
+   assert.equal(a.can('orders.act'),false);assert.equal(a.contexts()[0].compatibility,true)});
+ await t('a real platform role beats the compatibility context',async()=>{
+   const x=setup(()=>Promise.resolve([{plane:'platform',role:'legacy_admin',permissions:[],compatibility:true},{plane:'platform',scope_type:'platform',role:'platform_reviewer',permissions:['platform.sellers.review']}]));
+   const a=x.ctx.EVAccess;await a.load();assert.equal(a.can('sellers.review'),true);assert.equal(a.can('staff.manage'),null)});
  console.log(pass+' passed, '+fail+' failed')})();
