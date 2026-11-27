@@ -63,7 +63,7 @@ BEGIN
        OR NEW.is_demo IS DISTINCT FROM OLD.is_demo
        OR NEW.approved_at IS DISTINCT FROM OLD.approved_at
        OR NEW.slug IS DISTINCT FROM OLD.slug
-       OR NEW.paused_until IS DISTINCT FROM OLD.paused_until THEN
+       OR (NEW.paused_until IS DISTINCT FROM OLD.paused_until AND current_user <> 'postgres') THEN
       RAISE EXCEPTION 'That store field cannot be changed from the app.';
     END IF;
     IF NEW.status IS DISTINCT FROM OLD.status
