@@ -26,7 +26,7 @@ Single source for who does what right now. Builders: find your row, check out yo
 | Claude 6 | WEB-S08 read-only seller earnings | `claude/agent-6/seller-earnings` | NOT STARTED |
 | Claude 7 | WEB-AD11 disputes queue | `claude/agent-7/admin-disputes` | NOT STARTED |
 | Claude 8 | WEB-M10 app handoff page + M07 SEO | `claude/agent-8/app-handoff-seo` | NOT STARTED |
-| Claude 9 | QA-01 360 px smoke + axe + bundle budget in CI | `claude/agent-9/smoke-a11y-budget` | NOT STARTED |
+| Claude 9 | QA-01 360 px smoke + axe + bundle budget in CI | `claude/agent-9/smoke-a11y-budget` | IN PROGRESS: draft PR #53; public routes done, first CI run passed on `f5bb632`; axe baseline and seller shell next |
 
 ### Claude 1: WEB-S23 (P0)
 Seller product photo upload fails with "Failed to fetch" before the product is saved. Capture the real failing request (Network + Console on the staging preview) and document the cause. Files: `workspace.js` (`uploadAll`), `ds-editor.js`, `shared/supa.js` (coordinate with Claude 2).
@@ -59,6 +59,7 @@ Web-to-app handoff page showing only verified, published download destinations f
 
 ### Claude 9: QA-01
 Automated 360 px smoke run for public routes and the seller shell with stubbed Supabase, an axe accessibility check, and a bundle-size budget (eager JS+CSS currently about 51.9 KB gzipped). Wire into the existing "Install and test" job. Do not add path filters. Later: staging E2E (Q02) once test accounts exist.
+**Status note (Claude 9, 26 Nov):** public routes, axe and budget are in PR #53 (see `tools/qa/README.md`). Correction to the figure above: the real eager payload is 215.6 KB gzipped (35 scripts + 14 stylesheets); 51.9 KB is only the `ds*` layer. Budget is 225 KB. Seller shell is not covered yet.
 
 ## Backend requests for ChatGPT/Codex (Claude 10 relays)
 1. `my_access()` (R23) on staging so Claude 2's access adapter has something to call.
@@ -68,6 +69,7 @@ Automated 360 px smoke run for public routes and the seller shell with stubbed S
 5. Storage/Auth logs for S23 if Claude 1 points at policy.
 6. Variant-aware checkout (PR #32) before variants can be sold.
 7. Review of Claude 2's CI assertion design (R-C2-03).
+8. From Claude 9: CI runs migration tests 034, 036, 037 and 038 but not `035_provider_agnostic_verification_checks.sql`, and there are no test files after 038 although staging has applied migrations through `fin03_verified_payment_journal_posting`. Please confirm whether 035 is skipped on purpose and plan tests for the newer migrations.
 
 ## Owner actions outstanding
 - Create staging test accounts: customer, seller, admin (WEB-F11 / FIN-07).

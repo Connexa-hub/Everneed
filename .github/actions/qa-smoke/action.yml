@@ -1,0 +1,57 @@
+name: QA-01 smoke, accessibility and bundle budget
+description: Assembles the website like Cloudflare Pages, then runs the bundle budget and the 360 px smoke with axe (see tools/qa/README.md).
+runs:
+  using: composite
+  steps:
+    - name: Assemble the website (same copy step as Cloudflare Pages)
+      shell: bash
+      run: |
+        mkdir -p web/assets/css web/assets/js tools/qa/out
+        cp css/tokens.css css/fonts.css web/assets/css/
+        cp -r fonts web/assets/fonts
+        cp js/theme.js web/assets/js/
+        cp shared/*.js web/assets/js/
+    - name: Bundle budget
+      shell: bash
+      run: node tools/qa/bundle-budget.mjs --site web 2>&1 | tee tools/qa/out/bundle.txt
+    - name: axe canary (proves axe can fail)
+      if: always()
+      shell: bash
+      env:
+        QA_CHROMIUM_CHANNEL: chrome
+      run: node tools/qa/axe-canary.mjs
+    - name: 360 px smoke and accessibility
+      if: always()
+      shell: bash
+      env:
+        QA_CHROMIUM_CHANNEL: chrome
+      run: node tools/qa/smoke.mjs --site web --require-axe
+    - name: Write the QA report
+      if: always()
+      shell: bash
+      run: node tools/qa/report.mjs
+    - name: Post the QA report on the pull request
+      if: always() && github.event_name == 'pull_request'
+      continue-on-error: true
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const file = 'tools/qa/out/report.md';
+          if (!fs.existsSync(file)) return;
+          const body = fs.readFileSync(file, 'utf8');
+          const marker = '<!-- qa-smoke-360 -->';
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+          const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+          const mine = comments.find((c) => c.body && c.body.startsWith(marker));
+          if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+          else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+    - name: Keep 360 px screenshots and report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: qa-smoke-360
+        path: tools/qa/out
+        if-no-files-found: ignore
+        retention-days: 7
