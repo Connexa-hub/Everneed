@@ -3,6 +3,8 @@ on:
   push:
     branches: [main, web-portal]
   pull_request:
+  # Lets GitHub merge queue run the same required checks (Install and test, Database tests) on queued merges.
+  merge_group:
   workflow_dispatch:
 permissions:
   contents: read
