@@ -323,7 +323,7 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Owner-only RPC: `seller_set_pause(p_paused_until timestamptz DEFAULT NULL)` returns `{store_id, paused_until, business_timezone, is_paused}`. Passing `NULL` resumes. Expiry must be in the future and no more than 90 days away. Official/ownerless stores are not eligible.
 - Authenticated only; no anon/PUBLIC execute. Store owner cannot directly write the pause field; the stores guard protects it.
 - `private.store_live(store)` treats a paused store as not live. Existing storefront visibility and checkout validation paths that use this guard therefore block new purchases. Pause does not update order/payment/refund/inventory/fulfilment state. Existing orders continue their normal lifecycle.
-- Migration: `20261127140000_store_pause_and_unique_name.sql`; regression: `supabase/tests/039_store_pause_and_unique_name_checks.sql`. Pending workflow application and staging verification.
+- Migration: `20261127140000_store_pause_and_unique_name.sql`; regression: `supabase/tests/041_store_pause_and_unique_name_checks.sql`. Pending workflow application and staging verification.
 
 ### R25 — global store-name uniqueness
 - Normalize name by trimming and collapsing whitespace, then enforce case-insensitive global uniqueness with a unique expression index. Sellers receive a duplicate-name error; names are not silently rewritten beyond whitespace normalization.
