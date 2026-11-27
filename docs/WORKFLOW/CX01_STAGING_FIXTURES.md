@@ -35,17 +35,18 @@ Each order has one item from each store, total NGN 31,000, route hub, customer d
 
 Paid fixtures were transitioned using the authenticated admin `admin_confirm_payment()` RPC; no payment/ledger status was directly written and no real Paystack transactions were run.
 
-## Dispute
+## Refund and dispute
 
+- Simulated refund through admin RPC: `56683d97-a5de-403c-a80a-9478fe5c116a`, NGN 1,000 on CX01-10 / Shopflow seller order. It created two `refund` ledger entries (available; net -NGN 870.97). No Paystack refund was executed.
 - Open dispute: `4d095dbf-de88-4f41-b73e-ba82dfaa1be9`
 - Order CX01-10, Shopflow seller order `3470710b-67ff-452d-8d95-1255334e17d7`
 - Created by authenticated customer insert under the RLS “disputes open” policy; reason clearly identifies it as a staging fixture.
 
 ## Finance entries so far
 
-Payment confirmation created 20 legacy ledger entries (10 sale + 10 commission across both sellers), initially `pending`. Admin cancellation of the Testing seller order on CX01-06 exercised the approved reversal path, leaving 18 pending entries and 2 reversed entries. This also generated a partial-refund record. No manual ledger rows were fabricated.
+Payment confirmation created 20 legacy ledger entries (10 sale + 10 commission across both sellers), initially `pending`. Admin cancellation of the Testing seller order on CX01-06 exercised the approved reversal path, leaving 18 pending and 2 reversed entries. A simulated admin refund on CX01-10 created two `refund` entries with `available` status (net -NGN 870.97). Total now 22 ledger rows. No manual ledger rows were fabricated.
 
-CX01-09 was delivered through dispatch and customer confirmation. A payout/release test was attempted with a temporary payout-hold override, but the SQL mutation was blocked by safety controls and rolled back; no payout or available ledger rows were created. The live payout hold remains 3 days. Adjustment/rental kinds and the `available`/`paid` payout states still need a safe fixture path; do not fabricate direct rows.
+CX01-09 was delivered through dispatch and customer confirmation. A payout/release test was attempted with a temporary payout-hold override, but the SQL mutation was blocked by safety controls and rolled back; no payout rows were created. The live payout hold remains 3 days. `payout` kind/status `paid`, and `adjustment`/`rental` kinds still need safe fixture paths; do not fabricate direct rows.
 
 ## Blockers / handoff
 
