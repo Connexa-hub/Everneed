@@ -19,4 +19,8 @@ function setup(mode){const x=make({});const calls=[];const base=p=>Promise.resol
  await t('dispatcher preview: admin route only, only with the flag',async()=>{
    global.__q='?proto=1';global.__s={};let x=setup();await x.ctx.Core.V.portal(['dispatch']);assert.equal(x.added.length,0);await x.ctx.Core.V.admin(['dispatch']);assert.equal(x.added.length,1);assert.equal(x.added[0].src,'/seller/assets/js/ds-dispatch.js');
    global.__q='';global.__s={};x=setup();await x.ctx.Core.V.admin(['dispatch']);assert.equal(x.added.length,0);global.__q='';global.__s={}})
+ await t('hub board: admin route loads ds-hub.js without any flag, once; not for the portal or other admin pages; falls back if it cannot load',async()=>{
+   global.__q='';global.__s={};let x=setup();await x.ctx.Core.V.portal(['hub']);assert.equal(x.added.length,0);await x.ctx.Core.V.admin(['review']);assert.equal(x.added.length,0);
+   await x.ctx.Core.V.admin(['hub']);assert.equal(x.added.length,1);assert.equal(x.added[0].src,'/seller/assets/js/ds-hub.js');await x.ctx.Core.V.admin(['hub']);assert.equal(x.added.length,1);
+   x=setup('fail');const r=await x.ctx.Core.V.admin(['hub']);assert.equal(r.html,'plain:hub')})
  console.log(pass+' passed, '+fail+' failed')})();
