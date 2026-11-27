@@ -1,6 +1,6 @@
 /* Orders monitor (WEB-AD08 part 2, Claude 4). Platform admins see recent orders and their payment state, open one order, and use the two actions the backend allows.
    Loaded on demand by ds-admin-sections.js. Reads orders, seller_orders, deliveries, stores, profiles. Writes only through admin_confirm_payment(p_order) and cancel_order(p_order,p_reason), both audited by the backend.
-   Safety rules, from reading private.confirm_payment_core and private.cancel_order_core on staging (25 Nov 2026):
+   Safety rules, from reading private.confirm_payment_core and private.cancel_order_core on staging (27 Nov 2026):
    - confirm_payment_core marks ANY unpaid, uncancelled order paid and credits seller ledgers; it does not check the payment method. So Confirm is offered only when the payment state is awaiting_transfer or payment_reported (a bank transfer waiting for staff). Card payments are confirmed by the provider, never from here.
    - cancel_order_core cancels a paid order without starting a refund. So Cancel is offered only before payment; a paid order explains why it cannot be cancelled here.
    Both gaps are BACKEND REQUESTS in the handoff. Nothing is invented: no totals beyond the loaded rows, and no action for a state the backend does not support. */
@@ -51,7 +51,7 @@
   var CHIPS=[["all","All"],["action","Needs action"],["unpaid","Unpaid"],["paid","Paid"],["issues","Disputed"],["cancelled","Cancelled"]];
   function row(o,by){
     var p=by[o.user_id]||{},b=p.name||p.email||"";
-    return'<div data-k="'+kinds(o)+'" data-n="'+esc((o.id+" "+b+" "+(p.email||"")).toLowerCase())+'"><a class="ds-row" href="/admin/orders/'+enc(o.id)+'"><span class="ds-ico">'+D.icon("receipt",20)+'</span><span class="ds-grow"><b>'+esc(o.id)+"</b><small>"+esc([b,ago(o.at)].filter(Boolean).join(" · "))+'</small></span><span class="ds-end">'+payChip(o)+"<b>"+esc(money(o))+"</b></span></a></div>";
+    return'<div data-k="'+kinds(o)+'" data-n="'+esc((o.id+" "+b+" "+(p.email||"")).toLowerCase())+'"><a class="ds-row" href="/admin/orders/'+enc(o.id)+'"><span class="ds-ico">'+D.icon("receipt",20)+'</span><span class="ds-grow"><b>'+esc(o.id)+"</b><small>"+esc([b,ago(o.at)].filter(Boolean).join(" · "))+'</small></span><span class="ds-end">'+(o.status==="cancelled"?statChip(o):payChip(o))+"<b>"+esc(money(o))+"</b></span></a></div>";
   }
   function list(){
     return Supa.get("orders?select=id,user_id,total,currency,status,payment_status,at&order=at.desc&limit="+LIMIT).then(function(rows){

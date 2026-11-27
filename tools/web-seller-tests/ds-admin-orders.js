@@ -52,7 +52,10 @@ const dget=(order,extra)=>p=>p.startsWith('orders?select=id,user_id,total,curren
    assert(!h.includes('<img src=x')&&h.includes('&lt;img'),'buyer text is escaped');
    assert(/data-id="action"[^>]*>Needs action <span class="n">1<\/span>/.test(h),'only the live transfer needs action (cancelled one excluded)');
    assert(/data-id="paid"[^>]*>Paid <span class="n">2<\/span>/.test(h)&&/data-id="cancelled"[^>]*>Cancelled <span class="n">1<\/span>/.test(h)&&/data-id="issues"[^>]*>Disputed <span class="n">1<\/span>/.test(h));
-   assert(!/order=at\.desc&limit=100/.test('')&&x.calls.some(c=>c.includes('limit=100')))});
+   assert(x.calls.some(c=>c.includes('limit=100')))});
+ await t('list: a cancelled order shows as cancelled, not as awaiting its old payment state',async()=>{
+   const x=boot({get:p=>p.startsWith('orders?')?[ORD({id:'EN-4',status:'cancelled',payment_status:'awaiting_transfer'})]:[]});const h=(await x.V.admin(['orders'])).html;
+   assert(h.includes('<chip bad>cancelled</chip>')&&!h.includes('Awaiting bank transfer'))});
  await t('list: says when only the latest 100 are shown; empty and failure states are honest',async()=>{
    const many=Array.from({length:100},(_,i)=>ORD({id:'E'+i}));let x=boot({get:p=>p.startsWith('orders?')?many:[]});let h=(await x.V.admin(['orders'])).html;assert(h.includes('The latest 100 orders')&&h.includes('backend request (B3)'));
    x=boot({get:p=>p.startsWith('orders?')?[]:[]});h=(await x.V.admin(['orders'])).html;assert(h.includes('No orders yet')&&!h.includes('ds-ordfilt'));
