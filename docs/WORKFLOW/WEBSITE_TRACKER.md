@@ -608,6 +608,6 @@ Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKF
 - **Codex branch:** `codex/backend-r24-r25`. Migrations `20261127181420_r24_storefront_pause_mode.sql` and `20261127181421_r25_normalized_store_name_unique.sql` are source-only and awaiting review/CI; no staging or production migration applied.
 - R24 is centralized in `private.store_live()` (public store/product visibility and order creation), with owner-only audited `seller_set_pause`, indefinite/absolute expiry semantics and a direct-table guard. Existing order/payment/refund/inventory lifecycle remains untouched.
 - R25 adds globally unique normalized names (trim + collapse whitespace + lowercase); **keep UNIQUE(owner_id)**—one seller = one store. Do not build multi-store contexts.
-- Test assertions added: `supabase/tests/035_r24_r25_pause_and_store_name_checks.sql`; migration replay list updated.
+- Test assertions added: `supabase/tests/035_r24_r25_pause_and_store_name_checks.sql`; wired into `.github/workflows/build.yml` after 038; migration replay list updated. CI run visibility not yet available.
 - Next: CI/PR review, then owner-approved staging apply and behavioral checks. Update DB contract in the same branch.
 - **R26 QA users remains BLOCKED** on an authorized Auth Admin provisioning channel; do not write to `auth.users` directly. Credentials must be stored in protected staging secrets and handoff through GitHub/Claude 10, not plaintext in docs/comments.
