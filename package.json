@@ -17,6 +17,12 @@
   },
   "scripts": {
     "test": "node tools/check.mjs",
-    "tokens": "node tools/build-tokens.mjs && node tools/check-contrast.mjs"
+    "tokens": "node tools/build-tokens.mjs && node tools/check-contrast.mjs",
+    "qa:budget": "node tools/qa/bundle-budget.mjs --site web",
+    "qa:smoke": "node tools/qa/smoke.mjs --site web"
+  },
+  "devDependencies": {
+    "axe-core": "4.10.2",
+    "playwright-core": "1.49.1"
   }
 }

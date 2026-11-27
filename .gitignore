@@ -3,3 +3,4 @@ www/
 
 # Local Android signing material
 *.keystore
+tools/qa/out/
