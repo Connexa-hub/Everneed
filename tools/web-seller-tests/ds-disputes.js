@@ -51,6 +51,10 @@ const ROWS={'disputes?select=status':[{status:'open'},{status:'investigating'},{
    assert(r.html.includes('Decisions are not available yet'));assert(!/data-act="(?!ds-ctx|dsp-reload)/.test(r.html),'a data-act button exists: '+r.html);
    assert(!/\bbutton\b[^>]*>(Resolve|Reject|Investigate|Refund)/i.test(r.html));
    assert(x.calls.every(c=>c.startsWith('GET ')),'a non-GET call was made: '+x.calls.filter(c=>!c.startsWith('GET ')).join(','))});
+ await t('order shows its ref when one exists, otherwise a short id (orders.ref is null on staging today)',async()=>{
+   let x=setup({rows:ROWS});let r=await x.ctx.Core.V.admin(['disputes',ID]);assert(r.html.includes('#ord_abcd'),'short id expected'); assert(!r.html.includes('#ord_abcdef'),'id must be 8 chars');
+   const R2=Object.assign({},ROWS,{'orders':[{id:'ord_abcdefghijk',ref:'EV-1042',total:12500,status:'preparing',payment_status:'paid'}]});
+   x=setup({rows:R2});r=await x.ctx.Core.V.admin(['disputes',ID]);assert(r.html.includes('<b>EV-1042</b>'),'ref expected')});
  await t('case detail for an unknown id says not found; a failed side read is flagged, the dispute still shows',async()=>{
    let x=setup({rows:{}});let r=await x.ctx.Core.V.admin(['disputes',ID]);assert(r.html.includes('[empty:Dispute not found]'));
    x=setup({rows:ROWS,fail:['refunds','audit_log']});r=await x.ctx.Core.V.admin(['disputes',ID]);

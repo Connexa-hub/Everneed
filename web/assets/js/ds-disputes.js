@@ -14,7 +14,7 @@
   var TABS=[["","Needs action","open,investigating"],["resolved","Resolved","resolved"],["rejected","Rejected","rejected"],["all","All",""]];
 
   function snip(s,n){s=String(s||"").replace(/\s+/g," ").trim();return s.length>n?s.slice(0,n-1).trim()+"…":s}
-  function short(id){return String(id||"").slice(0,10)}
+  function short(id){return String(id||"").slice(0,8)}
   function words(s){return String(s||"").replace(/_/g," ")}
   function uniq(a){var seen={},o=[];a.forEach(function(x){if(x&&!seen[x]){seen[x]=1;o.push(x)}});return o}
   function by(rows,k){var m={};rows.forEach(function(r){m[r[k]]=r});return m}
@@ -65,7 +65,7 @@
       if(!d)return head("Dispute")+back()+D.empty({icon:"alert",title:"Dispute not found",text:"It may have been removed, or this account may not have access to it."});
       var ppl=uniq([d.opened_by,d.resolved_by]);
       return Promise.all([
-        soft("orders?select=id,total,status,payment_status&id=eq."+enc(d.order_id)+"&limit=1"),
+        soft("orders?select=id,ref,total,status,payment_status&id=eq."+enc(d.order_id)+"&limit=1"),
         d.seller_order_id?soft("seller_orders?select=id,store_id,status,subtotal&id=eq."+enc(d.seller_order_id)+"&limit=1"):NONE,
         ppl.length?soft("profiles?select=id,name,email,phone&id="+inList(ppl)):NONE,
         soft("refunds?select=id,amount,status,reason,created_at&order_id=eq."+enc(d.order_id)+"&order=created_at.desc&limit=20"),
@@ -81,7 +81,7 @@
             +(partial?D.banner("warning","Some details could not be loaded","Missing sections below could not be read from the database. The dispute itself is shown as recorded.",null):"")
             +'<div class="ds-h"><h2>What was reported</h2></div><div class="ds-card"><p class="ds-about" style="white-space:pre-wrap">'+esc(d.reason||"No reason was recorded.")+"</p></div>"
             +'<div class="ds-h"><h2>Order</h2></div><div class="ds-facts">'
-              +fact(d.order_id&&"#"+short(d.order_id),"Order")+fact(who(opener),"Opened by")+fact(d.created_at&&C.when(d.created_at),"Opened")
+              +fact(o&&o.ref?o.ref:(d.order_id&&"#"+short(d.order_id)),"Order")+fact(who(opener),"Opened by")+fact(d.created_at&&C.when(d.created_at),"Opened")
               +(o?fact(C.money(o.total),"Order total")+fact(words(o.status),"Order status")+fact(words(o.payment_status),"Payment"):"")
               +(store?fact(store.name,"Store"):"")+(so?fact(words(so.status),"Seller package"):(d.seller_order_id?"":fact("Whole order","Scope")))
             +"</div>"
