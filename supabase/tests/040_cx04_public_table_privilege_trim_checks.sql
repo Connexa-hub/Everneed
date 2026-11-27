@@ -10,6 +10,9 @@ BEGIN
     FROM pg_tables
     WHERE schemaname = 'public'
   LOOP
+    IF NOT (SELECT rowsecurity FROM pg_tables WHERE schemaname=r.schemaname AND tablename=r.tablename) THEN
+      RAISE EXCEPTION 'FAIL: RLS disabled on public.%.%',r.schemaname,r.tablename;
+    END IF;
     FOREACH priv IN ARRAY ARRAY['TRUNCATE','REFERENCES','TRIGGER','MAINTAIN'] LOOP
       IF has_table_privilege('anon', format('%I.%I',r.schemaname,r.tablename), priv)
          OR has_table_privilege('authenticated', format('%I.%I',r.schemaname,r.tablename), priv) THEN
