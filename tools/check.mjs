@@ -90,6 +90,18 @@ if (existsSync(recoveryWorkerPath)) {
   }
 }
 
+// 4c2. Shopper checkout recovery (SHOP-01): stable idempotency key, resume of reused attempts, no double charge.
+const cardsSource = readFileSync('js/cards.js', 'utf8');
+for (const required of ['function makeKey(order,fresh)', 'S.set(keyName(order),k)', 'action:"verify"', 'btn("cretry"', 'if(inflight)return', 'window.PaystackPop']) {
+  if (!cardsSource.includes(required)) fail('js/cards.js is missing payment-recovery guard: ' + required);
+}
+if (!cardsSource.includes('action:"init",order_id:order,idempotency_key:idem')) fail('js/cards.js init must send the stored idempotency key');
+if (!/action:"charge"[^}]*idempotency_key:/.test(cardsSource)) fail('js/cards.js saved-card charge must send the stored idempotency key (the server otherwise makes a new attempt per tap)');
+if (cardsSource.includes('r.url&&r.access_code')) fail('js/cards.js must not require access_code: a reused attempt returns a url only');
+if (/window\.open\([^)]*noopener/.test(cardsSource)) fail('js/cards.js: window.open with noopener always returns null, so a popup-blocked check would always fire');
+try { execFileSync(process.execPath, ['tools/shop-tests/cards.test.mjs'], { stdio: 'pipe' }); console.log('ok  cards behaviour tests'); }
+catch (e) { fail('cards behaviour tests failed\n' + e.stdout + e.stderr); }
+
 // 4d. Native Android Google sign-in must use the Web OAuth client ID and preserve browser PKCE.
 const googleConfigSource = readFileSync('js/config.js', 'utf8');
 const googleAuthSource = readFileSync('js/auth.js', 'utf8');
