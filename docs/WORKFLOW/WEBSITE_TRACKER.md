@@ -544,7 +544,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 
 
 ## 25 Nov 2026 — ChatGPT claim: ACL dependency map
-- **Task:** Phase A privilege hardening dependency map (existing table grants, frontend direct reads/writes, RPCs, triggers, role needs). **Status: IN PROGRESS** — owner ChatGPT, branch `web-portal`.
+- **Task:** Phase A privilege hardening dependency map (existing table grants, frontend direct reads/writes, RPCs, triggers, role needs). **Status: IN PROGRESS** — owner ChatGPT, checkpoint PR #52 `codex/phase-a-dependency-map-checkpoint` → `web-portal` (documentation-only).
 - Before drafting a migration, map direct client calls and required table/column privileges; staging-only validation. Production remains read-only.
 
 
@@ -558,6 +558,7 @@ Goal: the app and the website use the same files, labels, money rules and look.
 
 ### Environment ledger refresh (25 Nov, read-only)
 - Rechecked migration ledgers via Supabase: Everneed01 production remains on timestamped migrations through `20261111073610` (`015_support_sla_public`); Everneed-staging contains legacy 000–033 and numerous timestamped migrations through Nov 22. This reinforces that frontend/backend contracts on web-portal cannot be assumed live in production. No schema changes applied.
+- **25 Nov follow-up:** PR #52 records verified browser/native shared direct-write dependencies (`stores`, `store_applications`, `products`, `product_private`, `store_private`, `notifications`, `profiles.settings`) and isolates service-role Paystack operations. This is preliminary only; raw REST/fetch, Android/native package paths, RPC/trigger and full Edge Function dependencies remain to be mapped. Migration-readiness is NOT met; no ACL changes.
 - Phase A static frontend ACL map and staging grant snapshots are documented; next task remains completing the code call-site scan and preparing staging-only tests, not a production migration.
 
 - **Production ACL baseline refreshed (read-only):** Everneed01 has anon TRUNCATE on 15 public objects, anon 42 write grants; authenticated TRUNCATE on 29 objects and 82 write grants; both object owners have broad default ACLs. Focused anon TRUNCATE list includes banners, collections, offers, orders, products, profiles, reviews, settings, size_charts, stores. This is catalog privilege excess; API reachability/exploitability not established. Documented in ACL dependency map commit `2801ff484f8852ea3d5eb9b7b83b637bfe3d6348`. Production unchanged.
@@ -601,3 +602,14 @@ Goal: the app and the website use the same files, labels, money rules and look.
 **START NOW:** The agreed ten-Claude team is active on `web-portal`. Claude 10 (the tenth Claude, not an extra AI) must read the canonical docs, audit current repo and tracker status, create a prioritized executable plan, and coordinate Claude 1–9 to begin parallel work. Do not wait for another user kickoff. All nine builders work across app + web according to their specialist lanes; Claude 10 owns research, planning, design strategy, assignment, dependency management, moderation, integration, review, debugging/QA and end-to-end completion.
 
 Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKFLOW_DOCS_INDEX.md`, `PROJECT_STANDARD_AND_ROADMAP.md`, `AI_COORDINATION_STANDARD.md`, `AI_PROTOCOL.md`, this tracker, and contracts relevant to each task; (3) inventory current work and stale/incomplete tasks, avoiding duplicate or conflicting edits; (4) Claude 10 assigns concrete task IDs, owners, acceptance criteria and dependencies for Claude 1–9; (5) each builder starts the highest-priority non-blocked task in its lane, claims it here, and reports a small actionable backend contract request when blocked; (6) Claude 10 reviews each delivery, directs corrections, and keeps this tracker and roadmap synchronized. Backend contract requests go to ChatGPT/Codex. Staging only for testing; production remains protected. This kickoff does not itself mark any work complete.
+
+
+## 27 Nov 2026 — CX-01/02/04 backend checkpoints (staging)
+- CX-01 fixture audit found 10 parent orders (5 awaiting-transfer, 5 simulated paid: 3 paid + 2 partially-refunded), all hub-route; seller-order fixture coverage includes pending, handover_pending, at_hub, consolidated, delivered, issue and cancelled. A missing `out_for_delivery` state was created via authenticated `dispatch()` on the existing paid consolidated fixture order `5cb93362-9d03-405f-a5f0-ab3a0e4b91aa`, using a staging admin JWT claim and a clearly marked test courier. No direct order-status write. 22 ledger rows exist, but payout-kind negative row is still missing: store balance is NULL/zero-like and `record_payout()` rejects payout without sufficient available balance; do not fabricate a balance. One dispute fixture exists. IDs were posted in PR #49 comment.
+- CX-02: staging has no `public.my_access()`. B1 PR #49 is blocked on role assignment guard, dispatcher scope, store field contract, partner-plane EVAccess support and legacy-admin fallback. No migration applied.
+- CX-04: latest staging ACL snapshot documented in PR #52 checkpoint. Confirmed broad anon/authenticated grants and default ACLs; direct grants on disputes include INSERT/SELECT/UPDATE/DELETE for authenticated. ACL migration and CI tests are not ready because direct-write/RPC/trigger dependencies remain incomplete. No ACL changes.
+- Open requests remain incomplete; staging only; Everneed01 production unchanged.
+
+
+### CX-04 ACL evidence correction — 27 Nov
+- Direct ACL expansion + effective checks reconciled the object-level snapshot: authenticated does **not** have TRUNCATE on `disputes`; it has INSERT/SELECT/UPDATE/DELETE and MAINTAIN. TRUNCATE is granted to anon/authenticated on five other objects (`auto_offers`, `product_ratings`, `public_products`, `public_reviews`, `public_stores`); effective MAINTAIN was confirmed on 44 public objects for authenticated and 17 for anon. Use the table ACL expansion as primary evidence and reconcile catalog views before stating exploitability. This correction does not change the wider default-ACL least-privilege concern. No grants changed.
