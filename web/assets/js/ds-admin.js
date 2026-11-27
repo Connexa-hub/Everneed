@@ -41,8 +41,10 @@
   var NAVT={
     platform:[["admin","Overview","chart","/admin"],["admin/sellers","Sellers","store","/admin/sellers"],["admin/review","Review","clip","/admin/review"],["admin/store","Store","box","/admin/store"],["inbox","Inbox","chat","/inbox",1]],
     store:[["admin/store","Overview","chart","/admin/store"],["admin/store/products","Products","box","/admin/store/products"],["admin/store/orders","Orders","receipt","/admin/store/orders"],["admin/store/messages","Messages","chat","/admin/store/messages"],["admin/store/staff","Staff","users","/admin/store/staff"]]};
+  /* Exposed for ds-admin-sections.js (WEB-AD08): a registered section adds its own platform tab here. */
+  C.adminNav=NAVT;
   function tabKey(active){var a=String(active||"");if(CTX==="store")return a.indexOf("admin/store")===0?a:"";
-    if(a.indexOf("admin/store")===0)return"admin/store";if(a==="admin"||a==="inbox"||a==="admin/review"||a.indexOf("admin/sellers")===0)return a.indexOf("admin/sellers")===0?"admin/sellers":a;return""}
+    if(a.indexOf("admin/store")===0)return"admin/store";if(a==="admin"||a==="inbox"||a==="admin/review"||a.indexOf("admin/sellers")===0)return a.indexOf("admin/sellers")===0?"admin/sellers":a;return NAVT.platform.some(function(n){return n[0]===a})?a:""}
   var baseShell=window.AX&&AX.shell;
   if(baseShell)AX.shell=function(kind,active,inner,me){
     if(kind!=="admin"||!me||me.role!=="admin")return baseShell.apply(this,arguments);
