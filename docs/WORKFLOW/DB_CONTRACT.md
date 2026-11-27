@@ -319,3 +319,11 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Staging migration `20261127110139_cx04_public_table_privilege_trim` removes `TRUNCATE`, `TRIGGER` and `REFERENCES` from anon/authenticated on all public base tables. RLS and existing SELECT/INSERT/UPDATE/DELETE grants are unchanged in this narrow pass.
 - Catalog assertion on staging reports zero base tables with those API-role privileges. `authenticated` no longer has TRUNCATE on `public.disputes`; UPDATE/DELETE grants remain subject to further ACL/RLS review.
 - Regression test `040_cx04_public_table_privilege_checks.sql` added to CI Database tests. Broad DML and default ACL remediation is still pending dependency map. Production untouched.
+
+
+## CX-01 staging fixtures (27 Nov 2026)
+
+- Existing staging Auth users are used; no accounts or credentials were created. Fixture IDs and test state are documented in `docs/WORKFLOW/CX01_STAGING_FIXTURES.md`.
+- Ten hub-route orders exist: five unpaid and five simulated-paid through `admin_confirm_payment()`. Each order has two seller orders (Shopflow and Testing). The QA product is clearly labeled and seller-created/admin-reviewed. Both product stocks were reserved down from 10 to 0 for fixtures.
+- Hub states currently cover handover-pending, partial receipt, and consolidated. Dispatch and damaged-item issue remain blocked by RPC defects addressed in PR #62; do not treat those fixtures as complete until migration applied and RPCs verified.
+- The customer RLS insert created one open dispute tied to CX01-10. Twenty ledger rows (sale/commission) are pending; no direct ledger rows fabricated. Finance status/kind coverage remains partial pending safe lifecycle paths.
