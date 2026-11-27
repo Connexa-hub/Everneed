@@ -55,17 +55,18 @@ Before drafting a migration:
 
 **Safety:** No ACLs or data changed during this checkpoint. No migration is drafted or applied. Production remains untouched.
 
-## 27 Nov — CX-04 staging ACL snapshot (read-only)
+## 27 Nov — CX-04 staging ACL snapshot (read-only; reconciled)
 
-Effective table grants were re-queried in Everneed-staging. The full per-table privilege result is grouped below; only anon/authenticated grants are included. This is catalog evidence, not a statement that every grant is reachable through PostgREST.
+A second catalog check using `aclexplode` plus `has_table_privilege` corrected the earlier snapshot. The `information_schema.role_table_grants` view alone was not reliable for inferring direct/effective ACLs in this case.
 
-- anon: 21 tables with INSERT/UPDATE/DELETE (banners, category_attributes, collections, offers, orders, product_inventory_movements, product_links, product_media, product_price_tiers, product_variant_private, product_variants, products, profiles, public_products, public_reviews, public_stores, reviews, settings, size_charts, auto_offers and product_ratings). SELECT is present on most, but not on reviews. 5 tables additionally have REFERENCES/TRIGGER/TRUNCATE (auto_offers, product_ratings, public_products, public_reviews, public_stores).
-- authenticated: 36 tables with INSERT/UPDATE; 37 with DELETE. Includes support/configuration tables and client-side product/store workflows; **do not blanket-revoke**. 5 tables additionally have REFERENCES/TRIGGER/TRUNCATE (auto_offers, product_ratings, public_products, public_reviews, public_stores). Sensitive tables such as orders, disputes, products, profiles, messages, support_queue, stores and store_private require dependency-specific narrowing.
-- The specific disputes table grants to authenticated are SELECT, INSERT, UPDATE, DELETE and MAINTAIN. Direct ACL expansion shows no authenticated TRUNCATE on disputes (service_role does hold it). The earlier CX-04 wording claiming authenticated TRUNCATE on disputes is not confirmed by the current staging ACL; keep that claim corrected. Authenticated MAINTAIN is still excessive.
-- `has_table_privilege` and ACL expansion confirmed MAINTAIN effective on 44 public objects for authenticated and 17 for anon. TRUNCATE is effective on five objects per client role, and the exact object list from the direct ACL snapshot is auto_offers, product_ratings, public_products, public_reviews, public_stores. Use direct ACL expansion/effective checks to reconcile information_schema counts; don't rely on one catalog view alone.
+- Effective `MAINTAIN`: 44 public tables for `authenticated`; 17 for `anon`. This is a broad high-privilege grant and requires remediation.
+- Effective table-level `TRUNCATE`: **none confirmed** for `anon` or `authenticated` in the reconciled privilege check. Do not claim client TRUNCATE on the five previously listed tables based on the earlier view.
+- `public.disputes`: direct ACL expansion confirms `authenticated` has SELECT, INSERT, UPDATE, DELETE and MAINTAIN; `has_table_privilege(...,'TRUNCATE')` is false. RLS still restricts rows, but MAINTAIN is excessive and DML grants must be evaluated against dependencies.
+- Reconciled current privilege totals from the effective check: anon SELECT/INSERT/UPDATE/DELETE each 16 tables; authenticated SELECT 49, INSERT 31, UPDATE 31, DELETE 32 tables. These totals do not equal direct-grant counts because role inheritance and ACL/catalog views differ; use effective checks for the regression assertions.
+- The earlier 21/36/37 counts and five-table TRUNCATE claim are retained only as a historical catalog-view result and are not the accepted effective privilege baseline.
 
 ### Default ACLs
-Both `postgres` and `supabase_admin` have broad default table privileges in public, including INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER and MAINTAIN to anon/authenticated/service_role. Default sequence ACLs also include SELECT/UPDATE/USAGE; default function EXECUTE is broad. The exact owner/schema coverage must be reconciled with Supabase-managed schemas before remediation. This is a confirmed default-ACL concern.
+Earlier default-ACL inspection reported broad defaults for `postgres` and `supabase_admin`. This needs a fresh owner/schema-filtered `pg_default_acl` + `aclexplode` audit before migration; do not treat that snapshot as a final scope map.
 
 ### Remaining Phase A gate
-Raw REST/fetch, complete Android packaged path, RPC and trigger dependency mapping, Edge Function operations, per-column grants, default ACL owner/schema scope and CI negative tests are not yet complete. No staging grants or default ACLs changed. Production remains untouched.
+Raw REST/fetch, complete Android packaged path, RPC and trigger dependency mapping, Edge Function operations, per-column grants, default ACL owner/schema scope and CI negative tests are not complete. No staging grants or default ACLs changed. Production remains untouched.
