@@ -609,3 +609,7 @@ Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKF
 - CX-02: staging has no `public.my_access()`. B1 PR #49 is blocked on role assignment guard, dispatcher scope, store field contract, partner-plane EVAccess support and legacy-admin fallback. No migration applied.
 - CX-04: latest staging ACL snapshot documented in PR #52 checkpoint. Confirmed broad anon/authenticated grants and default ACLs; direct grants on disputes include INSERT/SELECT/UPDATE/DELETE for authenticated. ACL migration and CI tests are not ready because direct-write/RPC/trigger dependencies remain incomplete. No ACL changes.
 - Open requests remain incomplete; staging only; Everneed01 production unchanged.
+
+
+### CX-04 ACL evidence correction — 27 Nov
+- Direct ACL expansion + effective checks reconciled the object-level snapshot: authenticated does **not** have TRUNCATE on `disputes`; it has INSERT/SELECT/UPDATE/DELETE and MAINTAIN. TRUNCATE is granted to anon/authenticated on five other objects (`auto_offers`, `product_ratings`, `public_products`, `public_reviews`, `public_stores`); effective MAINTAIN was confirmed on 44 public objects for authenticated and 17 for anon. Use the table ACL expansion as primary evidence and reconcile catalog views before stating exploitability. This correction does not change the wider default-ACL least-privilege concern. No grants changed.
