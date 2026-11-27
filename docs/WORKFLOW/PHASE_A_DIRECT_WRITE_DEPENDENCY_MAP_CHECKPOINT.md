@@ -83,3 +83,13 @@ Raw REST/fetch, complete Android packaged path, RPC and trigger dependency mappi
 
 ### Next mapping tranche
 Review raw fetch/REST in all web and root `js/` modules; auth/profile paths; Storage policies; RPC EXECUTE and SECURITY DEFINER signatures/bodies; trigger tables/functions; views and sequence grants; Android packaged bundle and build-generated copies. Only after this inventory, define column-level grants and replacement RPCs, then stage a narrow revocation migration with rollback and client-flow regression tests.
+
+## 27 Nov — default ACL scope confirmed (read-only)
+
+The owner/schema-scoped `pg_default_acl` + `aclexplode` query confirms entries specifically for **`postgres` and `supabase_admin` in `public`** (not all schemas), each granted to anon, authenticated and service_role:
+
+- Tables (`r`): SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN.
+- Sequences (`S`): SELECT, UPDATE, USAGE.
+- Functions (`f`): EXECUTE.
+
+These are future-object defaults and are separate from existing effective ACLs. They are a high-priority remediation target, but any ALTER DEFAULT PRIVILEGES change must be owner-specific and replay-tested; preserve required service-role defaults and any intentional public RPCs through explicit allowlists. No defaults changed.
