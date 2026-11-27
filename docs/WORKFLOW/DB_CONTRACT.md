@@ -312,3 +312,10 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+## CX-04 public table privilege trim — staging (27 Nov 2026)
+
+- Staging migration `20261127110139_cx04_public_table_privilege_trim` removes `TRUNCATE`, `TRIGGER` and `REFERENCES` from anon/authenticated on all public base tables. RLS and existing SELECT/INSERT/UPDATE/DELETE grants are unchanged in this narrow pass.
+- Catalog assertion on staging reports zero base tables with those API-role privileges. `authenticated` no longer has TRUNCATE on `public.disputes`; UPDATE/DELETE grants remain subject to further ACL/RLS review.
+- Regression test `040_cx04_public_table_privilege_checks.sql` added to CI Database tests. Broad DML and default ACL remediation is still pending dependency map. Production untouched.
