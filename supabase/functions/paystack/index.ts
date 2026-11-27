@@ -38,7 +38,6 @@ async function isAdmin(id: string) {
 // Product prices are stored in the base currency (NGN). Rates are fetched here, never trusted from the app.
 let FX: { t: number; rates: Record<string, number> } | null = null;
 async function rate(cur: string) {
-  if (cur === "NGN") return 1;
   if (!FX || Date.now() - FX.t > 36e5) {
     const r = await fetch("https://open.er-api.com/v6/latest/NGN");
     const j = await r.json();
@@ -47,7 +46,7 @@ async function rate(cur: string) {
   }
   const x = FX.rates[cur];
   if (!x) throw new Error("That currency is not supported.");
-  return x;
+  return { value: x, source: "open.er-api.com NGN base rates", fetchedAt: new Date(FX.t).toISOString() };
 }
 
 // Offers that apply right now: automatic ones, plus the coupon the customer entered.
@@ -94,32 +93,63 @@ async function price(o: any, cur: string) {
   }
   const { amount, offer } = best(lines, await offersFor(o.country, o.coupon || "", !!o.id));
   const { data: s } = await db.from("settings").select("data").eq("id", o.country).maybeSingle();
-  const k = cur === "NGN" ? 1 : (await rate(cur)) * (1 + Number(s?.data?.fxMarkup || 0) / 100);
+  const markup = cur === "NGN" ? 0 : Number(s?.data?.fxMarkup || 0);
+  const fx = cur === "NGN"
+    ? { value: 1, source: "NGN base currency", fetchedAt: new Date().toISOString() }
+    : await rate(cur);
+  const k = cur === "NGN" ? 1 : fx.value * (1 + markup / 100);
   const net = (sub - amount) * k, fee = Number(s?.data?.fee || 0), free = Number(s?.data?.freeFrom || 0);
   const applied = fee > 0 && !(free > 0 && net >= free) ? fee : 0;
   const total = Math.round((net + applied) * 100) / 100;
-  return { total, discount: Math.round(amount * k * 100) / 100, offer, k, base: amount, fee: applied };
+  return {
+    total, discount: Math.round(amount * k * 100) / 100, offer, k, base: amount, fee: applied,
+    pricingContext: {
+      fx_rate: fx.value, fx_source: fx.source, fx_fetched_at: fx.fetchedAt,
+      markup_percent: markup, currency_exponent: 2, pricing_policy_version: "everneed-pricing-v1"
+    }
+  };
 }
 
+async function settleLegacyPayOnDelivery(tx: any, o: any) {
+  if (!tx || tx.status !== "success" || o.pm !== "card_later") return false;
+  if (!o.currency || tx.currency !== o.currency || tx.amount !== Math.round(Number(o.total) * 100)) return false;
+  const { error } = await db.rpc("confirm_payment", { p_order: o.id, p_reference: tx.reference, p_actor: null });
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+// Only a server-side Paystack verification response may reach the settlement RPC.
 async function settle(tx: any) {
-  if (!tx || tx.status !== "success") return false;
-  const oid = tx.metadata?.order_id;
+  if (!tx || tx.status !== "success" || !tx.reference) return false;
+  const verified = await ps("/transaction/verify/" + encodeURIComponent(tx.reference));
+  if (!verified?.status || verified.data?.status !== "success") return false;
+  const v = verified.data;
+  const oid = v.metadata?.order_id;
   if (!oid) return false;
   const { data: o } = await db.from("orders").select("*").eq("id", oid).maybeSingle();
   if (!o) return false;
-  if (o.status === "paid" || o.paid_at) return true;
-  // o.total and o.currency were set by this function when the payment was started.
-  if (!o.currency || tx.currency !== o.currency || tx.amount < Math.round(Number(o.total) * 100)) return false;
-  const { error: ce } = await db.rpc("confirm_payment", { p_order: oid, p_reference: tx.reference, p_actor: null });
-  if (ce) throw new Error(ce.message);
-  const a = tx.authorization;
-  if (a && a.reusable && a.authorization_code && o.user_id) {
-    await db.from("cards").upsert({
-      user_id: o.user_id, email: tx.customer?.email, brand: a.brand, last4: a.last4,
-      exp: a.exp_month + "/" + a.exp_year, bank: a.bank, code: a.authorization_code,
-    }, { onConflict: "code" });
+
+  if (v.metadata?.user_id !== o.user_id) return false;
+  if (o.pm === "card_later") return await settleLegacyPayOnDelivery(v, o);
+
+  const { data: result, error } = await db.rpc("settle_verified_payment_attempt", {
+    p_provider_reference: v.reference,
+    p_provider_transaction_id: String(v.id),
+    p_amount_minor: Number(v.amount),
+    p_currency: String(v.currency || "").toUpperCase(),
+  });
+  if (error) throw new Error(error.message);
+  const settled = ["paid", "already", "already_settled"].includes(result?.result);
+  if (settled) {
+    const a = v.authorization;
+    if (a && a.reusable && a.authorization_code && o.user_id) {
+      await db.from("cards").upsert({
+        user_id: o.user_id, email: v.customer?.email, brand: a.brand, last4: a.last4,
+        exp: a.exp_month + "/" + a.exp_year, bank: a.bank, code: a.authorization_code,
+      }, { onConflict: "code" });
+    }
   }
-  return true;
+  return settled;
 }
 
 // Charges the card the customer saved for pay-on-delivery orders.
@@ -149,7 +179,47 @@ Deno.serve(async (req) => {
     const hex = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("");
     if (hex !== sig) return json({ error: "bad signature" }, 401);
     const ev = JSON.parse(raw);
-    if (ev.event === "charge.success") await settle(ev.data);
+    const eventRef = String(ev.data?.reference || "");
+    const eventKey = String(ev.event || "unknown") + ":" + String(ev.data?.id || eventRef || crypto.randomUUID());
+    const sanitized = {
+      event: String(ev.event || ""),
+      reference: eventRef || null,
+      transaction_id: ev.data?.id == null ? null : String(ev.data.id),
+      status: String(ev.data?.status || ""),
+      amount: Number.isFinite(Number(ev.data?.amount)) ? Number(ev.data.amount) : null,
+      currency: String(ev.data?.currency || ""),
+      paid_at: ev.data?.paid_at || null,
+    };
+    const { error: inboxError } = await db.rpc("record_verified_provider_event", {
+      p_event_key: eventKey, p_event_type: String(ev.event || "unknown"),
+      p_provider_reference: eventRef || null,
+      p_provider_transaction_id: ev.data?.id == null ? null : String(ev.data.id),
+      p_payload: sanitized,
+    });
+    if (inboxError) return json({ error: "Could not durably record provider event." }, 500);
+
+    try {
+      if (ev.event === "charge.success" && eventRef) {
+        const ok = await settle(ev.data);
+        await db.rpc("mark_provider_event_processed", {
+          p_event_key: eventKey, p_processing_status: ok ? "processed" : "quarantined",
+          p_error_code: ok ? null : "settlement_not_confirmed",
+          p_error_message: ok ? null : "The verified transaction did not settle automatically.",
+        });
+      } else {
+        await db.rpc("mark_provider_event_processed", {
+          p_event_key: eventKey, p_processing_status: "processed",
+          p_error_code: null, p_error_message: null,
+        });
+      }
+    } catch (e) {
+      await db.rpc("mark_provider_event_processed", {
+        p_event_key: eventKey, p_processing_status: "retry",
+        p_error_code: "webhook_processing_error",
+        p_error_message: String((e as Error).message || e).slice(0, 240),
+      });
+      return json({ ok: false, retry: true }, 503);
+    }
     return json({ ok: true });
   }
   try {
@@ -188,12 +258,18 @@ Deno.serve(async (req) => {
         card_id = c.id;
       }
       const pr = await price(draft, cur);
-      const { data: order, error } = await db.rpc("create_order", {
-        p_user: u.user.id, p_items: items, p_country: country, p_pm: pm, p_cust: { ...cust, email: cust.email || u.user.email },
+      const createArgs = {
+        p_user: u.user.id, p_items: items, p_country: country, p_pm: pm,
+        p_cust: { ...cust, email: cust.email || u.user.email },
         p_k: pr.k, p_cur: cur, p_discount_base: pr.base,
         p_offer: pr.offer ? { id: pr.offer.id, code: pr.offer.code || null, name: pr.offer.name, kind: pr.offer.kind, value: pr.offer.value } : null,
         p_fee: pr.fee, p_card_id: card_id,
-      });
+      };
+      // Card checkout uses the snapshot wrapper. Manual/WhatsApp/POD flows retain
+      // their existing path until their separate payment lifecycle is implemented.
+      const { data: order, error } = pm === "card"
+        ? await db.rpc("create_order_with_snapshot", { ...createArgs, p_pricing_context: pr.pricingContext })
+        : await db.rpc("create_order", createArgs);
       if (error) return json({ error: error.message }, 400);
       return json({ order });
     }
@@ -226,23 +302,75 @@ Deno.serve(async (req) => {
     if (b.action === "init" || b.action === "charge") {
       const { data: o } = await db.from("orders").select("*").eq("id", b.order_id).eq("user_id", u.user.id).maybeSingle();
       if (!o) return json({ error: "Order not found." }, 404);
-      if (o.status === "paid") return json({ paid: true });
-      const cur = curOf(o.country);
-      const pr = await price(o, cur);
-      const amt = Math.round(pr.total * 100);
-      await db.from("orders").update({ total: amt / 100, currency: cur, discount: pr.discount }).eq("id", o.id);
-      const reference = "en_" + o.id + "_" + Date.now();
-      const metadata = { order_id: o.id, user_id: u.user.id };
-      if (b.action === "init") {
-        const r = await ps("/transaction/initialize", { email: u.user.email, amount: amt, currency: cur, reference, metadata });
-        if (!r.status) return json({ error: r.message }, 400);
-        return json({ url: r.data.authorization_url, access_code: r.data.access_code, reference });
+      if (o.status === "paid" || o.payment_status === "paid") return json({ paid: true });
+      if (o.pm !== "card") return json({ error: "This order is not a snapshot-backed card checkout." }, 400);
+      if (!o.checkout_snapshot || !o.checkout_snapshot_hash) return json({ error: "This order is missing its immutable checkout quote." }, 409);
+
+      const idem = String(b.idempotency_key || crypto.randomUUID()).slice(0, 128);
+      const { data: attempt, error: attemptError } = await db.rpc("create_payment_attempt", {
+        p_order_id: o.id, p_user_id: u.user.id, p_idempotency_key: idem,
+      });
+      if (attemptError) return json({ error: attemptError.message }, 409);
+
+      const reference = attempt.reference;
+      const amt = Number(attempt.amount_minor);
+      const cur = String(attempt.currency);
+      const metadata = { order_id: o.id, user_id: u.user.id, payment_attempt_id: attempt.attempt_id };
+
+      if (attempt.status === "failed" || attempt.status === "cancelled") {
+        return json({ error: "This payment attempt is terminal. Start a new payment attempt to retry.", status: attempt.status }, 409);
       }
-      const { data: c } = await db.from("cards").select("*").eq("id", b.card_id).eq("user_id", u.user.id).maybeSingle();
-      if (!c) return json({ error: "Card not found." }, 404);
-      const r = await ps("/transaction/charge_authorization", { email: u.user.email, amount: amt, currency: cur, authorization_code: c.code, reference, metadata });
-      if (!r.status) return json({ error: r.message }, 400);
-      return json({ paid: await settle(r.data), status: r.data.status, message: r.data.gateway_response });
+      if (attempt.reused && attempt.status === "initializing") {
+        return json({ status: "initializing", reference, attempt_id: attempt.attempt_id, retryable: true }, 202);
+      }
+      if (attempt.reused && b.action === "charge") {
+        return json({ status: attempt.status, reference, attempt_id: attempt.attempt_id, verify_required: true }, 202);
+      }
+
+      if (b.action === "init") {
+        let savedUrl: string | null = null;
+        if (attempt.gateway_response) {
+          try { savedUrl = JSON.parse(attempt.gateway_response).authorization_url || null; } catch { /* legacy gateway text */ }
+        }
+        if (savedUrl) return json({ url: savedUrl, reference, attempt_id: attempt.attempt_id, reused: true });
+        if (attempt.reused) return json({ status: attempt.status, reference, attempt_id: attempt.attempt_id, verify_required: true }, 202);
+        const r = await ps("/transaction/initialize", { email: u.user.email, amount: amt, currency: cur, reference, metadata });
+        if (!r.status) {
+          await db.rpc("record_payment_attempt_initialization", {
+            p_attempt_id: attempt.attempt_id, p_initialized: false,
+            p_gateway_message: String(r.message || "Paystack initialization failed."),
+            p_failure_code: "paystack_init_failed",
+          });
+          return json({ error: r.message }, 400);
+        }
+        await db.rpc("record_payment_attempt_initialization", {
+          p_attempt_id: attempt.attempt_id, p_initialized: true,
+          p_gateway_message: JSON.stringify({ authorization_url: r.data.authorization_url }),
+          p_failure_code: null,
+        });
+        return json({ url: r.data.authorization_url, access_code: r.data.access_code, reference, attempt_id: attempt.attempt_id });
+      }
+
+      const { data: card } = await db.from("cards").select("*").eq("id", b.card_id).eq("user_id", u.user.id).maybeSingle();
+      if (!card) return json({ error: "Card not found." }, 404);
+      const r = await ps("/transaction/charge_authorization", {
+        email: u.user.email, amount: amt, currency: cur, authorization_code: card.code, reference, metadata,
+      });
+      if (!r.status) {
+        await db.rpc("record_payment_attempt_initialization", {
+          p_attempt_id: attempt.attempt_id, p_initialized: false,
+          p_gateway_message: String(r.message || "Paystack charge failed."),
+          p_failure_code: "paystack_charge_failed",
+        });
+        return json({ error: r.message }, 400);
+      }
+      const chargeFailed = String(r.data.status || "").toLowerCase() === "failed";
+      await db.rpc("record_payment_attempt_initialization", {
+        p_attempt_id: attempt.attempt_id, p_initialized: !chargeFailed,
+        p_gateway_message: String(r.data.gateway_response || (chargeFailed ? "Charge failed." : "Charge accepted by Paystack.")),
+        p_failure_code: chargeFailed ? "paystack_charge_declined" : null,
+      });
+      return json({ paid: chargeFailed ? false : await settle(r.data), status: r.data.status, message: r.data.gateway_response, reference });
     }
     if (b.action === "verify") {
       const r = await ps("/transaction/verify/" + encodeURIComponent(b.reference));

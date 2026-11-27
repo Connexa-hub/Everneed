@@ -1,6 +1,8 @@
 # EVERNEED
 ## Product Implementation & Readiness Status
 
+> **Historical readiness snapshot (11 Nov 2026).** Use `docs/WORKFLOW/REPOSITORY_AND_PRODUCT_AUDIT_2026-11-12.md` and `docs/WORKFLOW/WEBSITE_TRACKER.md` for newer repository, deployment and environment evidence. This document remains useful for its feature-by-feature readiness analysis.
+
 **Document type:** Internal implementation status register  
 **Document status:** Working record; update after each material product release  
 **Project reference branch:** `web-portal`  
@@ -77,9 +79,9 @@ Observed implementation includes:
 - Shared theme, typography and design assets.
 - Supabase-backed waitlist integration code.
 
-The website is configured through `netlify.toml` to publish the `web/` directory. The build copies shared assets into the published directory.
+The website is currently hosted through Cloudflare Pages, with production from `main` and preview builds from `web-portal`. The static site packaging workflow copies the required shared assets into the published directory.
 
-**Qualification:** Repository configuration does not prove that the current branch has been deployed to the intended Netlify site, that the domain is configured correctly or that all production routes and forms work.
+**Qualification:** Repository configuration does not prove that every route, domain, environment, authentication flow or form works in production.
 
 ### 3.3 Seller portal
 
@@ -169,7 +171,7 @@ The SQL function layer includes paths for order creation, seller order transitio
 | Seller earnings and payouts | Ledger and payout structures and SQL functions are present | Verified accounting, scheduled releases, payment execution, reconciliation and seller-facing statements |
 | Store subscriptions/rentals | Store plan, subscription and payment structures are present | Approved plans/prices, payment lifecycle, renewal, grace period, expiry and seller communication |
 | Waitlist | Website code and `shared/sql/011_website_sync.sql` | SQL is explicitly marked NOT auto-run; review and deliberate application are required before treating it as live |
-| Website deployment | Netlify build/publish configuration | Confirm the production deployment, domain, environment and form behaviour |
+| Website deployment | Cloudflare Pages packaging and GitHub branch integration | Confirm each deployment, domain, environment and form behaviour |
 
 ---
 

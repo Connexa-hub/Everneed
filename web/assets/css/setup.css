@@ -1,0 +1,187 @@
+/* Seller store setup: Shopify-style layout (step rail, section cards, live previews, sticky actions) and the animated scenes.
+   Everything animated is plain CSS on SVG shapes and is switched off for people who ask for reduced motion (end of file). */
+
+/* ---------- Layout ---------- */
+/* The setup page sits inside a narrow container, so this block breaks out and centres itself at a wider width. */
+.sshell{position:relative;left:50%;transform:translateX(-50%);width:min(1120px,100vw - 32px);display:grid;grid-template-columns:minmax(0,1fr);gap:20px;margin-top:4px}
+@media(min-width:960px){.sshell{grid-template-columns:268px minmax(0,1fr);gap:32px}}
+.smain{min-width:0}
+
+/* Step rail (computer) */
+.srail{display:none}
+@media(min-width:960px){.srail{display:block;position:sticky;top:84px;align-self:start}}
+.sbrand{display:flex;gap:12px;align-items:center;padding:12px;margin-bottom:14px;border:1px solid var(--border,rgba(127,127,127,.3));border-radius:16px;background:var(--surface-1,transparent)}
+.sbrand .av{flex:0 0 auto;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;overflow:hidden;font-weight:700;color:var(--text-on-brand,#fff);background:var(--brand,#1fa971)}
+.sbrand .av img{width:100%;height:100%;object-fit:cover}
+.sbrand b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbrand small{color:var(--text-2,inherit)}
+.slist{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.sstep{display:flex;gap:12px;align-items:center;width:100%;padding:10px 12px;border:0;border-radius:14px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.sstep .n{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.82rem;font-weight:700;border:1.5px solid var(--border,rgba(127,127,127,.4))}
+.sstep b{display:block;font-size:.95rem}
+.sstep small{display:block;color:var(--text-2,inherit);font-size:.78rem}
+.sstep.on{background:var(--surface-2,rgba(127,127,127,.1))}
+.sstep.on .n{border-color:var(--brand,#1fa971);color:var(--brand,#1fa971)}
+.sstep.done .n{background:var(--brand,#1fa971);border-color:transparent;color:var(--text-on-brand,#04140d)}
+.sstep.locked{opacity:.45;cursor:not-allowed}
+.ssave{margin:14px 12px 0;font-size:.8rem;color:var(--text-2,inherit)}
+
+/* Progress (phone) */
+.sprog{margin:0 0 12px}
+.sprog .t{display:flex;justify-content:space-between;gap:10px;font-size:.85rem;color:var(--text-2,inherit)}
+.sprog .m{height:6px;margin-top:8px;border-radius:99px;background:var(--border,rgba(127,127,127,.3));overflow:hidden}
+.sprog .m i{display:block;height:100%;border-radius:99px;background:var(--brand,#1fa971);transition:width .5s ease}
+@media(min-width:960px){.sprog{display:none}}
+
+/* Scene at the head of every step */
+.scene{position:relative;border-radius:24px;overflow:hidden;border:1px solid var(--border,rgba(127,127,127,.3));background:var(--surface-2,rgba(127,127,127,.08));background-image:linear-gradient(135deg,color-mix(in srgb,var(--brand,#1fa971) 16%,var(--surface-1,#fff)),var(--surface-1,#fff))}
+.scene .sa{display:block;width:100%;height:auto;max-height:210px}
+@media(max-width:560px){.scene{border-radius:20px}.scene .sa{max-height:150px}}
+.skick{margin:18px 0 4px;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand,#1fa971)}
+.stitle{margin:0 0 6px;font-size:clamp(1.6rem,4vw,2.2rem);line-height:1.15}
+.ssub{margin:0 0 6px;max-width:62ch;color:var(--text-2,inherit)}
+
+/* Section cards */
+.scard{margin:16px 0;padding:clamp(16px,3vw,24px);border-radius:20px}
+.scard h3{margin:0 0 4px;font-size:1.1rem}
+.scard .sd{margin:0 0 14px;font-size:.92rem;color:var(--text-2,inherit)}
+.scard .row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:0 16px}
+
+/* Upload tile and store colour */
+.upl{display:flex;gap:14px;align-items:center;margin:0 0 12px;padding:12px;border:1.5px dashed var(--border,rgba(127,127,127,.45));border-radius:16px;cursor:pointer}
+.upl input{display:none}
+.upl-prev{flex:0 0 auto;width:60px;height:60px;border-radius:14px;display:grid;place-items:center;font-size:1.5rem;background:var(--surface-2,rgba(127,127,127,.1)) center/cover no-repeat;color:var(--text-2,inherit)}
+.upl b{display:block}
+.upl small{color:var(--text-2,inherit)}
+.accs{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 6px}
+.accs label{position:relative;cursor:pointer}
+.accs input{position:absolute;opacity:0;inset:0}
+.accs .sw2{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1.5px var(--border,rgba(127,127,127,.4))}
+.accs .sw2 i{display:block;width:30px;height:30px;border-radius:50%}
+.accs input:checked+.sw2{border-color:var(--surface-1,#fff);box-shadow:0 0 0 2.5px var(--brand,#1fa971)}
+.accs input:focus-visible+.sw2{outline:2px solid var(--brand,#1fa971);outline-offset:3px}
+
+/* Live preview of the store card */
+.bpv{overflow:hidden;border-radius:18px;border:1px solid var(--border,rgba(127,127,127,.3));background:var(--surface-1,#fff)}
+.bpv-cover{height:86px;background:var(--pv,#1fa971) center/cover no-repeat;transition:background-color .35s ease}
+.bpv-body{padding:0 16px 16px}
+.bpv-logo{width:58px;height:58px;margin-top:-29px;border-radius:50%;border:3px solid var(--surface-1,#fff);display:grid;place-items:center;overflow:hidden;font-weight:700;color:#fff;background:var(--pv,#1fa971) center/cover no-repeat;transition:background-color .35s ease}
+.bpv h4{margin:8px 0 2px;font-size:1.05rem}
+.bpv p{margin:0;font-size:.88rem;color:var(--text-2,inherit)}
+.bpv-btn{margin-top:12px;padding:8px 18px;border:0;border-radius:99px;background:var(--pv,#1fa971);color:#fff;font:inherit;font-size:.88rem;font-weight:600;transition:background-color .35s ease}
+
+/* Opening hours */
+.hrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border,rgba(127,127,127,.2))}
+.hday{display:flex;gap:10px;align-items:center;font-weight:600}
+.hday input{width:22px;height:22px;accent-color:var(--brand,#1fa971)}
+.htimes{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.htimes select{min-height:42px;min-width:0;flex:1 1 110px}
+.hclosed{color:var(--text-2,inherit)}
+@media(max-width:560px){.hrow{grid-template-columns:minmax(0,1fr)}}
+.hbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
+.hbar .lb{flex:1 1 220px;margin:0}
+
+/* Choice cards, toggle chips, zones */
+.rcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;margin:6px 0 12px}
+.rcard{position:relative;display:block;cursor:pointer}
+.rcard input{position:absolute;opacity:0;inset:0}
+.rcard span{display:block;height:100%;padding:12px 14px;border:1.5px solid var(--border,rgba(127,127,127,.4));border-radius:14px;font-size:.92rem}
+.rcard b{display:block;margin-bottom:2px}
+.rcard small{color:var(--text-2,inherit)}
+.rcard input:checked+span{border-color:var(--brand,#1fa971);box-shadow:inset 0 0 0 1px var(--brand,#1fa971)}
+.rcard input:focus-visible+span{outline:2px solid var(--brand,#1fa971);outline-offset:2px}
+.tchips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.tchip{position:relative;cursor:pointer}
+.tchip input{position:absolute;opacity:0;inset:0}
+.tchip span{display:block;padding:9px 14px;border:1.5px solid var(--border,rgba(127,127,127,.4));border-radius:99px;font-size:.9rem}
+.tchip input:checked+span{border-color:var(--brand,#1fa971);background:var(--brand,#1fa971);color:var(--text-on-brand,#04140d);font-weight:600}
+.tchip input:focus-visible+span{outline:2px solid var(--brand,#1fa971);outline-offset:2px}
+.slab{margin:14px 0 4px;font-weight:600;font-size:.95rem}
+.zadd{display:flex;gap:8px;margin-top:4px}
+.zadd input{flex:1 1 auto;min-width:0;min-height:44px}
+
+/* "What shoppers will see" */
+.pvcard{margin-top:6px;padding:16px;border-radius:16px;background:var(--surface-2,rgba(127,127,127,.08));border:1px solid var(--border,rgba(127,127,127,.25))}
+.pvrow{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;margin:0 0 12px}
+.pvrow:last-child{margin-bottom:0}
+.pvrow b{display:block;font-size:.85rem;color:var(--text-2,inherit)}
+.pvrow p{margin:2px 0 0;line-height:1.5;overflow-wrap:anywhere}
+
+/* Review */
+.rvl{display:grid;gap:0}
+.rvl div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid var(--border,rgba(127,127,127,.2))}
+.rvl div:last-child{border-bottom:0}
+.rvl span{color:var(--text-2,inherit);font-size:.9rem}
+.rvl b{overflow-wrap:anywhere;font-weight:600}
+@media(max-width:560px){.rvl div{grid-template-columns:minmax(0,1fr);gap:2px}}
+
+/* ---------- Scene art: colours ---------- */
+.sa .b{fill:var(--brand,#1fa971)}
+.sa .ac{fill:var(--accent,#f5b301)}
+.sa .s1{fill:var(--surface-1,#fff)}
+.sa .s2{fill:var(--surface-2,#e9eeee)}
+.sa .tx{fill:var(--text-1,#10201b)}
+.sa .t2{fill:var(--text-2,#6b7a75)}
+.sa .onb{fill:var(--text-on-brand,#fff)}
+.sa .ln{stroke:var(--border,rgba(127,127,127,.45));stroke-width:1.5}
+.sa .bs{stroke:var(--brand,#1fa971)}
+.sa .nf{fill:none}
+.sa text{font-family:inherit}
+
+/* ---------- Scene art: motion ---------- */
+.sa [class*="a-"]{transform-box:fill-box;transform-origin:center}
+.sa .d2{animation-delay:.9s}.sa .d3{animation-delay:1.8s}
+@keyframes sa-blob{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(14px,-10px) scale(1.12)}}
+.sa .a-blob{animation:sa-blob 9s ease-in-out infinite}.sa .a-blob.d2{animation-delay:-4s}
+@keyframes sa-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.sa .a-float{animation:sa-float 3.6s ease-in-out infinite}
+@keyframes sa-pop{0%,8%{transform:scale(0);opacity:0}22%{transform:scale(1.25);opacity:1}32%,86%{transform:scale(1);opacity:1}100%{transform:scale(0);opacity:0}}
+.sa .a-pop{animation:sa-pop 4.4s ease-in-out infinite}
+@keyframes sa-sway{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(2.2deg)}}
+.sa .a-sway{animation:sa-sway 3.2s ease-in-out infinite;transform-origin:50% 0}
+@keyframes sa-door{0%,18%{transform:scaleX(1)}38%,70%{transform:scaleX(.16)}90%,100%{transform:scaleX(1)}}
+.sa .a-door{animation:sa-door 5.2s ease-in-out infinite;transform-origin:0 50%}
+@keyframes sa-twinkle{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1.2)}}
+.sa .a-twinkle{animation:sa-twinkle 2.8s ease-in-out infinite}
+@keyframes sa-ripple{0%{transform:scale(.6);opacity:.8}100%{transform:scale(3.4);opacity:0}}
+.sa .a-ripple{animation:sa-ripple 2.6s ease-out infinite}
+@keyframes sa-drop{0%{transform:translateY(-70px);opacity:0}22%{transform:translateY(7px);opacity:1}32%{transform:translateY(-7px)}42%,88%{transform:translateY(0);opacity:1}100%{transform:translateY(0);opacity:0}}
+.sa .a-drop{animation:sa-drop 4.6s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes sa-slide{0%{transform:translateX(-30px);opacity:0}20%,80%{transform:none;opacity:1}100%{transform:translateX(16px);opacity:0}}
+@keyframes sa-slide-r{0%{transform:translateX(30px);opacity:0}20%,80%{transform:none;opacity:1}100%{transform:translateX(-16px);opacity:0}}
+.sa .a-slide{animation:sa-slide 4.8s ease-in-out infinite}
+.sa .a-slide.r{animation-name:sa-slide-r}
+@keyframes sa-spin{to{transform:rotate(360deg)}}
+.sa .a-spin{animation:sa-spin 8s linear infinite;transform-origin:50% 100%}
+.sa .a-spin.slow{animation-duration:60s}
+@keyframes sa-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.sa .a-pulse{animation:sa-pulse 2.2s ease-in-out infinite}
+@keyframes sa-cloud{0%{transform:translateX(-24px)}100%{transform:translateX(34px)}}
+.sa .a-cloud{animation:sa-cloud 11s ease-in-out infinite alternate}
+@keyframes sa-road{to{stroke-dashoffset:-36}}
+.sa .a-road{animation:sa-road .7s linear infinite}
+@keyframes sa-pin2{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.sa .a-pin2{animation:sa-pin2 1.8s ease-in-out infinite}
+@keyframes sa-drive{0%{transform:translateX(-140px)}100%{transform:translateX(440px)}}
+.sa .a-drive{animation:sa-drive 6.5s linear infinite}
+@keyframes sa-jiggle{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.6px)}}
+.sa .a-jiggle{animation:sa-jiggle .36s ease-in-out infinite}
+@keyframes sa-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.sa .a-bounce{animation:sa-bounce .8s ease-in-out infinite}
+.sa .a-wheel{animation:sa-spin .6s linear infinite;transform-origin:50% 50%}
+@keyframes sa-coin{0%{transform:translateY(-10px) scale(.6);opacity:0}15%{opacity:1}70%{transform:translateY(98px) scale(1);opacity:1}100%{transform:translateY(116px) scale(.4);opacity:0}}
+.sa .a-coin{animation:sa-coin 2.4s ease-in infinite}
+@keyframes sa-flip{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.06)}}
+.sa .a-flip{animation:sa-flip 3s ease-in-out infinite}
+@keyframes sa-draw{0%{stroke-dashoffset:110}35%,85%{stroke-dashoffset:0}100%{stroke-dashoffset:110}}
+.sa .a-draw{animation:sa-draw 4.2s ease-in-out infinite}
+
+/* People who ask their device for less motion get still scenes with everything visible. */
+@media(prefers-reduced-motion:reduce){
+  .sa [class*="a-"]{animation:none!important}
+  .sa .a-draw{stroke-dashoffset:0}
+  .sa .a-door{transform:scaleX(.5)}
+  .sa .a-drive{transform:translateX(180px)}
+  .sa .a-coin{opacity:1;transform:translateY(40px)}
+  .sprog .m i,.bpv-cover,.bpv-logo,.bpv-btn{transition:none}
+}

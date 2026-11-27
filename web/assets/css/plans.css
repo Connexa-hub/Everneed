@@ -1,0 +1,81 @@
+/* Plan carousel, seller overview, seller operations. Tokens only; depth is CSS transforms with a flat fallback. */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- plan carousel ---------- */
+.pc{margin:8px 0 4px}
+.pc-track{display:flex;gap:14px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;padding:26px calc(50% - min(132px,38vw)) 30px;cursor:grab;-webkit-overflow-scrolling:touch}
+.pc-track::-webkit-scrollbar{display:none}
+.pc-track.drag{cursor:grabbing;scroll-snap-type:none;user-select:none}
+.pc-track:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;border-radius:20px}
+.pc-card{position:relative;flex:0 0 min(264px,76vw);scroll-snap-align:center;display:flex;flex-direction:column;gap:12px;padding:22px 20px;border:1.5px solid var(--border);border-radius:22px;background:var(--surface-1);transition:border-color .25s,box-shadow .25s;will-change:transform}
+.pc-card.is-focus{border-color:var(--brand);box-shadow:0 14px 34px color-mix(in srgb,var(--brand) 20%,transparent)}
+.pc-card h3{margin:0;font-size:1.05rem;color:var(--text-2)}
+.pc-price{margin:0;display:flex;align-items:baseline;gap:4px}
+.pc-price b{font-size:2rem;line-height:1;letter-spacing:-.03em;font-family:var(--font-display)}
+.pc-price small{color:var(--text-2)}
+.pc-lim{margin:0;display:flex;align-items:baseline;gap:8px;padding:12px 0;border-block:1px solid var(--border)}
+.pc-lim b{font-size:1.5rem;letter-spacing:-.02em}
+.pc-lim span{color:var(--text-2)}
+.pc-list{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:.92rem}
+.pc-list li{position:relative;padding-left:22px;line-height:1.4}
+.pc-list li::before{content:"";position:absolute;left:3px;top:.45em;width:6px;height:10px;border:solid var(--brand);border-width:0 2px 2px 0;transform:rotate(40deg) translateY(-2px)}
+.pc-tag{position:absolute;top:12px;right:12px;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700;background:var(--brand);color:var(--text-on-brand)}
+.pc-nav{display:flex;justify-content:center;align-items:center;gap:14px}
+.pc-arrow{width:44px;height:44px;display:grid;place-items:center;border:1.5px solid var(--border);border-radius:12px;background:var(--surface-1);color:var(--text-1);font-size:1.4rem;cursor:pointer}
+.pc-arrow:focus-visible,.pc-dot:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.pc-dots{display:flex;gap:2px}
+.pc-dot{position:relative;width:32px;height:44px;border:0;background:transparent;cursor:pointer}
+.pc-dot::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:99px;background:var(--border);transition:width .25s,margin .25s,background .25s}
+.pc-dot.on::after{width:22px;margin-left:-11px;background:var(--brand)}
+.pcnote{margin:6px auto 0;max-width:46ch;text-align:center;font-size:.88rem;color:var(--text-2)}
+@media(min-width:900px){.pc-track{padding-inline:calc(50% - 140px)}.pc-card{flex-basis:280px}}
+@media(prefers-reduced-motion:reduce){.pc-card,.pc-dot::after{transition:none}.pc-card{transform:none!important;opacity:1!important}}
+
+/* ---------- seller overview ---------- */
+.ov-head{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ov-head h1{margin:0;font-size:clamp(1.7rem,4vw,2.2rem)}
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px;margin:14px 0}
+.ov-stat{padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-1)}
+.ov-stat b{display:block;font-size:1.6rem;line-height:1.1;letter-spacing:-.02em}
+.ov-stat small{display:block;margin-top:2px;color:var(--text-2)}
+.ov-cols{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.ov-cols{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}}
+.ov-card{padding:16px 18px;border:1px solid var(--border);border-radius:18px;background:var(--surface-1)}
+.ov-card h3{margin:0 0 8px;font-size:1.05rem}
+.ov-row{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px;padding:8px 0;border-top:1px solid var(--border);color:inherit;text-decoration:none}
+.ov-row:first-of-type{border-top:0}
+.ov-row small{display:block;color:var(--text-2)}
+.ov-go{flex:0 0 auto;padding:8px 14px;border-radius:99px;font-weight:600;font-size:.88rem;border:1.5px solid var(--border)}
+.ov-meter{height:8px;margin:8px 0 4px;border-radius:99px;background:var(--border);overflow:hidden}
+.ov-meter i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.ov-meter.hot i{background:var(--accent)}
+.ov-quiet{margin:0;color:var(--text-2);font-size:.92rem}
+
+/* ---------- activation and verification screens ---------- */
+.sf-wrap{max-width:640px;margin:0 auto;padding-top:8px}
+.sf-wrap h1{margin:4px 0 6px;font-size:clamp(1.7rem,4.4vw,2.3rem);letter-spacing:-.02em}
+.sf-steps{display:flex;gap:6px;margin:14px 0}
+.sf-steps i{flex:1;height:6px;border-radius:99px;background:var(--border)}
+.sf-steps i.done{background:var(--brand)}
+.sf-steps i.on{background:color-mix(in srgb,var(--brand) 45%,var(--border))}
+.sf-card{margin:14px 0;padding:18px 20px;border:1px solid var(--border);border-radius:20px;background:var(--surface-1)}
+.sf-card h2{margin:0 0 6px;font-size:1.25rem}
+.sf-state{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;margin-top:12px;font-size:.92rem}
+.sf-state dt{color:var(--text-2)}.sf-state dd{margin:0;font-weight:600}
+.sf-acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.sf-acts .btn{min-height:46px}
+
+/* ---------- seller operations (admin) ---------- */
+.so-tabs{display:flex;gap:6px;overflow-x:auto;margin:14px 0;padding-bottom:2px;scrollbar-width:none}
+.so-tabs a{flex:0 0 auto;display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1.5px solid var(--border);border-radius:99px;color:inherit;text-decoration:none;font-weight:600;font-size:.92rem}
+.so-tabs a.on{background:var(--brand);border-color:var(--brand);color:var(--text-on-brand)}
+.so-case{margin:10px 0;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-1)}
+.so-case h3{margin:0 0 2px;font-size:1.02rem}
+.so-chk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 0;border-top:1px solid var(--border);font-size:.9rem}
+.so-chk small{color:var(--text-2)}
+.so-hist{margin-top:8px;font-size:.85rem;color:var(--text-2)}
+.so-hist div{padding:4px 0;border-top:1px dashed var(--border)}
+.so-plan form{display:grid;gap:10px}
+.so-plan .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:0 16px}
+.so-ck{display:flex;gap:10px;align-items:center;min-height:44px}
+.so-ck input{width:22px;height:22px;accent-color:var(--brand)}

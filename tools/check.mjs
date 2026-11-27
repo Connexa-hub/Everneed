@@ -49,11 +49,100 @@ for (const fn of readdirSync('supabase/functions')) {
   }
 }
 
+// 4b. A durable Paystack event that fails inline processing must not be acknowledged as delivered.
+const paystackSource = readFileSync('supabase/functions/paystack/index.ts', 'utf8');
+if (!paystackSource.includes('return json({ ok: false, retry: true }, 503);')) {
+  fail('Paystack webhook processing failures must return HTTP 503 so the provider retries the durable event');
+}
+if (paystackSource.includes('return json({ ok: true, queued: true });')) {
+  fail('Paystack webhook processing failure must not return a successful 2xx acknowledgement without a retry worker');
+}
+
+// 4c. Payment recovery worker must authenticate service-role calls and verify with Paystack before settlement.
+const recoveryWorkerPath = 'supabase/functions/payment-recovery/index.ts';
+if (existsSync(recoveryWorkerPath)) {
+  const recoverySource = readFileSync(recoveryWorkerPath, 'utf8');
+  for (const required of [
+    'claim_provider_event_recovery',
+    'finish_provider_event_recovery',
+    'get_payment_attempt_recovery_context',
+    'claim_stale_payment_attempt_recovery',
+    'finish_stale_payment_attempt_recovery',
+    'payment_attempt_id',
+    '/transaction/verify/',
+    'settle_verified_payment_attempt',
+    'Bearer " + SERVICE_KEY',
+  ]) {
+    if (!recoverySource.includes(required)) fail(recoveryWorkerPath + ' is missing required recovery safety check: ' + required);
+  }
+  const handlerStart = recoverySource.indexOf('Deno.serve');
+  const verifyCall = recoverySource.indexOf('await verifyPaystack(', handlerStart);
+  const contextCall = recoverySource.indexOf('db.rpc("get_payment_attempt_recovery_context"', handlerStart);
+  const settlementCall = recoverySource.indexOf('db.rpc("settle_verified_payment_attempt"', handlerStart);
+  if (verifyCall < 0 || contextCall < verifyCall || settlementCall < contextCall) {
+    fail(recoveryWorkerPath + ' must verify Paystack and match trusted attempt context before settlement');
+  }
+  if (!recoverySource.includes('event.signature_verified !== true')) {
+    fail(recoveryWorkerPath + ' must refuse inbox events without a verified provider signature');
+  }
+  if (recoverySource.includes('/transaction/initialize') || recoverySource.includes('/transaction/charge_authorization')) {
+    fail(recoveryWorkerPath + ' must never create or charge a new Paystack transaction during recovery');
+  }
+}
+
+// 4d. Native Android Google sign-in must use the Web OAuth client ID and preserve browser PKCE.
+const googleConfigSource = readFileSync('js/config.js', 'utf8');
+const googleAuthSource = readFileSync('js/auth.js', 'utf8');
+const googleAppSource = readFileSync('js/app.js', 'utf8');
+const googleSupaSource = readFileSync('js/supa.js', 'utf8');
+const googleMainActivitySource = readFileSync('android/app/src/main/java/com/everneed/store/MainActivity.java', 'utf8');
+const googlePackage = JSON.parse(readFileSync('package.json', 'utf8'));
+for (const [file, source, required] of [
+  ['js/config.js', googleConfigSource, 'googleWebClientId:"659136945947-dlum233ke4ruu48uk9ir0bli0nvfcs60.apps.googleusercontent.com"'],
+  ['js/auth.js', googleAuthSource, 'function googleNativeAndroid()'],
+  ['js/auth.js', googleAuthSource, 'plugin.initialize({google:{webClientId:clientId}})'],
+  ['js/auth.js', googleAuthSource, 'plugin.login({provider:"google",options:{}})'],
+  ['js/auth.js', googleAuthSource, 'Supa.signInIdToken("google",token)'],
+  ['js/auth.js', googleAuthSource, 'nativeGoogleAccountReauthFailure'],
+  ['js/auth.js', googleAuthSource, 'location.href=url'],
+  ['js/auth.js', googleAuthSource, 'com.everneed.store://auth/callback'],
+  ['js/auth.js', googleAuthSource, 'Capacitor.Plugins.Browser'],
+  ['js/supa.js', googleSupaSource, 'grant_type=id_token'],
+  ['js/supa.js', googleSupaSource, 'id_token:idToken'],
+  ['js/app.js', googleAppSource, 'function clearNativeGoogleProvider()'],
+  ['js/app.js', googleAppSource, 'p.logout({provider:"google"})'],
+  ['js/app.js', googleAppSource, 'function signOutCurrentUser()'],
+  ['MainActivity.java', googleMainActivitySource, 'ModifiedMainActivityForSocialLoginPlugin'],
+  ['MainActivity.java', googleMainActivitySource, 'handleGoogleLoginIntent(requestCode, data)'],
+]) if (!source.includes(required)) fail(file + ' is missing native Google sign-in requirement: ' + required);
+if (!googlePackage.dependencies || !googlePackage.dependencies['@capgo/capacitor-social-login']) {
+  fail('package.json must include @capgo/capacitor-social-login for native Android Google sign-in');
+}
+if (googleConfigSource.includes('googleWebClientId:"659136945947-tv0q8nrivcca6rv5areu2vrtca1qnekm.apps.googleusercontent.com"')) {
+  fail('js/config.js must not use the Android OAuth client ID as googleWebClientId');
+}
+if (!googleAuthSource.includes('code_challenge_method=s256') && !googleSupaSource.includes('code_challenge_method=s256')) {
+  fail('website Google sign-in must retain OAuth PKCE');
+}
+if (!googleAppSource.includes('else if(k==="out"){signOutCurrentUser()}') || !googleAppSource.includes('signout:function(){signOutCurrentUser()}')) {
+  fail('all explicit sign-out entry points must clear native Google state');
+}
+
+// 4d. Staging migrations must never deploy on a branch push.
+const stagingWorkflowPath = '.github/workflows/staging-db.yml';
+if (existsSync(stagingWorkflowPath)) {
+  const stagingWorkflow = readFileSync(stagingWorkflowPath, 'utf8');
+  if (/^  push:/m.test(stagingWorkflow)) fail(stagingWorkflowPath + ' must not apply migrations automatically on push');
+  if (!stagingWorkflow.includes('confirm_staging') || !stagingWorkflow.includes('APPLY')) {
+    fail(stagingWorkflowPath + ' must require the explicit APPLY workflow-dispatch input');
+  }
+}
+
 // 5. No retired dropshipping integrations outside history files. Do not ban the word
 // "supplier" by itself: it is legitimate marketplace/legal terminology for independent sellers.
 const BAN = /\b(cj|cjdropshipping|eprolo|sup_[a-z]+)\b/i;
 const SKIP = new Set(['node_modules', '.git', 'assets', 'keystore', 'android']);
-const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'tools/check.mjs']);
+const HISTORY = new Set(['supabase/migrations/000_baseline.sql', 'supabase/migrations/001_remove_cj.sql', 'docs/AUDIT.md', 'docs/EVERNEED_MARKETPLACE_PROMPT.md', 'docs/WORKFLOW/REPOSITORY_AND_PRODUCT_AUDIT_2026-11-12.md', 'tools/check.mjs']);
 const MANIFEST = existsSync('MANIFEST.txt') ? new Set(readFileSync('MANIFEST.txt', 'utf8').split('\n').filter(Boolean)) : null;
 // A second copy of the project inside the repository means a zip was unpacked one level too deep.
 for (const n of readdirSync('.')) {

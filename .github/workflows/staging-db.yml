@@ -1,0 +1,89 @@
+name: Staging database
+
+# Applies pending migrations to Everneed-staging only when manually dispatched.
+# Automatic push-triggered database changes are intentionally disabled.
+# Exact staging/live project-ref guards remain mandatory.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_staging:
+        description: 'Select APPLY only after reviewing the exact pending staging migrations.'
+        required: true
+        type: choice
+        options:
+          - NO
+          - APPLY
+        default: NO
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-db
+  cancel-in-progress: false
+
+env:
+  STAGING_REF: vjiadqygpyebpisxslbx
+  LIVE_REF: zpgasfweaixwsktlueje
+
+jobs:
+  apply:
+    name: Apply migrations to staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the secret is set and points at staging
+        id: guard
+        shell: bash
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          CONFIRM_STAGING: ${{ inputs.confirm_staging }}
+        run: |
+          set -uo pipefail
+          if [[ "${CONFIRM_STAGING:-NO}" != "APPLY" ]]; then
+            echo "::notice::Staging migration apply was not explicitly confirmed; no database change was made."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "${STAGING_DB_URL:-}" ]; then
+            echo "::notice::STAGING_DB_URL is not set yet, so staging was not updated. See docs/WORKFLOW/ENVIRONMENTS.md."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$STAGING_DB_URL" == *"$LIVE_REF"* ]]; then
+            echo "::error::STAGING_DB_URL contains the LIVE project reference. Refusing to run."
+            exit 1
+          fi
+          if [[ "$STAGING_DB_URL" != *"$STAGING_REF"* ]]; then
+            echo "::error::STAGING_DB_URL does not contain the staging project reference ($STAGING_REF). Refusing to run."
+            exit 1
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - uses: supabase/setup-cli@v3
+        if: steps.guard.outputs.run == 'true'
+        with:
+          version: 3.1.0
+
+      - name: List what is already applied
+        if: steps.guard.outputs.run == 'true'
+        shell: bash
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: supabase migration list --remote="$STAGING_DB_URL" || true
+
+      - name: Apply pending migrations
+        if: steps.guard.outputs.run == 'true'
+        shell: bash
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: supabase db push --remote="$STAGING_DB_URL" --include-all --yes
+
+      - name: Show the result
+        if: steps.guard.outputs.run == 'true'
+        shell: bash
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: supabase migration list --remote="$STAGING_DB_URL"

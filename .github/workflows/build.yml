@@ -1,18 +1,25 @@
 name: Build Android app
 on:
   push:
+    branches: [main, web-portal]
   pull_request:
+  # Lets GitHub merge queue run the same required checks (Install and test, Database tests) on queued merges.
+  merge_group:
   workflow_dispatch:
 permissions:
-  contents: write
-# A newer push to the same branch replaces the older run, so only the latest APK is built.
+  contents: read
+# Queue builds for the same branch instead of cancelling an in-progress database test.
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   test:
     name: Install and test
     runs-on: ubuntu-latest
+    # pull-requests: write only lets the QA step post its report comment.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,27 +30,78 @@ jobs:
         run: npm test
       - name: Tokens are up to date
         run: node tools/build-tokens.mjs && git diff --exit-code css/tokens.css
+      # QA-01: 360 px smoke, axe and bundle budget; posts a report comment on the PR. See tools/qa/README.md.
+      - uses: ./.github/actions/qa-smoke
   database:
     name: Database tests
     runs-on: ubuntu-latest
     # Starts a local Supabase stack, applies every migration, then runs the SQL test suite.
-    # Non-blocking until it has been seen passing once on GitHub.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - uses: denoland/setup-deno@v2
         with:
-          version: latest
+          deno-version: v2.x
+      - name: Type-check payment recovery worker
+        run: deno check --config supabase/deno.json supabase/functions/payment-recovery/index.ts
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.1.0
       - run: test -f supabase/config.toml || supabase init
-      - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,inbucket,realtime,mailpit
+      - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
       - name: Run Phase 2 checks
+        shell: bash
         run: |
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt || true
-          grep -q "FAIL: 0" /tmp/p2.txt
+          set -o pipefail
+          set +e
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/phase2_checks.sql 2>&1 | tee /tmp/p2.txt
+          psql_status=${PIPESTATUS[0]}
+          set -e
+          # This test deliberately raises PHASE2 REPORT to roll back its fixtures.
+          # psql therefore exits 3 even when every assertion passes; validate both
+          # the expected rollback report and zero failures before accepting that exit.
+          grep -q "PHASE2 REPORT (rolled back)" /tmp/p2.txt
+          grep -Eq 'PASS: [0-9]+  FAIL: 0' /tmp/p2.txt
+          test "$psql_status" -eq 3
+      - name: Public RPC security regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/016_public_rpc_security_hardening.sql
+      - name: Authenticated RPC security regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/017_authenticated_rpc_security.sql
+      - name: Buyer, seller and admin RLS isolation regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/018_rls_isolation_regression.sql
+      - name: Turnstile public RPC ACL regression tests
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/019_turnstile_public_rpc_acl.sql
+      - name: Payment checkout snapshot structural tests (027)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/027_payment_checkout_snapshot_checks.sql
+      - name: Payment attempt RPC security tests (028)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/028_payment_attempt_rpc_checks.sql
+      - name: Payment recovery lease and settlement integrity tests (029)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/029_payment_recovery_worker_checks.sql
+      - name: Payment recovery worker context tests (030)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/030_payment_recovery_context_checks.sql
+      - name: Stale payment-attempt recovery tests (031)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/031_stale_payment_attempt_recovery_checks.sql
+      - name: Legacy payment RPC search-path tests (032)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/032_legacy_payment_rpc_search_path_checks.sql
+      - name: Double-entry finance journal tests (033)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/033_double_entry_finance_journal_checks.sql
       - name: Anonymous reads
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/anon_smoke.sql
+
+      - name: Seller onboarding, plan entitlement and quota tests (034)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/034_seller_onboarding_entitlements_and_quotas_checks.sql
+
+      - name: Seller message notification contract tests (036)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/036_seller_message_notification_contract_checks.sql
+      - name: Seller notification trigger ACL tests (037)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/037_chat_notification_trigger_acl_checks.sql
+
+      - name: Product catalogue foundation regression tests (038)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
+  # Staging test APK builds: web-portal pushes or manual dispatch only. main never creates a test APK.
   apk:
-    needs: test
+    if: github.ref_name == 'web-portal' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    # This staging-only packaging artifact depends on web checks, not database tests; APK success is not backend-readiness approval.
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,19 +122,16 @@ jobs:
           mkdir www
           cp -r index.html favicon.svg favicon.png css js data fonts www/
           # Stamp the real build into the app so Settings and Appearance show which build is installed.
-          echo "window.BUILD={n:${{ github.run_number }},sha:\"${GITHUB_SHA::7}\",branch:\"${{ github.ref_name }}\"};" > www/js/build.js
-          echo "window.buildLabel=function(){var b=window.BUILD||{};return\"Build \"+b.n+\" \\u00B7 \"+b.sha+\" \\u00B7 \"+b.branch};" >> www/js/build.js
-      - run: npx cap add android
-      - name: Allow camera and microphone
+          BUILD_NUMBER="$GITHUB_RUN_NUMBER" BUILD_SHA="${GITHUB_SHA::7}" BUILD_BRANCH="$GITHUB_REF_NAME" node -e 'const fs=require("fs");const b={n:Number(process.env.BUILD_NUMBER),sha:process.env.BUILD_SHA,branch:process.env.BUILD_BRANCH};fs.writeFileSync("www/js/build.js", `window.BUILD=${JSON.stringify(b)};window.buildLabel=function(){var b=window.BUILD||{};return "Build "+b.n+" · "+b.sha+" · "+b.branch};`)'
+      - name: Require committed native Android project
         run: |
-          M=android/app/src/main/AndroidManifest.xml
-          sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <application|' $M
-      - name: Add the AdMob app id
-        run: |
-          ID=$(node -e "global.window=global;require('./js/config.js');console.log(CFG.ads.appId)")
-          M=android/app/src/main/AndroidManifest.xml
-          sed -i "s|</application>|    <meta-data android:name=\"com.google.android.gms.ads.APPLICATION_ID\" android:value=\"$ID\"/>\n    </application>|" $M
-          grep -q "com.google.android.gms.ads.APPLICATION_ID" $M
+          test -f android/gradlew
+          test -f android/app/build.gradle
+          test -f android/app/src/main/AndroidManifest.xml
+      - name: Sync Capacitor (do not regenerate native project)
+        run: npx cap sync android
+      - name: Apply Everneed Android settings
+        run: node tools/prepare-android.mjs
       - name: Generate app icons and splash screens
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0f6b4f' --iconBackgroundColorDark '#0f6b4f' --splashBackgroundColor '#fafaf8' --splashBackgroundColorDark '#0d0f0e'
       - name: Number the build so each one installs over the last
@@ -85,11 +140,22 @@ jobs:
           VC=$(( $(date +%s) / 60 ))
           sed -i "s/versionCode 1/versionCode $VC/; s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
           grep -n "versionCode\|versionName" android/app/build.gradle
-      - name: Use the fixed signing key
+      - name: Install test signing key
+        env:
+          ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
         run: |
           mkdir -p ~/.android
-          cp keystore/debug.keystore ~/.android/debug.keystore
-      - run: npx cap sync android
+          if [ -n "$ANDROID_DEBUG_KEYSTORE_BASE64" ]; then
+            printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 --decode > ~/.android/debug.keystore
+            echo "Using the repository's stable test signing key."
+          else
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore -storetype JKS \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+            echo "::warning::A temporary test signing key was generated. Uninstall any older Everneed test APK before installing this build."
+          fi
+          chmod 600 ~/.android/debug.keystore
       - name: Build installable APK
         working-directory: android
         run: |
@@ -99,18 +165,9 @@ jobs:
         with:
           name: everneed-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-      # Every push to any branch (not pull requests) publishes a test release you can open on your phone.
-      - name: Publish APK to Releases
-        if: github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk EverNeed.apk
-          gh release create "build-${{ github.run_number }}" EverNeed.apk --title "EverNeed build ${{ github.run_number }} ($BRANCH)" --notes "Debug APK for testing, built from branch $BRANCH (commit ${GITHUB_SHA::7}). Download EverNeed.apk and install it." --prerelease --target "${{ github.sha }}"
+      # The Actions artifact is the reliable APK download; no Release-write permission is needed.
       - name: Where to find the APK
         run: |
           echo "### APK ready" >> "$GITHUB_STEP_SUMMARY"
           echo "Branch: \`${{ github.ref_name }}\`, build ${{ github.run_number }}." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Releases tab: **EverNeed build ${{ github.run_number }}**, file EverNeed.apk (open it on your phone)." >> "$GITHUB_STEP_SUMMARY"
           echo "- Or this run's Artifacts section: **everneed-apk**." >> "$GITHUB_STEP_SUMMARY"

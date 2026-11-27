@@ -1,0 +1,5 @@
+/* Shopping / My store switch */
+.mode{display:flex;gap:4px;margin:16px 0 4px;padding:4px;border-radius:999px;background:var(--surface-2,var(--border));border:1px solid var(--border)}
+.mode button{flex:1;min-height:44px;border:0;border-radius:999px;background:transparent;color:var(--text-2);font:600 15px inherit;font-family:inherit;cursor:pointer}
+.mode button.on{background:var(--brand);color:var(--text-on-brand)}
+.mode button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
