@@ -97,6 +97,8 @@ jobs:
 
       - name: Product catalogue foundation regression tests (038)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/038_product_catalog_foundation_checks.sql
+      - name: CX-01 hub issue and dispatch contract tests (041)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/041_cx01_hub_issue_dispatch_contract_checks.sql
       - name: Public table API privilege regression tests (CX-04)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/040_cx04_public_table_privilege_checks.sql
   # Staging test APK builds: web-portal pushes or manual dispatch only. main never creates a test APK.
