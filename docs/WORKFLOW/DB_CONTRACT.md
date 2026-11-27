@@ -316,7 +316,7 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 
 ## Staging backend contract update — 27 Nov 2026 (R24/R25, PR pending)
 
-**Staging-only implementation proposal in PR #66; not applied to staging yet.** Production remains untouched.
+**Staging-only implementation proposal in PR #69; not applied to staging yet.** Production remains untouched.
 
 ### R24 — temporary store pause
 - Add `stores.paused_until timestamptz`. `NULL` means active; an expiry in the future means paused; an expiry at/past current time is automatically considered resumed. This is an absolute timestamp; seller UI uses the store's `business_timezone` for display and local date/time entry.
@@ -333,4 +333,4 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 ### CX-09 profile-edit policy audit
 - Staging stores RLS: owner SELECT/UPDATE with owner preserved; public read only for approved/live stores; admin read. The store guard protects owner_id, official/demo flags, approved_at, slug and owner-controlled status transitions. `store_private` owner select/insert/update is scoped by `private.owns_store`.
 - Store profile fields (`name`, `tagline`, `about`, `logo_url`, `cover_url`, `accent`, categories and location fields) do not currently trigger an automatic re-review. No owner decision authorizes an automated re-review blocker for routine profile changes; policy/manual review remains an admin decision. The new normalized name index provides global collision prevention.
-- R24/R25 schema/function changes are pending PR #66 and staging workflow. No production changes.
+- R24/R25 schema/function changes are pending PR #69 and staging workflow. No production changes.
