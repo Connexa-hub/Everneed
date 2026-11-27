@@ -32,7 +32,7 @@ These are **SQL ACL facts, not proof of API reachability or a vulnerability**. R
 
 ## Files and validation
 
-- Migration: `supabase/migrations/20261127110000_cx04_public_table_privilege_trim.sql`
+- Migration: `supabase/migrations/20261127110139_cx04_public_table_privilege_trim.sql`
 - Test: `supabase/tests/040_cx04_public_table_privilege_checks.sql`
 - CI: Database tests step wired in `.github/workflows/build.yml`
 - Replay manifest: `.github/workflows/migrations-check.yml`
