@@ -172,7 +172,7 @@
   V.admin=function(p){if(!Supa.uid())return{redirect:"#/login"};var me=C.me();if(!me||me.role!=="admin")return{layout:"portal",active:"",html:head("Admin only","This area is for the Everneed team. Seller tools are in your portal."),title:"Admin"};
     var sub=p[0]||"";function out(h,t,active){return{layout:"admin",active:active||"admin"+(sub?"/"+sub:""),html:h,title:t||"Admin"}}
     if(sub==="appearance")return out(head("Appearance")+'<div id="apprw" style="margin-top:20px">'+C.appearance()+"</div>");
-    if(sub==="waitlist")return q("waitlist?select=*&order=created_at.desc&limit=500").then(function(r){WL=r||[];return out(waitlist(WL),"Waitlist")},function(){WL=[];return out(head("Waitlist")+C.empty("Waitlist is not set up yet","Apply shared/sql/011_website_sync.sql in the Supabase SQL editor, then reload."),"Waitlist")});
+    if(sub==="waitlist")return q("waitlist?select=*&order=created_at.desc&limit=500").then(function(r){WL=r||[];return out(waitlist(WL),"Waitlist")},function(e){WL=[];return out(head("Waitlist")+C.empty("The waitlist could not load",(e&&e.message?e.message+". ":"")+"Sign in as an admin and reload. If it keeps failing, tell the backend owner."),"Waitlist")});
     if(sub==="applications")return{redirect:"/admin/sellers"};
     if(sub==="stores")return{redirect:"/admin/sellers/stores"};
     if(sub==="sellers"){var tab=p[1]||"";if(tab!==""&&tab!=="stores"&&tab!=="plans"&&tab!=="verification")tab="";
