@@ -312,3 +312,21 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+## R24/R25 backend contract — 27 Nov 2026 (Codex branch, staging pending)
+
+**Source branch:** `codex/backend-r24-r25`. No staging migration has been applied yet. Production remains untouched.
+
+### R24 — seller storefront pause
+- Columns: `stores.storefront_paused boolean NOT NULL DEFAULT false`, `storefront_pause_until timestamptz NULL`, `storefront_pause_note text NULL`, `storefront_pause_updated_at timestamptz NULL`.
+- RPC: `seller_set_pause(p_store text, p_paused boolean, p_until timestamptz DEFAULT NULL, p_note text DEFAULT NULL) RETURNS jsonb`. Authenticated store owner only; official store excluded. Pause expiry is an absolute timestamp interpreted by the caller in the store's `business_timezone`; null expiry means pause indefinitely. Resume clears pause fields. Audited.
+- Central `private.store_live(p_store)` now returns false while paused and until the absolute expiry is reached. This gate is used by storefront/product visibility and `create_order`; direct checkout creation is rejected for paused stores. Expiry is lazy/time-based (no scheduled worker needed). Existing orders/payment attempts/refunds/stock reservations/fulfilment are not changed.
+- Direct owner writes to pause columns are blocked by `private.stores_guard()`; the RPC is the supported interface. The frontend can display returned `timezone` and `pause` fields and map failures to clear messages.
+
+### R25 — normalized store name uniqueness
+- Unique expression index `stores_name_normalized_key` on `lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g'))`. Trim edges and collapse whitespace; lowercase; punctuation and accents are preserved intentionally.
+- Existing `UNIQUE(owner_id)` and `UNIQUE(slug)` remain. **One seller = one store.** No multi-store support or store switcher.
+- Duplicate insert/update yields PostgreSQL unique violation (23505) on named index. No silent rename. Existing normalized collisions abort migration pending owner reconciliation.
+
+Staging acceptance checks: owner/non-owner RPC; pause indefinite/expiry/resume; paused store omitted from public availability and checkout denial; direct-column guard; unchanged existing order/payment/inventory; duplicate case/whitespace collision; uniqueness race; and no removal of owner uniqueness. Test SQL is `supabase/tests/035_r24_r25_pause_and_store_name_checks.sql`. Apply only through the owner-approved manual staging workflow after PR review.
