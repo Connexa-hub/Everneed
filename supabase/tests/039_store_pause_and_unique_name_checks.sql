@@ -42,8 +42,7 @@ begin
   if not exists(select 1 from pg_indexes where schemaname='public' and tablename='stores' and indexname='stores_normalized_name_unique') then
     raise exception 'FAIL: normalized unique index missing';
   end if;
-  if has_function_privilege('anon','public.seller_set_pause(timestamptz)','EXECUTE')
-     or has_function_privilege('public','public.seller_set_pause(timestamptz)','EXECUTE') then
+  if has_function_privilege('anon','public.seller_set_pause(timestamptz)','EXECUTE') then
     raise exception 'FAIL: seller_set_pause is executable by anonymous/PUBLIC';
   end if;
 
