@@ -31,7 +31,7 @@ window.Cards=(function(){
       retry?"This payment attempt did not succeed. You can safely start another attempt.":
       "Your payment is not confirmed yet. If you have paid, check the status again.";
     sheet(X+"<h3>"+(retry?"Payment did not go through":"Confirming payment")+'</h3><p class="m">'+msg+"</p>"+
-      (retry?btn("cretry","Start a new payment",1,order)+btn("cchk","Check payment status"):
+      (retry?btn("cnew","Try payment again",1,order)+btn("cchk","Check payment status"):
        status==="abandoned"?btn("cnew","Continue payment",1,order)+btn("cchk","Check payment status"):
        btn("cchk","Check payment status",1))+
       '<button class="lnk" data-act="cback">Return to cart</button>'+(ref?'<p class="m sm">Reference '+esc(ref)+". Keep it if you need help.</p>":""))
@@ -69,9 +69,15 @@ window.Cards=(function(){
   /* init: server returns {paid} | {url[,access_code],reference} (new OR reused attempt) | {status,reference,...} 202 | error. */
   function launch(order,fresh){
     if(inflight)return;inflight=true;
-    var idem=makeKey(order,!!fresh);
+    var idem=makeKey(order,!!fresh),dead=pend&&pend.retryable&&pend.order===order?pend.ref:null;
     Supa.fn("paystack",{action:"init",order_id:order,idempotency_key:idem}).then(function(r){
       if(r.paid){pend={order:order};done();return}
+      /* Paystack said this attempt failed but our database may not have closed it yet, so the server hands the same
+         attempt back. Never reopen a dead session: tell the shopper we are still closing it. */
+      if(dead&&r.reference===dead){
+        sheet(X+"<h3>Still closing the previous attempt</h3><p class=\"m\">The earlier payment did not succeed and we are closing it on our side. Wait a minute, then try again. If you already paid, do not pay again.</p>"+btn("cnew","Try again",1,order)+btn("cchk","Check payment status")+btn("cback","Back to cart"));
+        return
+      }
       if(r.url){
         pend={ref:r.reference,order:order,attempt:r.attempt_id,status:r.status||"pending",at:Date.now()};S.set("pay",pend);
         sheet(X+'<h3>Complete your payment</h3><p class="m">Finish paying in Paystack’s secure checkout. We will confirm it automatically.</p>'+btn("cchk","I have paid — check now",1)+btn("cback","Back to cart"));
@@ -91,7 +97,7 @@ window.Cards=(function(){
     Supa.fn("paystack",{action:"charge",order_id:order,card_id:card,idempotency_key:makeKey(order,false)}).then(function(r){
       if(r.paid){pend={order:order};done();return}
       var st=String(r.status||"").toLowerCase();
-      if(DEAD.indexOf(st)>-1){S.set(keyName(order),null);notify(r.message||"The payment did not go through. Try another card.","err");if(currentOrder)start(currentOrder);return}
+      if(DEAD.indexOf(st)>-1){S.set(keyName(order),null);/* the server recorded this attempt as failed in the same request */notify(r.message||"The payment did not go through. Try another card.","err");if(currentOrder)start(currentOrder);return}
       if(r.reference&&(r.verify_required||r.status)){wait(order,r.reference,r.status||"pending",false);check(true);return}
       notify(r.message||"The payment did not go through. Try another card.","err")
     }).catch(function(e){var m=String(e&&e.message||e);notify(isNet(m)?"We could not reach the payment service. If you already paid, do not pay again. Check your connection and try again.":m,"err")}).then(release,release)
