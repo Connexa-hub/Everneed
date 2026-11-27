@@ -90,10 +90,11 @@ begin
        or new.approved_at is distinct from old.approved_at or new.slug is distinct from old.slug then
       raise exception 'That store field cannot be changed from the app.';
     end if;
-    if new.storefront_paused is distinct from old.storefront_paused
+    if (new.storefront_paused is distinct from old.storefront_paused
        or new.storefront_pause_until is distinct from old.storefront_pause_until
        or new.storefront_pause_note is distinct from old.storefront_pause_note
-       or new.storefront_pause_updated_at is distinct from old.storefront_pause_updated_at then
+       or new.storefront_pause_updated_at is distinct from old.storefront_pause_updated_at)
+       and current_user not in ('postgres','service_role') then
       raise exception 'Use seller_set_pause to change storefront pause settings.';
     end if;
     if new.status is distinct from old.status and not (old.status in ('draft', 'rejected') and new.status = 'pending') then
