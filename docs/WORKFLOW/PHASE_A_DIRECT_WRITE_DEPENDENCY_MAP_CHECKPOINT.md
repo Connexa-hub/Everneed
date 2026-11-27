@@ -54,3 +54,18 @@ Before drafting a migration:
 6. Run CI/migration replay and staging functional tests before applying any grant changes.
 
 **Safety:** No ACLs or data changed during this checkpoint. No migration is drafted or applied. Production remains untouched.
+
+## 27 Nov — CX-04 staging ACL snapshot (read-only)
+
+Effective table grants were re-queried in Everneed-staging. The full per-table privilege result is grouped below; only anon/authenticated grants are included. This is catalog evidence, not a statement that every grant is reachable through PostgREST.
+
+- anon: 21 tables with INSERT/UPDATE/DELETE (banners, category_attributes, collections, offers, orders, product_inventory_movements, product_links, product_media, product_price_tiers, product_variant_private, product_variants, products, profiles, public_products, public_reviews, public_stores, reviews, settings, size_charts, auto_offers and product_ratings). SELECT is present on most, but not on reviews. 5 tables additionally have REFERENCES/TRIGGER/TRUNCATE (auto_offers, product_ratings, public_products, public_reviews, public_stores).
+- authenticated: 36 tables with INSERT/UPDATE; 37 with DELETE. Includes support/configuration tables and client-side product/store workflows; **do not blanket-revoke**. 5 tables additionally have REFERENCES/TRIGGER/TRUNCATE (auto_offers, product_ratings, public_products, public_reviews, public_stores). Sensitive tables such as orders, disputes, products, profiles, messages, support_queue, stores and store_private require dependency-specific narrowing.
+- The specific disputes table grants to authenticated are SELECT, INSERT, UPDATE, DELETE. TRUNCATE privilege was not shown on disputes itself in this snapshot, but the default ACL is overly broad and other tables hold TRUNCATE.
+- Existing role-table-grants snapshot shows no MAINTAIN grant on these current objects; default ACLs still include MAINTAIN.
+
+### Default ACLs
+Both `postgres` and `supabase_admin` have broad default table privileges in public, including INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER and MAINTAIN to anon/authenticated/service_role. Default sequence ACLs also include SELECT/UPDATE/USAGE; default function EXECUTE is broad. The exact owner/schema coverage must be reconciled with Supabase-managed schemas before remediation. This is a confirmed default-ACL concern.
+
+### Remaining Phase A gate
+Raw REST/fetch, complete Android packaged path, RPC and trigger dependency mapping, Edge Function operations, per-column grants, default ACL owner/schema scope and CI negative tests are not yet complete. No staging grants or default ACLs changed. Production remains untouched.
