@@ -73,3 +73,9 @@
 .meter{height:6px;margin:6px 0 10px;border-radius:99px;background:var(--border,rgba(127,127,127,.3));overflow:hidden}
 .meter i{display:block;height:100%;border-radius:99px;background:var(--brand,#1fa971)}
 .guide-step.done{opacity:.65}
+
+/* Photo upload failure (WEB-S23): the failed photo is marked and one Try again line explains what to do. */
+.gal-ed .it.bad{border-color:var(--danger,#c0392b)}.gal-ed .it.bad img{opacity:.55}
+.gal-ed .st{position:absolute;left:6px;top:6px;padding:2px 8px;border-radius:99px;background:var(--danger,#c0392b);color:#fff;font-size:.72rem;font-weight:600}
+.gal-ed .ph-err{grid-column:1/-1;margin:2px 0 0;padding:10px 12px;border-radius:12px;background:var(--danger-soft,rgba(192,57,43,.12));color:var(--text-1,inherit);font-size:.9rem;line-height:1.4}
+.gal-ed .ph-err .btn{margin-left:6px;min-height:44px}
