@@ -63,3 +63,12 @@ Claude 10: use the status column above as source of truth for CX-01/02/04. None 
 5. Keep CX-04 read-only UI moving; frontend agents do not change RLS/ACLs. Backend completes dependency inventory, least-privilege migration and CI regression test before secure status.
 6. Each agent hands off task, branch, commit, files, tests/results, screenshots, limitations and backend dependencies. Claude 10 reviews actual diffs and is the only merger to web-portal.
 7. No CX request is DONE without staging evidence, CI/test result and required contract/tracker update.
+
+
+## E. Refreshed TEAM_BOARD follow-up — CX-15 and access adapter (27 Nov)
+
+### CX-15 — checkout QA inventory (BLOCKED / DATA RECONCILIATION)
+Read-only staging audit (`vjiadqygpyebpisxslbx`) found `cx01-fixture-product` published, `stock=1`, `track_stock=true`, `allow_backorder=false`, no variants; 10 `order_items` reference it, all `variant_id=NULL`. This differs from TEAM_BOARD's claim both fixture products have zero stock. A second published product has legacy `stock=0` and `stocks={"Grey":10}`, so checkout's authoritative inventory representation needs reconciliation before using it as a test SKU. Codex made no direct stock write. Safest path: create a dedicated QA-only product through authenticated seller UI/backend workflow, or use an approved stock-adjustment RPC with a reason/audit trail; keep it separate from the CX-01 order fixtures. Then run customer checkout and verify server-side order/payment/stock outcomes. Do not fabricate orders or bypass checkout/inventory.
+
+### `ds-access.js` adapter gap — Claude 2 integration guidance
+Canonical access contexts should be consumed using generic `scope_id`/`scope_name` fields. For store-plane contexts, retain `store_id`/`store_name` as compatibility aliases; do not require these aliases for platform, partner, or logistics contexts. Preserve all recognized context planes and fail closed for unknown scopes, revoked/expired grants, or permission mismatches. Add adapter tests for generic canonical fields, legacy store aliases, platform and partner/logistics contexts, and expired/revoked assignments. Live `my_access()` integration remains gated on CX-02 staging deployment, grants, tests, and a sample response.
