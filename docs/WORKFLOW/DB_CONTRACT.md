@@ -319,3 +319,16 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Staging migration `20261127110139_cx04_public_table_privilege_trim` removes `TRUNCATE`, `TRIGGER` and `REFERENCES` from anon/authenticated on all public base tables. RLS and existing SELECT/INSERT/UPDATE/DELETE grants are unchanged in this narrow pass.
 - Catalog assertion on staging reports zero base tables with those API-role privileges. `authenticated` no longer has TRUNCATE on `public.disputes`; UPDATE/DELETE grants remain subject to further ACL/RLS review.
 - Regression test `040_cx04_public_table_privilege_checks.sql` added to CI Database tests. Broad DML and default ACL remediation is still pending dependency map. Production untouched.
+
+
+## CX-01 staging fixtures (27 Nov 2026)
+
+- Existing staging Auth users are used; no accounts or credentials were created. Fixture IDs and test state are documented in `docs/WORKFLOW/CX01_STAGING_FIXTURES.md`.
+- Ten hub-route orders exist: five unpaid and five simulated-paid through `admin_confirm_payment()`. Each order has two seller orders (Shopflow and Testing). The QA product is clearly labeled and seller-created/admin-reviewed. Both product stocks were reserved down from 10 to 0 for fixtures.
+- Hub states currently cover handover-pending, partial receipt, and consolidated. Dispatch and damaged-item issue remain blocked by RPC defects addressed in PR #62; do not treat those fixtures as complete until migration applied and RPCs verified.
+- The customer RLS insert created one open dispute tied to CX01-10. Twenty ledger rows (sale/commission) are pending; no direct ledger rows fabricated. Finance status/kind coverage remains partial pending safe lifecycle paths.
+
+
+- Follow-up CX-01 fixture update (27 Nov): PR #62 migration `20261127123323_cx01_hub_issue_dispatch_guard_fix` is applied to staging after full CI green. Hub issue notifications now use `private.notify_admins`; dispatch sets the guarded transition context and validates courier name. CX01-09 dispatched and customer-confirmed delivered. CX01-10 now records a damaged-item `issue` on Shopflow and received item on Testing. CX01-06 cancellation via admin RPC produced reversal entries. Finance fixture counts: 18 pending and 2 reversed entries (sale/commission only); payout/release test was blocked and rolled back; no available/paid payout rows created.
+
+- CX01 simulated refund via admin `refund()` RPC on order CX01-10 (refund ID `56683d97-a5de-403c-a80a-9478fe5c116a`, NGN 1,000; no external Paystack refund) added two `refund`-kind `available` entries. Finance fixture totals are 22 entries: 18 pending, 2 reversed, 2 available; kinds sale, commission, refund. Payout/paid, adjustment and rental remain intentionally unseeded because no safe lifecycle path was completed.
