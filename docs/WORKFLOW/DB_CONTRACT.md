@@ -330,3 +330,5 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 
 
 - Follow-up CX-01 fixture update (27 Nov): PR #62 migration `20261127123323_cx01_hub_issue_dispatch_guard_fix` is applied to staging after full CI green. Hub issue notifications now use `private.notify_admins`; dispatch sets the guarded transition context and validates courier name. CX01-09 dispatched and customer-confirmed delivered. CX01-10 now records a damaged-item `issue` on Shopflow and received item on Testing. CX01-06 cancellation via admin RPC produced reversal entries. Finance fixture counts: 18 pending and 2 reversed entries (sale/commission only); payout/release test was blocked and rolled back; no available/paid payout rows created.
+
+- CX01 simulated refund via admin `refund()` RPC on order CX01-10 (refund ID `56683d97-a5de-403c-a80a-9478fe5c116a`, NGN 1,000; no external Paystack refund) added two `refund`-kind `available` entries. Finance fixture totals are 22 entries: 18 pending, 2 reversed, 2 available; kinds sale, commission, refund. Payout/paid, adjustment and rental remain intentionally unseeded because no safe lifecycle path was completed.
