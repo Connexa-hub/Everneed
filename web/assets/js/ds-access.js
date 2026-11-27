@@ -20,10 +20,18 @@
   };
   var NOPE={403:1,404:1},st={uid:null,p:null,on:false,ctx:[],active:0,at:0};
   function arr(a){return Array.isArray(a)?a:[]}
+  /* Context shape from my_access() (PR #49): plane, scope_type, scope_id, scope_name, role, display_name, permissions, source, compatibility, official.
+     `store_id` / `store_name` stay as aliases: they are filled from scope_id / scope_name only for store-plane contexts whose scope is a store
+     (a branch or terminal scope id is not a store id). Partner contexts (hub, zone, job...) are kept with their own scope; they never get a store_id. */
+  var PLANES={platform:1,store:1,partner:1};
   function clean(r){
     var l=r&&r.contexts?r.contexts:r;if(!Array.isArray(l))return null;
-    return l.filter(function(c){return c&&(c.plane==="platform"||c.plane==="store")}).map(function(c){
-      return{plane:c.plane,role:String(c.role||""),store_id:c.store_id==null?null:String(c.store_id),store_name:c.store_name?String(c.store_name):"",official:!!c.official,
+    return l.filter(function(c){return c&&PLANES[c.plane]===1}).map(function(c){
+      var scoped=c.scope_id!=null?String(c.scope_id):null,isStore=c.plane==="store"&&(c.scope_type==null||c.scope_type==="store"),
+        sid=c.store_id!=null?String(c.store_id):(isStore?scoped:null),sname=c.store_name?String(c.store_name):(isStore&&c.scope_name?String(c.scope_name):"");
+      return{plane:c.plane,scope_type:c.scope_type?String(c.scope_type):(c.plane==="platform"?"platform":(sid?"store":"")),scope_id:scoped!=null?scoped:sid,scope_name:c.scope_name?String(c.scope_name):sname,
+        role:String(c.role||""),display_name:c.display_name?String(c.display_name):"",source:c.source?String(c.source):"",compatibility:c.compatibility===true,
+        store_id:c.plane==="store"?sid:null,store_name:c.plane==="store"?sname:"",official:!!c.official,
         permissions:arr(c.permissions).filter(function(k){return typeof k==="string"}),expires_at:c.expires_at||null}})
   }
   function has(c,keys){
@@ -45,7 +53,12 @@
   /* can(gate[, storeId]): true / false when the server told us; null when it did not (caller keeps its current behaviour). */
   function can(g,storeId){
     if(!st.on)return null;var keys=GATES[g]||[g];
-    return st.ctx.some(function(c){return(storeId==null||c.store_id===String(storeId))&&has(c,keys)&&(!c.expires_at||Date.parse(c.expires_at)>Date.now())})
+    var ok=st.ctx.some(function(c){return!c.compatibility&&(storeId==null||c.store_id===String(storeId))&&has(c,keys)&&(!c.expires_at||Date.parse(c.expires_at)>Date.now())});
+    if(ok)return true;
+    /* A compatibility context (legacy profiles.role = admin) carries no permissions and is never promoted. For a platform gate it means the server
+       has no answer yet, so the caller keeps today's behaviour instead of locking the admin out. Store gates and every other case stay denied. */
+    if(storeId==null&&String(keys[0]).indexOf("store.")!==0&&st.ctx.some(function(c){return c.compatibility&&c.plane==="platform"}))return null;
+    return false
   }
   function why(){return"Your role cannot do this. Ask the store owner or an Everneed admin."}
   var api={
