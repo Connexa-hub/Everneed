@@ -14,6 +14,12 @@ runs:
     - name: Bundle budget
       shell: bash
       run: node tools/qa/bundle-budget.mjs --site web 2>&1 | tee tools/qa/out/bundle.txt
+    - name: axe canary (proves axe can fail)
+      if: always()
+      shell: bash
+      env:
+        QA_CHROMIUM_CHANNEL: chrome
+      run: node tools/qa/axe-canary.mjs
     - name: 360 px smoke and accessibility
       if: always()
       shell: bash
