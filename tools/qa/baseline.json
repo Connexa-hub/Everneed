@@ -1,0 +1,37 @@
+{
+  "note": "QA-01 baseline: counts of KNOWN touch-target and axe issues per route. The run fails only when a count goes UP. Lower the numbers as issues are fixed.",
+  "routes": {
+    "home": {
+      "touchSmall": 27,
+      "axe": {}
+    },
+    "about": {
+      "touchSmall": 12,
+      "axe": {}
+    },
+    "how-it-works": {
+      "touchSmall": 12,
+      "axe": {}
+    },
+    "sell": {
+      "touchSmall": 21,
+      "axe": {}
+    },
+    "help": {
+      "touchSmall": 12,
+      "axe": {}
+    },
+    "sign-in": {
+      "touchSmall": 5,
+      "axe": {}
+    },
+    "create-account": {
+      "touchSmall": 5,
+      "axe": {}
+    },
+    "not-found": {
+      "touchSmall": 12,
+      "axe": {}
+    }
+  }
+}
