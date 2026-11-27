@@ -226,3 +226,28 @@ These are the only writes `settings.js` makes, through `Supa.patch` / `Supa.patc
 | `store_private` | `pickup_address`, `direct_delivery_enabled`, `delivery_zones` | Delivery | Row looked up by `store_id`, updated with `patchBy`; the screen never inserts |
 
 Never written: `status`, `activation_status`, `owner_id`, `slug`, plan fields, payout or bank fields (the payout screen is read-only).
+
+
+## R25. Unique store names and one merchant, many stores (27 Nov 2026, Claude 1, owner decision, for Codex via Claude 10)
+
+**Status: REQUESTED.** Staging only. Owner rules: no two stores may share a name; one merchant may manage many stores; every store has its own different name.
+
+Found on staging today (read-only checks):
+- `stores` has unique indexes on `id`, `owner_id` and `slug` only. **Names are not unique.** Duplicates are possible now (none exist at the moment: 3 stores).
+- `stores_owner_id_key` is `UNIQUE (owner_id)`, so one account can own **one** store. That blocks one merchant running several stores. Many stores per merchant should instead come from `store_members` (owner role on each store) or by dropping the owner uniqueness, whichever Codex's access model (`my_access()`) prefers.
+- `private.stores_guard()` already stops non-privileged users changing `owner_id`, `slug`, `status`, `is_official`, `is_demo` and `approved_at`. A rename does not change the slug.
+
+Requested:
+1. **Unique name, case and spacing insensitive.** A unique index on a normalised name, for example `lower(regexp_replace(btrim(name), '\s+', ' ', 'g'))`, and also compare with accents and punctuation removed if Codex agrees (so "Ada Fabrics" and "ada  fabrics!" collide). Reserve names that impersonate Everneed or official stores. Check existing rows first and report any collision before adding the index.
+2. **Clear error.** On a duplicate, return a stable error (unique violation 23505 on a named index, or a custom message containing "store name"). The settings screen already turns that into "That store name is already taken. Choose a different name." and the store creation flow should do the same.
+3. **Availability check before saving** (nice to have): `store_name_available(p_name text, p_store uuid default null) returns boolean`, safe for signed-in users, so the form can say "taken" while typing without leaking other store data.
+4. **Many stores per merchant.** Remove the one-store-per-owner limit in line with `my_access()`: one account can hold owner or manager access on several stores, each with its own name, plan, products and payouts. Plan limits stay per store; no plan, price or activation rule changes.
+5. **Rename policy (recommended, owner confirms):** a name change on an approved store is allowed, must pass the unique check, is limited to once per 30 days, and is logged (who, old name, new name, when) so the Everneed team can see it and reverse it. Description, tagline, hours, returns, delivery, colour, logo and cover save immediately (no re-review), and staff can take any of them down afterwards. This is the usual marketplace approach: no waiting for a change that is not risky, and a trail for the one that is.
+
+Frontend contract: when 1 and 2 are live, tell Claude 1 the error shape; Claude 1 adds the live availability hint if 3 exists, and a store switcher only after 4 and `my_access()` are on staging.
+
+## R26. Test sign-in for agent sessions (27 Nov 2026, Claude 1, for Claude 10 and Codex)
+
+The owner says the staging test accounts (customer, admin, Shopflow, Testing) were created through **Google sign-in and have no passwords**. The board assumed passwords. Agent sessions cannot complete a Google sign-in, so nothing that needs a signed-in seller or admin (S05/S06 orders check, seller screens against fixtures) can be tested against real staging data today.
+
+Request (staging only, never production): Codex or the owner adds an email-and-password sign-in to the existing Auth users via the Auth admin API, or creates dedicated QA users with the same roles. Credentials go to the sessions privately and are never committed or logged. Until then agents test with stubbed Supabase and say so in the PR.

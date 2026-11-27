@@ -24,7 +24,8 @@
   function clean(v,n){return String(v==null?"":v).replace(/\s+/g," ").trim().slice(0,n||200)}
   function area(v,n){return String(v==null?"":v).replace(/\r/g,"").trim().slice(0,n||2000)}
   function need(l){for(var i=0;i<l.length;i++){if(!l[i][0]){C.toast(l[i][1],true);return true}}return false}
-  function fail(e){C.toast(e&&e.message||"That did not work",true)}
+  function taken(e){var m=String(e&&(e.message||e.details||e)||"");return(e&&(e.code==="23505"||e.status===409))&&/name/i.test(m)||/store[_ ]name|stores_name|name_(key|unique|ci)|already (taken|in use)/i.test(m)}
+  function fail(e){C.toast(taken(e)?"That store name is already taken. Choose a different name.":(e&&e.message||"That did not work"),true)}
   function again(){C.go(location.pathname,true)}
   function toggle(arr,v,on){var i=arr.indexOf(v);if(on&&i<0)arr.push(v);if(!on&&i>-1)arr.splice(i,1)}
   function join(a){return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1]}
@@ -164,7 +165,7 @@
   /* profile */
   function bodyProfile(){
     var s=T.store,d=s.storefront_details||{};
-    return card("Store identity","Shoppers see this on your store page in the app.",fld("name","Store name",s.name,{max:80,req:1})+fld("tagline","Short tagline (optional)",s.tagline,{max:120})+ta("about","About your store (optional)",s.about,2000,{rows:4}))
+    return card("Store identity","Shoppers see this on your store page in the app.",fld("name","Store name",s.name,{max:80,req:1})+'<p class="m" style="margin:-6px 0 12px;font-size:.85rem">Each store name is unique on Everneed. Your store web address stays the same if you rename.</p>'+fld("tagline","Short tagline (optional)",s.tagline,{max:120})+ta("about","About your store (optional)",s.about,2000,{rows:4}))
       +card("Logo, cover and colour","",upload("logo","Logo","A square image works best",s.logo_url)+upload("cover","Cover photo","A wide image, shown at the top",s.cover_url)
         +'<p class="slab">Store colour</p><div class="accs" role="radiogroup" aria-label="Store colour">'+palettes().map(function(p){return'<label><input type="radio" name="accent" value="'+esc(p[0])+'"'+(p[0]===T.accent?" checked":"")+'><span class="sw2" title="'+esc(p[1])+'"><i style="background:'+esc(p[3])+'"></i></span></label>'}).join("")+"</div>"
         +'<div class="bpv" id="bpv" style="--pv:'+pvHex()+';margin-top:14px"><div class="bpv-cover" id="pvcover"'+(s.cover_url?' style="background-image:url(&quot;'+esc(s.cover_url)+'&quot;)"':"")+'></div><div class="bpv-body"><div class="bpv-logo" id="pvlogo"'+(s.logo_url?' style="background-image:url(&quot;'+esc(s.logo_url)+'&quot;)"':"")+">"+(s.logo_url?"":esc(initial(s.name)))+'</div><h4 id="pvname">'+esc(s.name)+'</h4><p id="pvtag">'+esc(s.tagline||"Your tagline appears here")+'</p><button class="bpv-btn" type="button" tabindex="-1">Visit store</button></div></div>')
