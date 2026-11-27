@@ -3,6 +3,8 @@ on:
   push:
     branches: [main, web-portal]
   pull_request:
+  # Lets GitHub merge queue run the same required checks (Install and test, Database tests) on queued merges.
+  merge_group:
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,6 +16,10 @@ jobs:
   test:
     name: Install and test
     runs-on: ubuntu-latest
+    # pull-requests: write only lets the QA step post its report comment.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,6 +38,8 @@ jobs:
         run: |
           node tools/assemble-seller-bundle.mjs
           node tools/check-seller-bundle.mjs
+      # QA-01: 360 px smoke, axe and bundle budget; posts a report comment on the PR. See tools/qa/README.md.
+      - uses: ./.github/actions/qa-smoke
   database:
     name: Database tests
     runs-on: ubuntu-latest

@@ -1,0 +1,4 @@
+{
+  "eagerGzipKB": 225,
+  "note": "Measured 215.3 KB gzipped on web-portal @ 01787663 (35 scripts, 14 stylesheets, Pages copy step applied). The board's earlier '51.9 KB' figure covers only the ds* design-system layer. Lower this as lazy-loading lands; raise it only with a reason in the PR."
+}
