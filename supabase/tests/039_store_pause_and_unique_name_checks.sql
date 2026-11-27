@@ -7,6 +7,7 @@ declare
   duplicate_id text := gen_random_uuid()::text;
   result jsonb;
   duplicate_rejected boolean := false;
+  direct_write_rejected boolean := false;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
   values(owner_id,'authenticated','authenticated','store-pause-ci-'||owner_id||'@example.test','',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
@@ -52,6 +53,14 @@ begin
   result := public.seller_set_pause(now()+interval '2 days');
   if result->>'is_paused' <> 'true' or (result->>'business_timezone') <> 'Africa/Lagos' then
     raise exception 'FAIL: pause RPC did not return active pause and store timezone';
+  end if;
+  begin
+    update public.stores set paused_until=now()+interval '3 days' where id=store_id;
+  exception when others then
+    direct_write_rejected := true;
+  end;
+  if not direct_write_rejected then
+    raise exception 'FAIL: direct seller UPDATE bypassed pause RPC';
   end if;
   reset role;
   if (select paused_until from public.stores where id=store_id) is null then
