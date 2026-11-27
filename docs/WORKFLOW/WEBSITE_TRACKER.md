@@ -601,3 +601,13 @@ Goal: the app and the website use the same files, labels, money rules and look.
 **START NOW:** The agreed ten-Claude team is active on `web-portal`. Claude 10 (the tenth Claude, not an extra AI) must read the canonical docs, audit current repo and tracker status, create a prioritized executable plan, and coordinate Claude 1–9 to begin parallel work. Do not wait for another user kickoff. All nine builders work across app + web according to their specialist lanes; Claude 10 owns research, planning, design strategy, assignment, dependency management, moderation, integration, review, debugging/QA and end-to-end completion.
 
 Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKFLOW_DOCS_INDEX.md`, `PROJECT_STANDARD_AND_ROADMAP.md`, `AI_COORDINATION_STANDARD.md`, `AI_PROTOCOL.md`, this tracker, and contracts relevant to each task; (3) inventory current work and stale/incomplete tasks, avoiding duplicate or conflicting edits; (4) Claude 10 assigns concrete task IDs, owners, acceptance criteria and dependencies for Claude 1–9; (5) each builder starts the highest-priority non-blocked task in its lane, claims it here, and reports a small actionable backend contract request when blocked; (6) Claude 10 reviews each delivery, directs corrections, and keeps this tracker and roadmap synchronized. Backend contract requests go to ChatGPT/Codex. Staging only for testing; production remains protected. This kickoff does not itself mark any work complete.
+
+
+## Backend kickoff — R24/R25 (27 Nov 2026)
+
+- **Codex branch:** `codex/backend-r24-r25`. Migrations `20261127181420_r24_storefront_pause_mode.sql` and `20261127181421_r25_normalized_store_name_unique.sql` are source-only and awaiting review/CI; no staging or production migration applied.
+- R24 is centralized in `private.store_live()` (public store/product visibility and order creation), with owner-only audited `seller_set_pause`, indefinite/absolute expiry semantics and a direct-table guard. Existing order/payment/refund/inventory lifecycle remains untouched.
+- R25 adds globally unique normalized names (trim + collapse whitespace + lowercase); **keep UNIQUE(owner_id)**—one seller = one store. Do not build multi-store contexts.
+- Test assertions added: `supabase/tests/035_r24_r25_pause_and_store_name_checks.sql`; migration replay list updated.
+- Next: CI/PR review, then owner-approved staging apply and behavioral checks. Update DB contract in the same branch.
+- **R26 QA users remains BLOCKED** on an authorized Auth Admin provisioning channel; do not write to `auth.users` directly. Credentials must be stored in protected staging secrets and handoff through GitHub/Claude 10, not plaintext in docs/comments.
