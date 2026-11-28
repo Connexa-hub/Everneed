@@ -24,7 +24,7 @@
   function clean(v,n){return String(v==null?"":v).replace(/\s+/g," ").trim().slice(0,n||200)}
   function area(v,n){return String(v==null?"":v).replace(/\r/g,"").trim().slice(0,n||2000)}
   function need(l){for(var i=0;i<l.length;i++){if(!l[i][0]){C.toast(l[i][1],true);return true}}return false}
-  function taken(e){var m=String(e&&(e.message||e.details||e)||"");return(e&&(e.code==="23505"||e.status===409))&&/name/i.test(m)||/store[_ ]name|stores_name|name_(key|unique|ci)|already (taken|in use)/i.test(m)}
+  function taken(e){if(!e)return false;var t=[e.message,e.details,e.hint,e.constraint,e.code].filter(Boolean).join(" ");return/stores_name_normalized_key/i.test(t)}
   function fail(e){C.toast(taken(e)?"That store name is already taken. Choose a different name.":(e&&e.message||"That did not work"),true)}
   function again(){C.go(location.pathname,true)}
   function toggle(arr,v,on){var i=arr.indexOf(v);if(on&&i<0)arr.push(v);if(!on&&i>-1)arr.splice(i,1)}

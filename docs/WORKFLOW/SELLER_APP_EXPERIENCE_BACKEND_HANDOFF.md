@@ -199,28 +199,26 @@ The owner's app recording shows menu areas Everneed does not have a backend for 
 ChatGPT will first produce a production baseline/compatibility matrix, then build the read-only RPC and its staging tests. Claude can keep current fallback behaviour until this RPC exists.
 
 
-## R24. Store holiday mode (26 Nov 2026, Claude 1, WEB-S11, for ChatGPT via Claude 10)
+## R24. Store holiday mode (Claude 1, WEB-S11; contract now owned by Codex in PR #69)
 
-**Status: REQUESTED.** Staging only. No plan, price or limit change.
+**Status: backend drafted in PR #69, not applied to staging.** Staging only. No plan, price or limit change.
 
-The seller settings screen has a "Holiday mode" row. It is disabled with "Not available yet" because `stores` has no pause field. It changes nothing until this exists.
+The seller settings screen has a "Holiday mode" row. It stays disabled with "Not available yet" and changes nothing until PR #69 is applied to staging and the RPC is verified.
 
-- Add `stores.paused_until timestamptz null` and `stores.pause_note text null` (or an equivalent pause table).
-- Owner-only RPC, for example `seller_set_pause(p_store uuid, p_until timestamptz, p_note text)`. Resume by passing null. Managers cannot change it.
-- Storefront, cart and checkout must block new orders while paused. Orders already placed continue as normal.
-- Frontend contract: once the RPC exists, reply here with its name and arguments. Claude 1 then enables the row and adds tests.
+Contract frontend will wire to (from PR #69 and Claude 10's note on PR #54): `stores.paused_until`; owner-only `seller_set_pause({p_paused_until})`, `null` resumes, expiry at most 90 days; the return carries store id, timezone and `is_paused`. A pause blocks new storefront visibility and checkout through `private.store_live`; existing orders, payments, stock and delivery are not touched. Expiry is an absolute instant; the UI converts store-local date and time using the returned timezone.
 
-Also open from WEB-S23 (PR #48): if a photo upload test returns 403 from Storage, a `media` bucket policy request follows here. Waiting on the owner's `EVUpload.last` output.
+Frontend next step (Claude 1, after staging verification): enable the row, date and time picker, resume button, tests.
 
+Also from WEB-S23: if a Storage upload returns 403 a `media` bucket policy request follows here. Photo failures now show the real reason under the photo.
 
 ## CX-09 input: columns the approved-seller settings screens write (27 Nov 2026, Claude 1, PR #54)
 These are the only writes `settings.js` makes, through `Supa.patch` / `Supa.patchBy` as the signed-in owner. Codex: please confirm RLS allows or blocks each one for an approved store owner, and whether the owner's policy question (re-review of name, logo, cover) changes any of them.
 
 | Table | Column | Screen | Note |
 |---|---|---|---|
-| `stores` | `name` | Profile | Visible to shoppers. Owner policy decision pending on re-review |
+| `stores` | `name` | Profile | Visible to shoppers. Saves immediately; rename policy and audit set by the backend owner |
 | `stores` | `tagline`, `about` | Profile | Text, 120 and 2000 characters |
-| `stores` | `logo_url`, `cover_url` | Profile | Storage `media/stores/<store_id>/...`; policy decision pending on re-review |
+| `stores` | `logo_url`, `cover_url` | Profile | Storage `media/stores/<store_id>/...`; saves immediately |
 | `stores` | `accent` | Profile | Palette id such as `emerald` |
 | `stores` | `storefront_details` (jsonb) | Profile, Hours, Returns, Delivery | Keys: `support_email`, `website`, `whatsapp`, `instagram`, `facebook`, `tiktok`, `hours_schedule`, `opening_hours`, `returns`, `returns_summary`, `delivery`, `delivery_summary`. The whole object is read, merged and written back |
 | `store_private` | `pickup_address`, `direct_delivery_enabled`, `delivery_zones` | Delivery | Row looked up by `store_id`, updated with `patchBy`; the screen never inserts |
@@ -228,26 +226,20 @@ These are the only writes `settings.js` makes, through `Supa.patch` / `Supa.patc
 Never written: `status`, `activation_status`, `owner_id`, `slug`, plan fields, payout or bank fields (the payout screen is read-only).
 
 
-## R25. Unique store names and one merchant, many stores (27 Nov 2026, Claude 1, owner decision, for Codex via Claude 10)
+## R25. Unique store names (Claude 1; owner decision 27 Nov; backend in PR #69)
 
-**Status: REQUESTED.** Staging only. Owner rules: no two stores may share a name; one merchant may manage many stores; every store has its own different name.
+**Status: backend drafted in PR #69, not applied to staging.** Staging only.
 
-Found on staging today (read-only checks):
-- `stores` has unique indexes on `id`, `owner_id` and `slug` only. **Names are not unique.** Duplicates are possible now (none exist at the moment: 3 stores).
-- `stores_owner_id_key` is `UNIQUE (owner_id)`, so one account can own **one** store. That blocks one merchant running several stores. Many stores per merchant should instead come from `store_members` (owner role on each store) or by dropping the owner uniqueness, whichever Codex's access model (`my_access()`) prefers.
-- `private.stores_guard()` already stops non-privileged users changing `owner_id`, `slug`, `status`, `is_official`, `is_demo` and `approved_at`. A rename does not change the slug.
+Owner decision: **one seller owns one store.** `UNIQUE(owner_id)` stays. No multiple stores per owner, no store switching. (An earlier version of this section asked for many stores per merchant; that was withdrawn.) Slugs stay unique and a rename never changes the slug.
 
-Requested:
-1. **Unique name, case and spacing insensitive.** A unique index on a normalised name, for example `lower(regexp_replace(btrim(name), '\s+', ' ', 'g'))`, and also compare with accents and punctuation removed if Codex agrees (so "Ada Fabrics" and "ada  fabrics!" collide). Reserve names that impersonate Everneed or official stores. Check existing rows first and report any collision before adding the index.
-2. **Clear error.** On a duplicate, return a stable error (unique violation 23505 on a named index, or a custom message containing "store name"). The settings screen already turns that into "That store name is already taken. Choose a different name." and the store creation flow should do the same.
-3. **Availability check before saving** (nice to have): `store_name_available(p_name text, p_store uuid default null) returns boolean`, safe for signed-in users, so the form can say "taken" while typing without leaking other store data.
-4. **Many stores per merchant.** Remove the one-store-per-owner limit in line with `my_access()`: one account can hold owner or manager access on several stores, each with its own name, plan, products and payouts. Plan limits stay per store; no plan, price or activation rule changes.
-5. **Rename policy (recommended, owner confirms):** a name change on an approved store is allowed, must pass the unique check, is limited to once per 30 days, and is logged (who, old name, new name, when) so the Everneed team can see it and reverse it. Description, tagline, hours, returns, delivery, colour, logo and cover save immediately (no re-review), and staff can take any of them down afterwards. This is the usual marketplace approach: no waiting for a change that is not risky, and a trail for the one that is.
+Store names are globally unique after trim, whitespace collapse and lower-casing. A duplicate is rejected with a clear message, never silently renamed. PR #69 names the unique index `stores_name_normalized_key` (SQLSTATE 23505). No availability RPC is required.
 
-Frontend contract: when 1 and 2 are live, tell Claude 1 the error shape; Claude 1 adds the live availability hint if 3 exists, and a store switcher only after 4 and `my_access()` are on staging.
+Rename and re-review policy: tagline, about, hours, returns, delivery, colour, logo and cover save immediately with no re-review, and admins may review them manually. A name change follows the explicit rename policy and audit that the backend owner defines. No 30-day limit unless the owner approves one.
+
+Frontend: the settings profile screen shows "That store name is already taken. Choose a different name." only for SQLSTATE 23505 on `stores_name_normalized_key` (or a stable backend message naming that index).
 
 ## R26. Test sign-in for agent sessions (27 Nov 2026, Claude 1, for Claude 10 and Codex)
 
 The owner says the staging test accounts (customer, admin, Shopflow, Testing) were created through **Google sign-in and have no passwords**. The board assumed passwords. Agent sessions cannot complete a Google sign-in, so nothing that needs a signed-in seller or admin (S05/S06 orders check, seller screens against fixtures) can be tested against real staging data today.
 
-Request (staging only, never production): Codex or the owner adds an email-and-password sign-in to the existing Auth users via the Auth admin API, or creates dedicated QA users with the same roles. Credentials go to the sessions privately and are never committed or logged. Until then agents test with stubbed Supabase and say so in the PR.
+Tracked in GitHub issue #66 (disposable, role-scoped QA identities; credentials delivered privately by Claude 10; never in the repo). Original request (staging only, never production): Codex or the owner adds an email-and-password sign-in to the existing Auth users via the Auth admin API, or creates dedicated QA users with the same roles. Credentials go to the sessions privately and are never committed or logged. Until then agents test with stubbed Supabase and say so in the PR.
