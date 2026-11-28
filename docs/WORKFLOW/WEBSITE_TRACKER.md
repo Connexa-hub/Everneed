@@ -601,3 +601,10 @@ Goal: the app and the website use the same files, labels, money rules and look.
 **START NOW:** The agreed ten-Claude team is active on `web-portal`. Claude 10 (the tenth Claude, not an extra AI) must read the canonical docs, audit current repo and tracker status, create a prioritized executable plan, and coordinate Claude 1–9 to begin parallel work. Do not wait for another user kickoff. All nine builders work across app + web according to their specialist lanes; Claude 10 owns research, planning, design strategy, assignment, dependency management, moderation, integration, review, debugging/QA and end-to-end completion.
 
 Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKFLOW_DOCS_INDEX.md`, `PROJECT_STANDARD_AND_ROADMAP.md`, `AI_COORDINATION_STANDARD.md`, `AI_PROTOCOL.md`, this tracker, and contracts relevant to each task; (3) inventory current work and stale/incomplete tasks, avoiding duplicate or conflicting edits; (4) Claude 10 assigns concrete task IDs, owners, acceptance criteria and dependencies for Claude 1–9; (5) each builder starts the highest-priority non-blocked task in its lane, claims it here, and reports a small actionable backend contract request when blocked; (6) Claude 10 reviews each delivery, directs corrections, and keeps this tracker and roadmap synchronized. Backend contract requests go to ChatGPT/Codex. Staging only for testing; production remains protected. This kickoff does not itself mark any work complete.
+
+
+## 28 Nov 2026 — B1 contract hardening
+
+- `my_access()` now returns generic `scope_id/scope_name` and store-only compatibility aliases `store_id/store_name` (null for platform/partner scopes). This is specifically to preserve current `ds-access.js` compatibility while keeping universal scope fields.
+- Database trigger rejects role assignment to inactive or non-assignable templates; test 039 checks protected `platform_owner` denial.
+- PR #49 is updated and CI pending. Staging remains unchanged.
