@@ -25,7 +25,7 @@ begin
 
   begin
     insert into public.stores(id,owner_id,slug,name,status,activation_status,country)
-    values(duplicate_id,gen_random_uuid(),'pause-ci-duplicate-'||owner_id,E'\\t pause ci store\\n','draft','verification_required','NG');
+    values(duplicate_id,gen_random_uuid(),'pause-ci-duplicate-'||owner_id,E'\t pause ci store\n','draft','verification_required','NG');
   exception when unique_violation then
     duplicate_rejected := true;
   end;
@@ -40,9 +40,12 @@ begin
   if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='stores' and column_name='paused_until') then
     raise exception 'FAIL: stores.paused_until column missing';
   end if;
-  if not exists(select 1 from pg_indexes where schemaname='public' and tablename='stores' and indexname='stores_normalized_name_unique') then
-    raise exception 'FAIL: normalized unique index missing';
+  select indexdef into index_definition from pg_indexes
+  where schemaname='public' and tablename='stores' and indexname='stores_normalized_name_unique';
+  if index_definition is null or index_definition not ilike '%regexp_replace%' or index_definition not ilike '%btrim%' then
+    raise exception 'FAIL: normalized unique index missing or edge-whitespace normalization incomplete';
   end if;
+
   if has_function_privilege('anon','public.seller_set_pause(timestamptz)','EXECUTE') then
     raise exception 'FAIL: seller_set_pause is executable by anonymous/PUBLIC';
   end if;
@@ -66,12 +69,18 @@ begin
   if (select paused_until from public.stores where id=store_id) is null then
     raise exception 'FAIL: pause RPC did not persist expiry';
   end if;
+  if not exists(select 1 from public.audit_log where actor_id=owner_id and target_type='store' and target_id=store_id and action='seller_store_pause') then
+    raise exception 'FAIL: pause action not audited';
+  end if;
 
   set local role authenticated;
   perform public.seller_set_pause(null);
   reset role;
   if (select paused_until from public.stores where id=store_id) is not null then
     raise exception 'FAIL: resume RPC did not clear pause';
+  end if;
+  if not exists(select 1 from public.audit_log where actor_id=owner_id and target_type='store' and target_id=store_id and action='seller_store_resume') then
+    raise exception 'FAIL: resume action not audited';
   end if;
   raise notice 'PASS: store name normalization/uniqueness, one-store-per-owner and owner pause/resume';
 end
