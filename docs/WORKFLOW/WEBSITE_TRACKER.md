@@ -601,3 +601,20 @@ Goal: the app and the website use the same files, labels, money rules and look.
 **START NOW:** The agreed ten-Claude team is active on `web-portal`. Claude 10 (the tenth Claude, not an extra AI) must read the canonical docs, audit current repo and tracker status, create a prioritized executable plan, and coordinate Claude 1–9 to begin parallel work. Do not wait for another user kickoff. All nine builders work across app + web according to their specialist lanes; Claude 10 owns research, planning, design strategy, assignment, dependency management, moderation, integration, review, debugging/QA and end-to-end completion.
 
 Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKFLOW_DOCS_INDEX.md`, `PROJECT_STANDARD_AND_ROADMAP.md`, `AI_COORDINATION_STANDARD.md`, `AI_PROTOCOL.md`, this tracker, and contracts relevant to each task; (3) inventory current work and stale/incomplete tasks, avoiding duplicate or conflicting edits; (4) Claude 10 assigns concrete task IDs, owners, acceptance criteria and dependencies for Claude 1–9; (5) each builder starts the highest-priority non-blocked task in its lane, claims it here, and reports a small actionable backend contract request when blocked; (6) Claude 10 reviews each delivery, directs corrections, and keeps this tracker and roadmap synchronized. Backend contract requests go to ChatGPT/Codex. Staging only for testing; production remains protected. This kickoff does not itself mark any work complete.
+
+
+## PAY-02 — Admin order directory RPC (28 Nov 2026)
+
+| Task | Status | Owner | Branch | Acceptance |
+|---|---|---|---|---|
+| PAY-02 admin searchable order directory | STAGING VERIFIED / PR OPEN | ChatGPT/Codex | `codex/admin-order-directory-rpc` | Admin-only RPC, search across order/ref/customer/profile/store, filters, bounded page size, total/hasMore and buyer/store summary. |
+
+- Migration: `20261128060205_admin_order_directory_rpc.sql`; applied on Everneed-staging only.
+- Structural regression: test 041 passed.
+- Rollback-wrapped smoke: authenticated staging admin searched a known staging order; returned exact order, summary and pagination metadata; no state changes.
+- No production activity. CI pending/not visible in GitHub status API yet.
+- Frontend handoff: Claude 4 should call `admin_order_directory` and use `items,total,page,pageSize,hasMore`; no mock directory. Status/payment/payment method filters and free-text search. RPC response fields documented in DB_CONTRACT.
+
+- Follow-up: `20261128060320_admin_order_directory_total_count_fix` applied to staging. Verified out-of-range page (page 999) returns empty items but retains total=1 and hasMore=false. This closes pagination metadata edge case.
+
+- Migration `20261128060724_admin_order_directory_indexes` applied to staging; verified timestamp/id and status/payment-status/payment-method indexes exist.
