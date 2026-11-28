@@ -609,12 +609,12 @@ Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKF
 |---|---|---|---|---|
 | PAY-02 admin searchable order directory | STAGING VERIFIED / PR OPEN | ChatGPT/Codex | `codex/admin-order-directory-rpc` | Admin-only RPC, search across order/ref/customer/profile/store, filters, bounded page size, total/hasMore and buyer/store summary. |
 
-- Migration: `20261128070200_admin_order_directory_rpc.sql`; applied on Everneed-staging only.
+- Migration: `20261128060205_admin_order_directory_rpc.sql`; applied on Everneed-staging only.
 - Structural regression: test 041 passed.
 - Rollback-wrapped smoke: authenticated staging admin searched a known staging order; returned exact order, summary and pagination metadata; no state changes.
 - No production activity. CI pending/not visible in GitHub status API yet.
 - Frontend handoff: Claude 4 should call `admin_order_directory` and use `items,total,page,pageSize,hasMore`; no mock directory. Status/payment/payment method filters and free-text search. RPC response fields documented in DB_CONTRACT.
 
-- Follow-up: `20261128073000_admin_order_directory_total_count_fix` applied to staging. Verified out-of-range page (page 999) returns empty items but retains total=1 and hasMore=false. This closes pagination metadata edge case.
+- Follow-up: `20261128060320_admin_order_directory_total_count_fix` applied to staging. Verified out-of-range page (page 999) returns empty items but retains total=1 and hasMore=false. This closes pagination metadata edge case.
 
-- Migration `20261128073500_admin_order_directory_indexes` applied to staging; verified timestamp/id and status/payment-status/payment-method indexes exist.
+- Migration `20261128060724_admin_order_directory_indexes` applied to staging; verified timestamp/id and status/payment-status/payment-method indexes exist.
