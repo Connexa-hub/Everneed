@@ -54,3 +54,26 @@ Official Paystack documentation:
 - The next new repository migration number is 034, but no refund migration has been created yet; migration 033 is reserved for the finance journal foundation.
 - The delivery-fee refund policy and the treatment of platform transaction fees still need a business decision.
 - No staging migration, Edge Function deployment, scheduler or production action was performed for this audit.
+
+
+## 28 Nov 2026 — staging re-audit / implementation kickoff
+
+**Staging only:** `vjiadqygpyebpisxslbx`. Production not queried.
+
+- `public.refunds` has two existing records: one `approved`, one `processed`. The historical `processed` record is not provider-verified by the current system and must be treated as legacy/unverified evidence, not proof of funds reaching the buyer.
+- `private.provider_refunds` has zero records. `private.payment_attempts` has zero `succeeded` attempts, so no staging provider refund positive-path fixture can be exercised yet.
+- The current Paystack Edge Function verifies signatures and stores events in the durable inbox, but the webhook branch handles only `charge.success`; other event types (including `refund.*`) are currently marked processed without refund reconciliation. This is a critical gap.
+- Current `public.refund()` remains local-only and inserts `processed`, ledger adjustments and payment-status changes without Paystack API confirmation. The staging counts confirm there are no provider-refund records to corroborate those historical statuses.
+- PAY-01 PR #75 now blocks parent-order cancellation while paid/partially-refunded; PAY-02 PR #76 provides admin order directory. Neither is merged yet; coordinate integration before FIN-03 migration replay.
+
+### FIN-03 staged implementation acceptance
+
+1. Introduce explicit legacy/unverified provider state and safe provider-refund state mapping; preserve historical data but never imply provider success.
+2. Create immutable idempotent provider refund attempt and exact amount/currency/original transaction reference. Use an 8–64 character stable reference for Paystack.
+3. Require provider success transaction context for automated Paystack refunds; manual bank-transfer refunds use a separate evidence/confirmation path.
+4. Implement submit, reconciliation and verified webhook state transitions: `pending`, `processing`, `needs_attention`, `failed`, `processed`. Only verified `processed` completes refund and posts accounting adjustments. Failed/ambiguous outcomes must not be treated as refunded or retried with a new reference.
+5. Store verified refund events durably and idempotently; webhook duplicates/out-of-order events must not regress terminal states.
+6. Allocate refunds from immutable checkout snapshot items and seller-package amounts. Legacy orders without snapshots go to manual review; do not invent allocations.
+7. No live provider API request in QA. Tests use controlled fixture/mocked responses or Paystack test mode with explicit test transaction; no real refund.
+
+Official Paystack reference (checked 28 Nov 2026): <https://paystack.com/docs/payments/refunds/> and <https://paystack.com/docs/api/refund/>. Paystack refund states and events must be mapped exactly; `processed` means provider-processed, but customer receipt can still take up to 10 business days.
