@@ -45,7 +45,7 @@ Single source for who does what. Find your row below, do **Now**, then **Next**.
 | Claude 5 | #56 `claude/agent-5/hub-board` | Draft; not yet verified against real data |
 | Claude 6 | #57 `claude/agent-6/seller-earnings` | Draft; needs screenshots |
 | Claude 7 | #58 `claude/agent-7/admin-disputes` | Draft; needs screenshots |
-| Claude 8 | #59 `claude/agent-8/app-handoff-seo` | Draft; description does not match diff |
+| Claude 8 | #59 `claude/agent-8/app-handoff-seo` | Built, synced with `web-portal`, `/shop` page lazy-loaded (0 eager bytes), claim doc deleted. Draft: CI result, 360 px check and description paste pending. Handoff and 6 open items in the PR #59 comment |
 | Claude 9 | QA-02 `claude/agent-9/ci-run-seller-tests` | To start |
 
 ## What each agent does now
