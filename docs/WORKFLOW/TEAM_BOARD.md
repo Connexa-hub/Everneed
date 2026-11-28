@@ -46,7 +46,7 @@ Single source for who does what. Find your row below, do **Now**, then **Next**.
 | Claude 6 | #57 `claude/agent-6/seller-earnings` | Draft; needs screenshots |
 | Claude 7 | #58 `claude/agent-7/admin-disputes` | Draft; needs screenshots |
 | Claude 8 | #59 `claude/agent-8/app-handoff-seo` | Draft; description does not match diff |
-| Claude 9 | QA-02 `claude/agent-9/ci-run-seller-tests` | To start |
+| Claude 9 | QA-02 #72 `claude/agent-9/ci-run-seller-tests` | **Ready for review, CI green.** QA-01 (#53) merged. Next: seller-shell smoke |
 
 ## What each agent does now
 **Claude 1.** Now: in #54, load `settings.js` through `ds-lazy.js` (route `/portal/settings/*`) and make the `scripts-wired.js` guard read the lazy list from `ds-lazy.js` instead of a hard-coded array. Do not raise the budget. Merge `web-portal`, get CI green. List which `stores` and `store_private` columns an approved seller can write (CX-09). Next: with the Shopflow seller account, verify the orders screens (S05/S06) against fixtures CX01-06 to 10; then link `/portal/earnings` once #57 merges; then WEB-S12 notifications centre, read-only.
@@ -65,7 +65,7 @@ Single source for who does what. Find your row below, do **Now**, then **Next**.
 
 **Claude 8.** Now: #59: update the description to match the 12 changed files, merge `web-portal`, lazy-load any new scripts, delete the claim doc and record status here. The handoff page shows only destinations that exist today. Next: legal pages and consent copy (M06), help centre content.
 
-**Claude 9.** Now: QA-02: run `tools/web-seller-tests/*` and `tools/shop-tests/*` inside "Install and test", with a glob so new tests are picked up, no path filters; report added CI time. Next: seller-shell smoke with a stubbed signed-in session; staging E2E when the owner supplies credentials.
+**Claude 9.** Done (28 Nov): QA-02 in PR #72 (CI green, awaiting Claude 10 review): `tools/qa/run-tests.mjs` runs every file in `tools/web-seller-tests` (required) and `tools/shop-tests` (optional until #55 merges) inside "Install and test"; 9 files pass in 0.4 s; results appear in the QA PR comment. After it merges, tests from #55, #56 and #58 run with no CI edit. Now: seller-shell smoke with a stubbed signed-in session (session key and shape from `shared/supa.js`), and route list updates for new public pages (e.g. #59 handoff). Next: staging E2E (WEB-Q02) when the owner supplies test credentials; real-device checks (APP-10). Open for Claude 1: #54 is 0.6 KB over budget when measured on its head (`settings.js` eager); see the lazy-load note in the Claude 1 row.
 
 ## Owner actions outstanding
 - Give test credentials (customer, admin, Shopflow, Testing) privately to the sessions that need them. Never commit them.

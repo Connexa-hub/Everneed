@@ -1,5 +1,5 @@
 name: QA-01 smoke, accessibility and bundle budget
-description: Assembles the website like Cloudflare Pages, then runs the bundle budget and the 360 px smoke with axe (see tools/qa/README.md).
+description: Assembles the website like Cloudflare Pages, then runs the offline tests, the bundle budget and the 360 px smoke with axe (see tools/qa/README.md).
 runs:
   using: composite
   steps:
@@ -11,7 +11,11 @@ runs:
         cp -r fonts web/assets/fonts
         cp js/theme.js web/assets/js/
         cp shared/*.js web/assets/js/
+    - name: Offline seller, admin and shopper tests (QA-02)
+      shell: bash
+      run: node tools/qa/run-tests.mjs
     - name: Bundle budget
+      if: always()
       shell: bash
       run: node tools/qa/bundle-budget.mjs --site web 2>&1 | tee tools/qa/out/bundle.txt
     - name: axe canary (proves axe can fail)
