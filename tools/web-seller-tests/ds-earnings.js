@@ -76,6 +76,11 @@ function page(o){
    assert(r.html.includes('Payout')&&r.html.includes('Paid out')&&r.html.includes('-₦20,000')&&r.html.includes('-₦250.50')&&r.html.includes('Reversed')&&r.html.includes('Pending')&&r.html.includes('Commission')&&r.html.includes('Refund'));
    assert(r.html.includes('+US$25'),'USD stays USD');assert(!r.html.includes('<img src=x'),'note escaped');assert(r.html.includes('&lt;img'));
    assert(r.html.includes('Order a-very…3456')&&!r.html.includes('a-very-long-order-identifier-123456'))});
+ await t('a note that only repeats the kind is left out; other notes are kept',async()=>{
+   const r=await page({rows:[row({id:1,kind:'sale',note:'Sale'}),row({id:2,kind:'commission',note:'  commission '}),row({id:3,kind:'refund',note:'Refund 56683d97 for order'})]}).V.portal(['earnings']);
+   assert(!/· Sale/.test(r.html)&&!/· commission/i.test(r.html),'repeated notes dropped');assert(r.html.includes('Refund 56683d97 for order'),'real note kept')});
+ await t('balance caption says pending entries are not included',async()=>{
+   const r=await page().V.portal(['earnings']);assert(r.html.includes('Pending entries are not included in the balance until they become Available.'))});
  await t('unknown kind or status is shown as given, not hidden or invented',async()=>{
    const r=await page({rows:[row({kind:'mystery',status:'weird'})]}).V.portal(['earnings']);assert(r.html.includes('mystery')&&r.html.includes('weird'))});
  await t('empty ledger: calm empty state, no invented entries',async()=>{
@@ -83,6 +88,7 @@ function page(o){
  await t('load failure: retryable error, no raw error text; 403 explains access',async()=>{
    let r=await page({failGet:p=>p.startsWith('ledger_entries?select=id,created')}).V.portal(['earnings']);
    assert(r.html.includes('Earnings could not load')&&r.html.includes('ds-reload')&&!r.html.includes('secret'));
+   assert.equal((r.html.match(/Earnings could not load/g)||[]).length,1,'headline not repeated in the body');assert(r.html.includes('Check your connection and try again.'));
    const e=new Error('forbidden');e.status=403;r=await page({failGet:p=>p.startsWith('stores?'),err:e}).V.portal(['earnings']);assert(r.html.includes('do not have access'))});
  await t('paging: fetches 51 to know there is more, "Show more" appends the next page by offset',async()=>{
    const mk=(a,n)=>Array.from({length:n},(_,i)=>row({id:a+i}));

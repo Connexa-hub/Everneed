@@ -31,17 +31,19 @@
   function query(store,tab,limit,off){
     return"ledger_entries?select="+COLS+"&store_id=eq."+enc(store)+(tab!=="all"?"&status=eq."+enc(tab):"")+"&order=created_at.desc,id.desc&limit="+limit+"&offset="+off;
   }
-  function problem(e){
+  function hint(e){
     var s=e&&e.status;
     if(s===401||s===403)return"You do not have access to this store's earnings. Sign in with the account that owns the store.";
-    return"Earnings could not load. Check your connection and try again.";
+    return"Check your connection and try again.";
   }
+  function problem(e){var h=hint(e);return h.charAt(0)==="Y"?h:"Earnings could not load. "+h}
 
   /* ---------- markup ---------- */
   function rowHtml(r){
     var k=KIND[r.kind]||[String(r.kind||"Entry"),"info"],s=ST[r.status]||[String(r.status||"Unknown"),"","info"],ref=r.seller_order_id||r.order_id,sub=[C.when(r.created_at)];
     if(ref)sub.push("Order "+short(ref,14,6));
-    if(r.note)sub.push(String(r.note).length>80?String(r.note).slice(0,80)+"…":r.note);
+    var note=r.note==null?"":String(r.note).trim(),same=note.toLowerCase();
+    if(note&&same!==String(k[0]).toLowerCase()&&same!==String(r.kind||"").toLowerCase())sub.push(note.length>80?note.slice(0,80)+"…":note); /* a note that only repeats the kind adds nothing */
     return D.row({icon:k[1],title:k[0],sub:sub.filter(Boolean).join(" · "),tone:r.status==="reversed"?"bad":r.status==="pending"?"warn":r.status==="available"?"ok":"",
       end:'<span class="ds-odr"><b>'+esc(fmt(r.amount,r.currency||BASE,true))+"</b>"+D.chip(s[0],s[1],s[2])+"</span>"});
   }
@@ -54,14 +56,14 @@
   }
   function tabsHtml(){
     return'<div class="ds-chips ds-pf" role="group" aria-label="Filter by status">'+TABS.map(function(t){
-      var on=t[0]===E.tab;return'<button type="button" class="ds-chip'+(on?" on":"")+'" data-act="ds-ern-f" data-id="'+t[0]+'" aria-pressed="'+on+'">'+esc(t[1])+"</button>"}).join("")+"</div>";
+      var on=t[0]===E.tab;return'<button type="button" class="ds-chip'+(on?" on":"")+'" style="min-width:44px" data-act="ds-ern-f" data-id="'+t[0]+'" aria-pressed="'+on+'">'+esc(t[1])+"</button>"}).join("")+"</div>";
   }
   function pageHtml(bal,other){
     var show=other===false&&bal!==null&&bal!==undefined&&isFinite(Number(bal));
     return'<div class="ds-headrow"><h1 class="ds-title">Earnings</h1><button type="button" class="ds-btn o s" data-act="ds-ern-csv">'+D.icon("download",18)+"Export CSV</button></div>"
       +D.banner("info","Seller ledger (legacy)","This is not a bank balance. Sales become available after delivery and the holding period, and payouts are recorded by the Everneed team. Withdrawals are not available yet.")
       +(other===true?D.banner("warning","More than one currency","Your ledger has entries in more than one currency, so no combined balance is shown. Each entry below shows its own currency."):"")
-      +'<div class="ds-stats" style="margin-top:12px">'+D.stat({icon:"wallet",value:show?fmt(bal,BASE):"Not available",label:"Available balance"})+"</div>"
+      +'<div class="ds-stats" style="margin-top:12px">'+D.stat({icon:"wallet",value:show?fmt(bal,BASE):"Not available",label:"Available balance"})+'</div><p class="ds-note">Pending entries are not included in the balance until they become Available.</p>'
       +'<div style="margin-top:12px">'+tabsHtml()+'</div><div id="ds-ern-list" aria-live="polite">'+listHtml()+"</div>";
   }
 
@@ -79,7 +81,7 @@
         return out(pageHtml(a[0],a[1]));
       });
     }).catch(function(e){
-      return out(D.empty({icon:"alert",title:"Earnings could not load",text:problem(e),action:{label:"Try again",act:"ds-reload"}}));
+      return out(D.empty({icon:"alert",title:"Earnings could not load",text:hint(e),action:{label:"Try again",act:"ds-reload"}}));
     });
   }
   V.portal=function(p){
