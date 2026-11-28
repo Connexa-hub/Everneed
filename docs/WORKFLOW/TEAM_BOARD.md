@@ -1,78 +1,77 @@
-# Team board: assignments for Claude 1-9
-**Owner: Claude 10 (integration controller) | Base: `web-portal` @ `5b88e67` | CI on that head: green | 25 Nov 2026**
+# Team board: Claude 1-9, Codex and Claude 10
+**Owner: Claude 10 (integration controller) | Refreshed 27 Nov 2026 | Staging only (`vjiadqygpyebpisxslbx`). Production untouched.**
 
-Single source for who does what right now. Builders: find your row, check out your branch, work only inside your scope, hand off to Claude 10.
+Single source for who does what. Find your row below, do **Now**, then **Next**. Backend asks live in `docs/WORKFLOW/CODEX_REQUESTS.md`.
 
 ## Rules for every builder
-1. Read first: `docs/WORKFLOW/AI_PROTOCOL.md`, `PROJECT_STANDARD_AND_ROADMAP.md`, `AI_COORDINATION_STANDARD.md`, and the contracts named in your task.
-2. Check out your branch (already created from `web-portal`). Rebase on latest `web-portal` before opening a PR. Never push to `web-portal` or `main`. No force-push.
-3. Staging only (`vjiadqygpyebpisxslbx`). Never touch production (`zpgasfweaixwsktlueje`). No secrets in code, logs or screenshots.
-4. Do not edit `supabase/`, backend contracts, RLS, RPCs, payment or finance logic. Missing backend: write a BACKEND REQUEST (user workflow, inputs/outputs, permissions/scope, states, errors, idempotency) in your handoff. Never fake balances, metrics, permissions or payment states. Mocks must be labelled MOCK.
-5. Do not edit a file another agent owns. Shared single-line files (`web/index.html` script list, `ds-lazy.js`): keep edits minimal and rebase before PR.
-6. Run and report only tests that really ran: `npm test`, `node --check`, relevant tests under `tools/web-seller-tests/`, 360/412 px and desktop checks, accessibility (contrast, labels, 44px targets). Give 360 px screenshots for UI.
-7. Open a PR `your branch -> web-portal` (template in `.github/pull_request_template.md` once merged) and give Claude 10 a TASK HANDOFF: Task ID, agent, branch, summary, files, commit SHA, tests and results, screenshots, limitations, backend dependencies, ready for review YES/NO.
-8. Claude 10 reviews the actual diff, requests corrections, and is the only one who merges.
+1. Read `AI_PROTOCOL.md`, `PROJECT_STANDARD_AND_ROADMAP.md`, and your task's contract before coding.
+2. Work on your own branch. Before opening or updating a PR, **merge latest `web-portal` into it** (no force-push). Never push to `web-portal` or `main`. `web-portal` is protected: PR only, and "Install and test" plus "Database tests" must pass.
+3. Staging only. Never touch production. No secrets, tokens or test passwords in code, commits, logs, screenshots or PR text. The owner gives test credentials to your session privately.
+4. Do not edit `supabase/`, RLS, RPCs, payment or finance logic. Missing backend means a BACKEND REQUEST to Claude 10. Never fake balances, metrics, permissions or payment states. Mocks are labelled MOCK.
+5. Do not edit files another agent owns (below). New pages go in new files, loaded lazily through `ds-lazy.js`. **Eager bundle budget is 225 KB gzipped; CI fails above it.**
+6. Report only tests that really ran. UI changes need 360 px and desktop screenshots. Update **your own row in this file**, not `WEBSITE_TRACKER.md`.
+7. The PR description must match the diff. Hand off with: task ID, branch, head SHA, files, tests and results, screenshots, limitations, backend dependencies, ready YES/NO. Claude 10 reviews the diff and is the only one who merges.
 
-**File ownership:** `admin.js` and `ds-admin.js` routing/nav = Claude 4. `workspace.js`, `ds-seller.js`, `ds-editor.js` = Claude 1. `shared/supa.js`, `shared/config.js`, `ds-app.js`, `appshell.js`, `android/`, native auth = Claude 2. Root `js/` shopper app = Claude 3. Everyone else adds new files.
+**File ownership:** `admin.js`, `ds-admin.js` routing/nav = Claude 4. `workspace.js`, `ds-seller.js`, `ds-editor.js` = Claude 1. `shared/supa.js`, `shared/config.js`, `ds-app.js`, `ds-access.js`, `appshell.js`, `android/`, native auth = Claude 2. Root `js/` shopper app = Claude 3.
+
+## Merged so far
+#48 S23 photo upload (Claude 1) · #53 QA-01 smoke, axe, budget (Claude 9) · #46 CI `merge_group` + PR template · #60 Codex requests · #50 FIN-02 contract proposal (Codex)
+
+## Staging facts now available (from Codex CX-01, see `docs/WORKFLOW/CX01_STAGING_FIXTURES.md` once #62 merges)
+- Existing Auth test accounts: customer (email unconfirmed), admin, seller **Shopflow**, seller **Testing**. Passwords stay with the owner.
+- 10 fixture orders: CX01-01 to 05 unpaid (`awaiting_transfer`); CX01-06 to 10 simulated-paid, covering handover pending, partial hub receipt, consolidated, out for delivery or delivered, and a damaged-item hub issue.
+- 22 legacy ledger rows: sale, commission, refund; pending, available, reversed. **No payout, adjustment or rental rows exist** and Codex will not fabricate them.
+- 1 open dispute on CX01-10. 1 simulated refund of NGN 1,000.
+- **Both fixture products now have 0 available stock**, so shopper checkout cannot be tested on them (CX-15 below).
+- Codex fixed two real bugs on staging: `hub_receive()` (wrong notify helper) and `dispatch()` (blocked state transition). Rejecting an empty courier name is in PR #62.
+
+## Codex status (backend owner)
+| ID | Status |
+|---|---|
+| CX-01 fixtures | Mostly done on staging. Negative payout row not possible. PR #62 (draft) waits on #61 |
+| CX-02 `my_access()` | Draft in PR #49. **Not applied to staging.** Codex found two gaps: output uses `scope_id/scope_name` but `ds-access.js` reads only `store_id/store_name`; protected-role guard to add |
+| CX-03 dispatcher contract | Design merged (#50). Implementation comes after B1 |
+| CX-04 privileges | TRUNCATE, TRIGGER, REFERENCES revoked on staging, CI test added in PR #61 (draft). Broad DML and default ACLs still open |
+| CX-05 to CX-14 | No update yet |
+| **CX-15 (new)** | Add fresh stock or a dedicated QA product for shopper checkout tests, since fixtures consumed the 10 units |
 
 ## Assignments
-| Agent | Task | Branch | Status |
-|---|---|---|---|
-| Claude 1 | WEB-S23 (P0) seller photo upload failure | `claude/agent-1/s23-photo-upload-fix` | NOT STARTED |
-| Claude 2 | X2-01/02 finish PR #44, then X2-03/04 route base + Android Back | `claude-2/seller-bundle-assembly`, then `claude/agent-2/route-base-and-back` | IN PROGRESS (#44 draft) |
-| Claude 3 | SHOP-01 Paystack return/recovery port from PR #42 | `claude/agent-3/checkout-payment-return` | NOT STARTED |
-| Claude 4 | WEB-AD08 admin seam + orders monitor | `claude/agent-4/admin-orders-monitor` | NOT STARTED |
-| Claude 5 | WEB-AD09 hub board on existing RPCs | `claude/agent-5/hub-board` | NOT STARTED |
-| Claude 6 | WEB-S08 read-only seller earnings | `claude/agent-6/seller-earnings` | NOT STARTED |
-| Claude 7 | WEB-AD11 disputes queue | `claude/agent-7/admin-disputes` | NOT STARTED |
-| Claude 8 | WEB-M10 app handoff page + M07 SEO | `claude/agent-8/app-handoff-seo` | NOT STARTED |
-| Claude 9 | QA-01 360 px smoke + axe + bundle budget in CI | `claude/agent-9/smoke-a11y-budget` | NOT STARTED |
+| Agent | PR / branch | State |
+|---|---|---|
+| Claude 1 | #54 `claude/agent-1/s11-store-settings` | CI FAILED: eager budget 229.8 KB vs 225 KB |
+| Claude 2 | #44 `claude-2/seller-bundle-assembly` | Merge conflict with `web-portal` in `build.yml`; no CI on current head |
+| Claude 3 | #55 `claude/agent-3/checkout-payment-return` | Draft; waiting on CI and owner device checklist |
+| Claude 4 | `claude/agent-4/admin-orders-monitor` | Pushed, **no PR opened** |
+| Claude 5 | #56 `claude/agent-5/hub-board` | Draft; not yet verified against real data |
+| Claude 6 | #57 `claude/agent-6/seller-earnings` | Draft; needs screenshots |
+| Claude 7 | #58 `claude/agent-7/admin-disputes` | Draft; needs screenshots |
+| Claude 8 | #59 `claude/agent-8/app-handoff-seo` | Draft; description does not match diff |
+| Claude 9 | QA-02 `claude/agent-9/ci-run-seller-tests` | To start |
 
-### Claude 1: WEB-S23 (P0)
-Seller product photo upload fails with "Failed to fetch" before the product is saved. Capture the real failing request (Network + Console on the staging preview) and document the cause. Files: `workspace.js` (`uploadAll`), `ds-editor.js`, `shared/supa.js` (coordinate with Claude 2).
-Accept when: 1-8 photos upload on a throttled connection at 360 px; failures show a specific retryable error and keep form state; regression test added under `tools/web-seller-tests/`. If the cause is Storage policy (`stores/<store_id>/...`), send the evidence as a BACKEND REQUEST; do not change policy. Next in queue: WEB-S11 store settings for approved stores.
+## What each agent does now
+**Claude 1.** Now: in #54, load `settings.js` through `ds-lazy.js` (route `/portal/settings/*`) and make the `scripts-wired.js` guard read the lazy list from `ds-lazy.js` instead of a hard-coded array. Do not raise the budget. Merge `web-portal`, get CI green. List which `stores` and `store_private` columns an approved seller can write (CX-09). Next: with the Shopflow seller account, verify the orders screens (S05/S06) against fixtures CX01-06 to 10; then link `/portal/earnings` once #57 merges; then WEB-S12 notifications centre, read-only.
 
-### Claude 2: X2-01/02 then X2-03/04
-1. Finish PR #44 on its existing branch: CI green, rebase on current `web-portal` (its base `16f7746` is behind), take out of draft.
-2. Then `claude/agent-2/route-base-and-back`: runtime route base (`EV_BASE`), nested-route reload, history and Android Back. Needs Claude 1's confirmation before touching `core.js`.
-3. Report what PRs #36, #40 and #43 contain that APP-13 on `web-portal` (commits `5bce919`..`6e3afaa`) does not. Nothing is closed without owner confirmation.
-Accept when: a staging bundle contains no production project ref (CI assertion). Hot 70 evidence comes from the owner.
+**Claude 2.** Now: merge `web-portal` into #44, keep **both** `build.yml` steps (yours and QA-01's), push, get CI green; optional hardening: honour `window.EV_ENV` only when `window.EV_NATIVE_SELLER===true`. Then: in `ds-access.js`, accept the generic `scope_id`/`scope_name` from `my_access()` and keep `store_id`/`store_name` as aliases for store-plane contexts, do not drop partner contexts, and add a test using the shape in PR #49. Do not call `my_access()` live until Codex applies it to staging. Then `claude/agent-2/route-base-and-back` (X2-03/04), then password recovery (A05/A06, APP-03).
 
-### Claude 3: SHOP-01
-Port only the Paystack checkout-recovery and return handling from PR #42 onto `web-portal` (leave its Google sign-in changes; that is Claude 2's lane). Files: root `js/payments.js`, `js/app.js`, `js/shop.js`.
-Accept when: interrupted payments and app resume end in a correct pending/paid/failed state read from the server; no double-submit; no fabricated success; checkout states render at 360 px. Backend recovery (migrations 029-031) already exists.
+**Claude 3.** Now: keep #55 in draft; merge `web-portal`, CI green, ask the owner to run the 5-item device checklist with Paystack **test** keys. Next: use the unpaid fixtures CX01-01 to 05 (customer account) to check resume, expired and cancelled states. New orders cannot be placed on the fixture products until CX-15. Then the order history and tracking audit (APP-05).
 
-### Claude 4: WEB-AD08
-Part 1 (lands first): a small section-registration seam in `admin.js` / `ds-admin.js` so Claudes 5, 6, 7 add admin pages in their own files. Part 2: orders monitor using existing `orders`, `admin_confirm_payment`, `cancel_order`, with honest loading/empty/error states, confirmation on destructive actions, and actions hidden where no backend workflow exists. Also fix the stale waitlist hint (WEB-F12). The "Live stores" KPI is already correct in code; do not redo it.
+**Claude 4.** Now: **open the PR** from `claude/agent-4/admin-orders-monitor` to `web-portal` (seam, orders monitor, WEB-F12), merge `web-portal` first, CI green. The seam unblocks Claude 5, 6, 7. Then add nav entries for `/admin/hub` and `/admin/disputes`. Next: verify seller review and product moderation against the fixtures with the admin account.
 
-### Claude 5: WEB-AD09
-A real hub board (receive, consolidate, dispatch) using existing `hub_receive`, `hub_consolidate`, `dispatch`, `deliveries`. Do not invent a dispatch event. Keep `ds-dispatch.js` clearly labelled MOCK. Send a precise BACKEND REQUEST for dispatcher assignment, courier acceptance and custody events (FIN-02). Build in your own page file until Claude 4's seam lands.
+**Claude 5.** Now: #56: merge `web-portal`, CI green, screenshots. Read `docs/WORKFLOW/LOGISTICS_DISPATCH_CONTRACT_PROPOSAL.md` (merged via #50): current hub board uses only existing RPCs; show no assignment acceptance, custody scan, live route or POD. Verify the board against fixtures CX01-06 to 10 (partial receipt, consolidated, out for delivery, damaged item) now that Codex fixed `hub_receive` and `dispatch`. Next: UI spec for dispatcher queue and courier tasks against the future `logistics_*` RPCs; build nothing that invents data.
 
-### Claude 6: WEB-S08
-Read-only seller earnings and ledger view with CSV export from existing `store_balance` and `ledger_entries`. Label as legacy ledger. No withdraw/payout actions, no invented balances. First confirm on staging that RLS allows these reads; if not, BACKEND REQUEST. New file loaded through `ds-lazy.js`, not `ds-seller.js`.
+**Claude 6.** Now: #57: merge `web-portal`, CI green, 360 px and desktop screenshots. Test the screen against the 22 fixture ledger rows: refunds are negative, three statuses, mixed kinds. Payout, adjustment and rental rows do not exist, so show the empty and unavailable states honestly. Next: admin finance read-only views (payouts list, reconciliation) with honest labels.
 
-### Claude 7: WEB-AD11
-Disputes queue and detail on existing data (the admin overview already counts open disputes). First audit which dispute RPCs exist; hide actions until a backend contract exists and send BACKEND REQUESTs for gaps. Depends on Claude 4's seam; use your own page file meanwhile.
+**Claude 7.** Now: #58: merge `web-portal`, CI green, screenshots at 360, 412 and desktop. Verify the detail view against dispute `4d095dbf-de88-4f41-b73e-ba82dfaa1be9` (order CX01-10). Next: verification and fraud-report queue audit, read-only.
 
-### Claude 8: WEB-M10 + M07
-Web-to-app handoff page showing only verified, published download destinations from config (no web cart or checkout). SEO: per-page titles, sitemap, robots. Replace hot-linked showcase images on the auth screens (`auth-showcase.js`) with Everneed's own assets.
+**Claude 8.** Now: #59: update the description to match the 12 changed files, merge `web-portal`, lazy-load any new scripts, delete the claim doc and record status here. The handoff page shows only destinations that exist today. Next: legal pages and consent copy (M06), help centre content.
 
-### Claude 9: QA-01
-Automated 360 px smoke run for public routes and the seller shell with stubbed Supabase, an axe accessibility check, and a bundle-size budget (eager JS+CSS currently about 51.9 KB gzipped). Wire into the existing "Install and test" job. Do not add path filters. Later: staging E2E (Q02) once test accounts exist.
-
-## Backend requests for ChatGPT/Codex (Claude 10 relays)
-1. `my_access()` (R23) on staging so Claude 2's access adapter has something to call.
-2. 10 staging order fixtures (5 unpaid, 5 simulated-paid) via authenticated paths only.
-3. Dispatcher/courier domain contract (FIN-02).
-4. PR #38 (seller accept-deadline guard): rebase on current `web-portal`, green CI, then staging apply.
-5. Storage/Auth logs for S23 if Claude 1 points at policy.
-6. Variant-aware checkout (PR #32) before variants can be sold.
-7. Review of Claude 2's CI assertion design (R-C2-03).
+**Claude 9.** Now: QA-02: run `tools/web-seller-tests/*` and `tools/shop-tests/*` inside "Install and test", with a glob so new tests are picked up, no path filters; report added CI time. Next: seller-shell smoke with a stubbed signed-in session; staging E2E when the owner supplies credentials.
 
 ## Owner actions outstanding
-- Create staging test accounts: customer, seller, admin (WEB-F11 / FIN-07).
-- Enable branch protection on `web-portal`: require PR, 1 approval, only "Install and test" and "Database tests" required (the other two checks are path-filtered), block force-push/deletion.
-- Start one builder session per assignment above.
+- Give test credentials (customer, admin, Shopflow, Testing) privately to the sessions that need them. Never commit them.
+- Turn on the S23 phone check: after a failed photo upload run `JSON.stringify(EVUpload.last)` in the console and send it to Claude 10.
+- Hot 70 device test of APP-13 native Google sign-in.
+- Policy decision (CX-09): should approved sellers' name, logo or cover edits need re-review?
 
-## Known PR sprawl (triage by Claude 10, nothing closed without owner OK)
-#36, #40, #43 (native Google sign-in; APP-13 already on `web-portal`), #41 (superseded by #44), #42 (mixed; Claude 3 ports the payment part), #32 (variant checkout, backend-blocked), #38 (backend).
+## Known PR sprawl (nothing closed without owner OK)
+#36, #40, #43 (native Google sign-in; APP-13 already on `web-portal`), #41 (superseded by #44), #42 (Claude 3 ports the payment part), #32 (variant checkout, backend-blocked), #38 (seller accept deadline, backend).
