@@ -326,3 +326,5 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Staging: migration applied and structural regression test passed. Rollback-wrapped authenticated-admin smoke search returned the expected order, buyer summary, 2 stores, NGN total, statuses, and pagination metadata. Production untouched.
 
 - Follow-up migration `20261128073000_admin_order_directory_total_count_fix.sql` corrects total-count behavior when requesting an out-of-range page (empty items, but preserves matching total). Staging test confirms page 999 returns `total=1`, `items=[]`, `hasMore=false`.
+
+- Migration `20261128073500_admin_order_directory_indexes.sql` adds sort/filter indexes on orders timestamp/id and status, payment_status, and payment method. Staging catalog confirms all four indexes exist.
