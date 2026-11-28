@@ -79,3 +79,11 @@ Anonymous caller, missing profile, legacy admin compatibility, store owner conte
 Claude 10 should add B1 backend dependency to the live team board and coordinate frontend access/context work against the documented `my_access()` contract. UI may use labelled mocks for design only; it must not invent grants or bypass missing backend functionality.
 
 **Status (25 Nov 2026):** PR #49 remains open. Local migration replay succeeded. Universal-access regression test 039 passed (catalogue, templates, scope guard, RLS/ACL, empty context, multiple contexts and legacy-admin compatibility). Install/test, Cloudflare Pages and migration-order checks passed. The full database job still fails later in the pre-existing `phase2_checks.sql` at line 300 when an authenticated fixture insert invokes `private.stores_guard()` → `private.slugify()` and encounters `permission denied for schema private`. Test 039 runs before that blocker. No migration has been applied to staging or production. Independent coordinator review and the baseline CI issue remain outstanding.
+
+
+## 28 Nov 2026 — B1 compatibility and protected-template guard
+
+- `my_access()` keeps canonical `scope_id/scope_name` and adds `store_id/store_name` aliases only for store-plane, store-scope contexts. Other contexts receive null aliases. This preserves the current `ds-access.js` store adapter without dropping platform/partner context.
+- Added `private.access_role_assignment_template_guard()` on role assignments: inserts/updates fail closed for inactive or `assignable=false` templates. Protected `platform_owner` and `store_owner` cannot be assigned through any future RPC/table write path without deliberately changing this database invariant.
+- SQL test 039 now asserts aliases and protected-template assignment denial.
+- CI is rerunning on the updated commit; no staging apply and no assignments created.
