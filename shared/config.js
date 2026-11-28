@@ -13,7 +13,11 @@
   var host=(typeof location!=="undefined"&&location.hostname)||"";
   /* Only *.everneed.pages.dev previews and local development can select staging. */
   var preview=/^(localhost|127\.0\.0\.1)$/.test(host)||/^[a-z0-9-]+\.everneed\.pages\.dev$/.test(host);
-  var env=(STAGING_READY&&preview)?"staging":"live";
+  /* Inside the Android app the page host is always "localhost", so the address says nothing about the build. The packaged seller
+     bundle (tools/assemble-seller-bundle.mjs) sets window.EV_NATIVE_SELLER=true and window.EV_ENV from the CI-stamped branch before this file loads; only then does EV_ENV win over the address.
+     On the website nothing sets it, so behaviour there is unchanged. */
+  var forced=(typeof window!=="undefined"&&window.EV_NATIVE_SELLER===true&&(window.EV_ENV==="live"||window.EV_ENV==="staging"))?window.EV_ENV:null;
+  var env=forced||((STAGING_READY&&preview)?"staging":"live");
   window.CFG={name:"Everneed",baseCurrency:"NGN",env:env,turnstileSitekey:"0x4AAAAAAF-beiMNGf6-z7Eq",
     supabase:env==="staging"?STAGING:LIVE,
     collections:["Groceries","Electricals","Accessories","Skincare"],
