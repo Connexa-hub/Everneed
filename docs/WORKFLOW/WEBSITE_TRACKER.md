@@ -614,3 +614,5 @@ Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKF
 - Rollback-wrapped smoke: authenticated staging admin searched a known staging order; returned exact order, summary and pagination metadata; no state changes.
 - No production activity. CI pending/not visible in GitHub status API yet.
 - Frontend handoff: Claude 4 should call `admin_order_directory` and use `items,total,page,pageSize,hasMore`; no mock directory. Status/payment/payment method filters and free-text search. RPC response fields documented in DB_CONTRACT.
+
+- Follow-up: `20261128073000_admin_order_directory_total_count_fix` applied to staging. Verified out-of-range page (page 999) returns empty items but retains total=1 and hasMore=false. This closes pagination metadata edge case.
