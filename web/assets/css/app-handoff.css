@@ -1,0 +1,38 @@
+/* WEB-M10: /shop app handoff. Classes are prefixed ah- so nothing here touches older rules.
+   Colours are design tokens, so the scene follows the palette, dark mode and AMOLED. */
+.ah-hero{display:grid;gap:clamp(22px,5vw,52px);align-items:center}
+@media(min-width:860px){.ah-hero{grid-template-columns:1.05fr .95fr}}
+.ah-art{width:min(100%,420px);margin-inline:auto}
+.ah-scene{display:block;width:100%;height:auto;overflow:visible}
+.ah-note{margin-top:24px}
+.ah-dest{display:grid;gap:10px;margin-top:24px;max-width:360px}
+.ah-dl{min-height:48px;text-align:center}
+
+.ah-glow{fill:var(--brand);opacity:.12}
+.ah-ph-body{fill:var(--text-1)}
+.ah-ph-screen{fill:color-mix(in srgb,var(--brand) 16%,var(--text-1))}
+.ah-t1{fill:var(--success)}.ah-t2{fill:var(--info)}.ah-t3{fill:var(--accent)}.ah-t4{fill:var(--danger)}
+.ah-bar{fill:var(--brand)}
+.ah-bar2{fill:var(--text-1);opacity:.35}
+.ah-b1{fill:var(--accent)}.ah-b2{fill:var(--brand)}.ah-b3{fill:var(--info)}
+.ah-tape{fill:var(--text-1);opacity:.28}
+.ah-road{stroke:var(--text-1);stroke-opacity:.25;stroke-width:2;stroke-dasharray:6 8}
+.ah-van-body{fill:var(--brand)}
+.ah-van-cab{fill:color-mix(in srgb,var(--brand) 70%,#000)}
+.ah-van-win{fill:color-mix(in srgb,var(--brand) 25%,#fff)}
+.ah-van-stripe{fill:var(--accent)}
+.ah-wheel{fill:var(--text-1)}
+
+/* Still by default. Motion only for people who have not asked for reduced motion. */
+.ah-van{transform:translateX(138px)}
+@media(prefers-reduced-motion:no-preference){
+  .ah-van{animation:ah-drive 9s linear infinite}
+  .ah-phone{animation:ah-float 6s ease-in-out infinite}
+  .ah-p{animation:ah-float 5s ease-in-out infinite}
+  .ah-p2{animation-delay:-1.7s}.ah-p3{animation-delay:-3.3s}
+  .ah-tile{transform-box:fill-box;transform-origin:center;animation:ah-pop 4.8s ease-in-out infinite}
+  .ah-t2{animation-delay:.4s}.ah-t3{animation-delay:.8s}.ah-t4{animation-delay:1.2s}
+}
+@keyframes ah-drive{from{transform:translateX(-110px)}to{transform:translateX(390px)}}
+@keyframes ah-float{0%,100%{transform:translateY(3px)}50%{transform:translateY(-6px)}}
+@keyframes ah-pop{0%,70%,100%{transform:scale(1)}85%{transform:scale(1.1)}}
