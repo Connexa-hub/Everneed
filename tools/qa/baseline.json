@@ -32,6 +32,18 @@
     "not-found": {
       "touchSmall": 12,
       "axe": {}
+    },
+    "admin-home": {
+      "touchSmall": 2
+    },
+    "seller-home": {
+      "touchSmall": 2
+    },
+    "seller-products": {
+      "touchSmall": 2
+    },
+    "seller-orders": {
+      "touchSmall": 2
     }
   }
 }

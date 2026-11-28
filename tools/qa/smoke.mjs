@@ -40,7 +40,25 @@ const ROUTES = [
   { path: '/sign-in', name: 'sign-in' },
   { path: '/create-account', name: 'create-account' },
   { path: '/no-such-page', name: 'not-found', expectText: 'Page not found' },
+  // Signed-in shells. `as` picks the stubbed session (see SESSIONS); every Supabase call is still stubbed.
+  { path: '/admin', name: 'admin-home', as: 'admin' },
+  { path: '/portal', name: 'seller-home', as: 'seller' },
+  { path: '/portal/products', name: 'seller-products', as: 'seller' },
+  { path: '/portal/orders', name: 'seller-orders', as: 'seller' },
 ];
+
+// chat.js loads supabase-js from jsDelivr for realtime. Offline it would show the boot "couldn't load" overlay, so a stand-in is served
+// whose every call returns another stand-in. Realtime itself is therefore NOT exercised by this smoke run.
+const REALTIME_STANDIN = 'window.supabase={createClient:function(){function c(){var f=function(){return c()};return new Proxy(f,{get:function(t,k){return k==="then"?undefined:c()},apply:function(){return c()}})}return c()}};';
+// Stubbed signed-in sessions. The key is the website's session key from shared/supa.js (no window.EV_SESSION_KEY on the website).
+// The token is not a real JWT and never reaches a server: every Supabase request is answered here.
+const SESSION_KEY = 'en_web_sess';
+const SESSIONS = {
+  admin: { uid: '00000000-0000-4000-8000-0000000000a1', profile: { role: 'admin', full_name: 'QA Admin' } },
+  seller: { uid: '00000000-0000-4000-8000-0000000000b1', profile: { role: 'merchant', full_name: 'QA Seller' },
+    // An approved, live store, so the real seller shell renders instead of the "become a seller" setup.
+    store: { id: '00000000-0000-4000-8000-0000000000c1', owner_id: '00000000-0000-4000-8000-0000000000b1', name: 'QA Store', slug: 'qa-store', status: 'approved', activation_status: 'live', country: 'NG', currency: 'NGN' } },
+};
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff', '.json': 'application/json', '.txt': 'text/plain' };
 const server = createServer((req, res) => {
@@ -63,6 +81,8 @@ const fail = (r, msg) => { r.problems.push(msg); failures++; };
 
 for (const route of ROUTES) {
   const ctx = await browser.newContext({ viewport: { width: WIDTH, height: 780 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  const sess = route.as ? SESSIONS[route.as] : null;
+  if (sess) await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }, [SESSION_KEY, { access_token: 'qa.stub.token', refresh_token: 'qa-stub-refresh', expires_at: Date.now() + 3600e3, uid: sess.uid }]);
   const page = await ctx.newPage();
   const r = { name: route.name, path: route.path, problems: [], notes: [], external: new Set(), touchSmall: 0, axe: null };
   const pageErrors = [];
@@ -74,7 +94,11 @@ for (const route of ROUTES) {
     if (u.origin === ORIGIN) return rt.continue();
     r.external.add(u.host);
     if (u.host.includes(PROD_REF)) { fail(r, 'request reached the PRODUCTION Supabase project: ' + u.pathname); return rt.abort(); }
+    if (u.host === 'cdn.jsdelivr.net' && /\/@supabase\/supabase-js@/.test(u.pathname)) return rt.fulfill({ status: 200, contentType: 'text/javascript', body: REALTIME_STANDIN });
     if (u.host.endsWith('.supabase.co')) {
+      if (sess && u.pathname.endsWith('/rest/v1/profiles') && u.searchParams.get('id') === 'eq.' + sess.uid) return rt.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: sess.uid, ...sess.profile }]) });
+      if (sess && sess.store && u.pathname.endsWith('/rest/v1/stores') && u.searchParams.get('owner_id') === 'eq.' + sess.uid) return rt.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([sess.store]) });
+      if (u.pathname.endsWith('/rpc/my_access')) return rt.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ message: 'Could not find the function public.my_access' }) }); // not on staging yet
       const body = u.pathname.includes('/rest/v1/rpc/') ? 'null' : u.pathname.includes('/rest/v1/') ? '[]' : '{}';
       return rt.fulfill({ status: u.pathname.includes('/auth/v1/') ? 400 : 200, contentType: 'application/json', body });
     }
@@ -91,12 +115,20 @@ for (const route of ROUTES) {
     const small = [...document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[role=button],[role=tab]')]
       .filter(vis).filter((el) => { const b = el.getBoundingClientRect(); return b.width < 44 || b.height < 44; })
       .map((el) => (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/)[0] : '')));
-    return { rootText: root ? root.innerText.trim().length : -1, text: document.body.innerText.slice(0, 4000), scrollW: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth), small };
+    return { rootText: root ? root.innerText.trim().length : -1, text: document.body.innerText.slice(0, 4000), shellTabs: !!document.querySelector('.ax-tabs, .ax-rail'), scrollW: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth), small };
   });
+  if (sess) {
+    // The stubbed session must actually be in effect: a redirect (to sign-in or the account page) or the no-store setup screen means it was not.
+    const finalPath = new URL(page.url()).pathname.replace(/\/+$/, '') || '/';
+    if (finalPath !== route.path) fail(r, 'signed-in route ended at ' + finalPath + ' instead of ' + route.path + ' (session stub not accepted?)');
+    if (!m.shellTabs) fail(r, 'app shell not rendered (no .ax-tabs or .ax-rail): the stubbed ' + route.as + ' session or store was not accepted');
+    if (sess.store && /Would you like to become a seller/.test(m.text)) fail(r, 'seller stub not recognised: the "become a seller" setup screen was shown');
+  }
   if (pageErrors.length) fail(r, 'uncaught page errors: ' + pageErrors.slice(0, 3).join(' | '));
   if (consoleErrors.length) fail(r, 'console errors: ' + consoleErrors.slice(0, 3).join(' | '));
   if (m.rootText < 20) fail(r, 'page rendered almost nothing (root text ' + m.rootText + ' chars)');
   if (route.expectText ? !m.text.includes(route.expectText) : /Something went wrong/.test(m.text)) fail(r, route.expectText ? 'expected "' + route.expectText + '" on screen' : 'error screen shown ("Something went wrong")');
+  if (/couldn[’']t load this page/i.test(m.text)) fail(r, 'boot diagnostics overlay shown ("Everneed couldn’t load this page"): ' + (m.text.match(/\[load\][^\n]*\n?[^\n]*/) || [''])[0].slice(0, 160));
   if (m.scrollW > WIDTH + 1) fail(r, 'horizontal overflow at ' + WIDTH + ' px: content is ' + m.scrollW + ' px wide');
   r.touchSmall = m.small.length;
   r.touchSample = [...new Set(m.small)].slice(0, 6);
