@@ -112,7 +112,7 @@
           +(failed?D.banner("warning","Some numbers could not load","The figures below may be incomplete.",{label:"Try again",act:"ds-reload"}):"")
           +'<div class="ds-stats">'+D.stat({icon:"bell",value:fresh.length,label:"New orders",href:"/portal/orders"})+D.stat({icon:"box",value:act.length,label:"In progress",href:"/portal/orders"})
           +D.stat({icon:"okc",value:c("published"),label:"Live products",href:"/portal/products"})+D.stat({icon:"clock",value:c("pending_review"),label:"In review",href:"/portal/products"})+"</div>"
-          +'<div class="ds-actions"><a class="ds-btn" href="/portal/product/new">'+D.icon("plus",18)+' Add product</a><a class="ds-btn o" href="/portal/products">Products</a><a class="ds-btn o" href="/inbox">Messages</a></div>'
+          +'<div class="ds-actions"><a class="ds-btn" href="/portal/product/new">'+D.icon("plus",18)+' Add product</a><a class="ds-btn o" href="/portal/products">Products</a><a class="ds-btn o" href="/inbox">Messages</a><a class="ds-btn o" href="/portal/notifications">Notifications</a></div>'
           +'<div class="ds-h"><h2>To do</h2></div><div class="ds-rows">'+(tasks.length?tasks.join(""):D.empty({icon:"okc",title:"You are all caught up",text:"Nothing needs your attention right now."}))+"</div>"
           +plan
           +'<div class="ds-h"><h2>Recent orders</h2></div><div class="ds-rows">'+(recent||D.empty({icon:"box",title:"No orders yet",text:"Orders appear here as shoppers buy."}))+"</div>"
