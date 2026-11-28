@@ -314,7 +314,7 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
 
 
-## Admin order directory — migration 20261128070200 (Codex; staging applied)
+## Admin order directory — migration 20261128060205 (Codex; staging applied)
 
 - RPC: `public.admin_order_directory(p_search text, p_status text, p_payment_status text, p_payment_method text, p_page integer, p_page_size integer)`.
 - Authorization: calls `private.need_admin()`; `anon` and `PUBLIC` execute revoked; `authenticated` can invoke the admin-gated RPC.
@@ -325,6 +325,6 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Regression: `supabase/tests/041_admin_order_directory_rpc_checks.sql`.
 - Staging: migration applied and structural regression test passed. Rollback-wrapped authenticated-admin smoke search returned the expected order, buyer summary, 2 stores, NGN total, statuses, and pagination metadata. Production untouched.
 
-- Follow-up migration `20261128073000_admin_order_directory_total_count_fix.sql` corrects total-count behavior when requesting an out-of-range page (empty items, but preserves matching total). Staging test confirms page 999 returns `total=1`, `items=[]`, `hasMore=false`.
+- Follow-up migration `20261128060320_admin_order_directory_total_count_fix.sql` corrects total-count behavior when requesting an out-of-range page (empty items, but preserves matching total). Staging test confirms page 999 returns `total=1`, `items=[]`, `hasMore=false`.
 
-- Migration `20261128073500_admin_order_directory_indexes.sql` adds sort/filter indexes on orders timestamp/id and status, payment_status, and payment method. Staging catalog confirms all four indexes exist.
+- Migration `20261128060724_admin_order_directory_indexes.sql` adds sort/filter indexes on orders timestamp/id and status, payment_status, and payment method. Staging catalog confirms all four indexes exist.
