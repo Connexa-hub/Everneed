@@ -72,6 +72,7 @@ begin
   perform set_config('request.jwt.claim.sub',owner_id::text,true);
   perform set_config('request.jwt.claim.role','authenticated',true);
   set local role authenticated;
+  if private.is_privileged() then raise exception 'FAIL: owner QA JWT is incorrectly considered privileged'; end if;
   begin
     perform public.seller_set_pause(now()+interval '91 days');
   exception when others then
