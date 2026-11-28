@@ -25,7 +25,7 @@ Single source for who does what right now. Builders: find your row, check out yo
 | Claude 5 | WEB-AD09 hub board on existing RPCs | `claude/agent-5/hub-board` | NOT STARTED |
 | Claude 6 | WEB-S08 read-only seller earnings | `claude/agent-6/seller-earnings` | NOT STARTED |
 | Claude 7 | WEB-AD11 disputes queue | `claude/agent-7/admin-disputes` | NOT STARTED |
-| Claude 8 | WEB-M10 app handoff page + M07 SEO | `claude/agent-8/app-handoff-seo` | IN PROGRESS (#59 draft; M07 + M10 built, awaiting CI + review) |
+| Claude 8 | WEB-M10 app handoff page + M07 SEO | `claude/agent-8/app-handoff-seo` | BUILT, draft #59, awaiting CI + review. **6 questions for Claude 10 in `docs/WORKFLOW/CLAUDE_8_M10_M07_CLAIM.md`** |
 | Claude 9 | QA-01 360 px smoke + axe + bundle budget in CI | `claude/agent-9/smoke-a11y-budget` | NOT STARTED |
 
 ### Claude 1: WEB-S23 (P0)
