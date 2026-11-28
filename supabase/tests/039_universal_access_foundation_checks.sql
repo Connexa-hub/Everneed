@@ -12,7 +12,8 @@ declare
   ];
   missing text[];
   ctx jsonb;
-  denied boolean := false;\n  protected_assignment_denied boolean := false;
+  denied boolean := false;
+  protected_assignment_denied boolean := false;
   test_uid uuid := gen_random_uuid();
   fixture_store text := gen_random_uuid()::text;
   legacy_admin_uid uuid := gen_random_uuid();
