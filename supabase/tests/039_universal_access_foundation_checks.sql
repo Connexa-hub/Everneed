@@ -110,12 +110,12 @@ begin
     raise exception 'FAIL: expected separate platform and store contexts, got %',ctx;
   end if;
   if not (ctx @> jsonb_build_array(jsonb_build_object(
-    'plane','platform','scope_type','platform','scope_id',null,
+    'plane','platform','scope_type','platform','scope_id',null,'store_id',null,'store_name',null,
     'role','platform_dispatcher','permissions',jsonb_build_array('logistics.dispatch.assign','logistics.dispatch.read','logistics.route.plan')))) then
     raise exception 'FAIL: platform dispatcher context/permissions missing or wrong scope: %',ctx;
   end if;
   if not (ctx @> jsonb_build_array(jsonb_build_object(
-    'plane','store','scope_type','store','scope_id',fixture_store,
+    'plane','store','scope_type','store','scope_id',fixture_store,'store_id',fixture_store,'store_name','Universal Access CI Store',
     'role','store_owner','source','legacy_owner'))) then
     raise exception 'FAIL: legacy store-owner context missing: %',ctx;
   end if;
