@@ -13,6 +13,7 @@ declare
   non_owner_rejected boolean := false;
   direct_write_rejected boolean := false;
   index_definition text;
+  create_order_definition text;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
   values(owner_id,'authenticated','authenticated','store-pause-ci-'||owner_id||'@example.test','',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
@@ -22,6 +23,18 @@ begin
 
   insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
   values(store_id,owner_id,'pause-ci-'||owner_id,'  Pause   CI Store  ','approved','live','NG','Africa/Lagos');
+
+  insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
+    values(store_id,'plan-free','trialing',now(),now()+interval '30 days');
+
+  if not private.store_live(store_id) then
+    raise exception 'FAIL: fixture store must be live before pause';
+  end if;
+  set local role anon;
+  if not exists(select 1 from public.stores where id=store_id) then
+    raise exception 'FAIL: live store is not publicly visible before pause';
+  end if;
+  reset role;
 
   if (select name from public.stores where id=store_id) <> 'Pause CI Store' then
     raise exception 'FAIL: store name whitespace normalization did not occur';
@@ -84,6 +97,12 @@ begin
   if result->>'is_paused' <> 'true' or (result->>'business_timezone') <> 'Africa/Lagos' then
     raise exception 'FAIL: pause RPC did not return active pause and store timezone';
   end if;
+  if private.store_live(store_id) then raise exception 'FAIL: paused store still passes store_live gate'; end if;
+  set local role anon;
+  if exists(select 1 from public.stores where id=store_id) then
+    raise exception 'FAIL: paused store remains publicly visible';
+  end if;
+  reset role;
   begin
     update public.stores set paused_until=now()+interval '3 days' where id=store_id;
   exception when others then
@@ -108,6 +127,22 @@ begin
   end if;
   if not exists(select 1 from public.audit_log where actor_id=owner_id and target_type='store' and target_id=store_id and action='seller_store_resume') then
     raise exception 'FAIL: resume action not audited';
+  end if;
+  if not private.store_live(store_id) then raise exception 'FAIL: resumed store did not return to live gate'; end if;
+  set local role anon;
+  if not exists(select 1 from public.stores where id=store_id) then
+    raise exception 'FAIL: resumed store is not publicly visible';
+  end if;
+  reset role;
+  select pg_get_functiondef(p.oid) into create_order_definition
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname='create_order' and p.prokind='f';
+  if create_order_definition is null or position('private.store_live' in create_order_definition)=0 then
+    raise exception 'FAIL: checkout create_order does not use the pause-aware store-live gate';
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='stores' and policyname='stores public read' and qual ilike '%private.store_live%')
+     or not exists(select 1 from pg_policies where schemaname='public' and tablename='products' and policyname='products_public_read' and qual ilike '%private.store_live%') then
+    raise exception 'FAIL: storefront/product public policies do not use store-live gate';
   end if;
   raise notice 'PASS: store name normalization/uniqueness, one-store-per-owner and owner pause/resume';
 end
