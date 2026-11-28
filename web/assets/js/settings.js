@@ -24,7 +24,8 @@
   function clean(v,n){return String(v==null?"":v).replace(/\s+/g," ").trim().slice(0,n||200)}
   function area(v,n){return String(v==null?"":v).replace(/\r/g,"").trim().slice(0,n||2000)}
   function need(l){for(var i=0;i<l.length;i++){if(!l[i][0]){C.toast(l[i][1],true);return true}}return false}
-  function fail(e){C.toast(e&&e.message||"That did not work",true)}
+  function taken(e){if(!e)return false;var t=[e.message,e.details,e.hint,e.constraint,e.code].filter(Boolean).join(" ");return/stores_name_normalized_key/i.test(t)}
+  function fail(e){C.toast(taken(e)?"That store name is already taken. Choose a different name.":(e&&e.message||"That did not work"),true)}
   function again(){C.go(location.pathname,true)}
   function toggle(arr,v,on){var i=arr.indexOf(v);if(on&&i<0)arr.push(v);if(!on&&i>-1)arr.splice(i,1)}
   function join(a){return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1]}
@@ -46,7 +47,8 @@
       img.src=url;
     });
   }
-  function uploadImage(file,folder){return shrink(file).then(function(f){return Supa.upload(f,folder)})}
+  /* Uses the hardened uploader (clear errors, retries, timeout) when it is loaded, and the old path otherwise. */
+  function uploadImage(file,folder){var U=window.EVUpload;if(U&&U.prepare)return U.prepare(file).then(function(b){return U.put(b,folder)});return shrink(file).then(function(f){return Supa.upload(f,folder)})}
 
   /* ---------- opening hours, returns and delivery: choices in, plain sentences out ---------- */
   var DAYS=[["mon","Monday","Mon"],["tue","Tuesday","Tue"],["wed","Wednesday","Wed"],["thu","Thursday","Thu"],["fri","Friday","Fri"],["sat","Saturday","Sat"],["sun","Sunday","Sun"]];
@@ -139,7 +141,7 @@
   A.setgo=function(b){C.go(b.getAttribute("data-to"))};
   function index(){
     return'<div class="sech"><h1 style="font-size:2.2rem">Settings</h1></div><p class="m">Manage how your store looks and works. Changes appear on your store page right away.</p>'
-      +'<div class="g2" style="margin-top:16px">'+SECTIONS.map(function(s){return'<a class="card" style="display:block;text-decoration:none;color:inherit" href="/portal/settings/'+s[0]+'"><h3 style="margin:0 0 4px">'+esc(s[1])+'</h3><p class="sm" style="margin:0">'+esc(s[2])+"</p></a>"}).join("")+"</div>";
+      +'<div class="g2" style="margin-top:16px">'+SECTIONS.map(function(s){return'<a class="card" style="display:block;text-decoration:none;color:inherit" href="/portal/settings/'+s[0]+'"><h3 style="margin:0 0 4px">'+esc(s[1])+'</h3><p class="sm" style="margin:0">'+esc(s[2])+"</p></a>"}).join("")+'<div class="card" aria-disabled="true" style="opacity:.8"><h3 style="margin:0 0 4px">Holiday mode</h3><p class="sm" style="margin:0 0 8px">Pause new orders while you are away.</p><span class="chip">Not available yet</span><p class="sm" style="margin:8px 0 0">It needs a store pause feature on the Everneed side, which is not built yet. Nothing changes on your store.</p></div></div>';
   }
   function head(sec){
     var cur=SECTIONS.filter(function(x){return x[0]===sec})[0];
@@ -163,7 +165,7 @@
   /* profile */
   function bodyProfile(){
     var s=T.store,d=s.storefront_details||{};
-    return card("Store identity","Shoppers see this on your store page in the app.",fld("name","Store name",s.name,{max:80,req:1})+fld("tagline","Short tagline (optional)",s.tagline,{max:120})+ta("about","About your store (optional)",s.about,2000,{rows:4}))
+    return card("Store identity","Shoppers see this on your store page in the app.",fld("name","Store name",s.name,{max:80,req:1})+'<p class="m" style="margin:-6px 0 12px;font-size:.85rem">Each store name is unique on Everneed. Your store web address stays the same if you rename.</p>'+fld("tagline","Short tagline (optional)",s.tagline,{max:120})+ta("about","About your store (optional)",s.about,2000,{rows:4}))
       +card("Logo, cover and colour","",upload("logo","Logo","A square image works best",s.logo_url)+upload("cover","Cover photo","A wide image, shown at the top",s.cover_url)
         +'<p class="slab">Store colour</p><div class="accs" role="radiogroup" aria-label="Store colour">'+palettes().map(function(p){return'<label><input type="radio" name="accent" value="'+esc(p[0])+'"'+(p[0]===T.accent?" checked":"")+'><span class="sw2" title="'+esc(p[1])+'"><i style="background:'+esc(p[3])+'"></i></span></label>'}).join("")+"</div>"
         +'<div class="bpv" id="bpv" style="--pv:'+pvHex()+';margin-top:14px"><div class="bpv-cover" id="pvcover"'+(s.cover_url?' style="background-image:url(&quot;'+esc(s.cover_url)+'&quot;)"':"")+'></div><div class="bpv-body"><div class="bpv-logo" id="pvlogo"'+(s.logo_url?' style="background-image:url(&quot;'+esc(s.logo_url)+'&quot;)"':"")+">"+(s.logo_url?"":esc(initial(s.name)))+'</div><h4 id="pvname">'+esc(s.name)+'</h4><p id="pvtag">'+esc(s.tagline||"Your tagline appears here")+'</p><button class="bpv-btn" type="button" tabindex="-1">Visit store</button></div></div>')
