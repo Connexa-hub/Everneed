@@ -601,3 +601,14 @@ Goal: the app and the website use the same files, labels, money rules and look.
 **START NOW:** The agreed ten-Claude team is active on `web-portal`. Claude 10 (the tenth Claude, not an extra AI) must read the canonical docs, audit current repo and tracker status, create a prioritized executable plan, and coordinate Claude 1–9 to begin parallel work. Do not wait for another user kickoff. All nine builders work across app + web according to their specialist lanes; Claude 10 owns research, planning, design strategy, assignment, dependency management, moderation, integration, review, debugging/QA and end-to-end completion.
 
 Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKFLOW_DOCS_INDEX.md`, `PROJECT_STANDARD_AND_ROADMAP.md`, `AI_COORDINATION_STANDARD.md`, `AI_PROTOCOL.md`, this tracker, and contracts relevant to each task; (3) inventory current work and stale/incomplete tasks, avoiding duplicate or conflicting edits; (4) Claude 10 assigns concrete task IDs, owners, acceptance criteria and dependencies for Claude 1–9; (5) each builder starts the highest-priority non-blocked task in its lane, claims it here, and reports a small actionable backend contract request when blocked; (6) Claude 10 reviews each delivery, directs corrections, and keeps this tracker and roadmap synchronized. Backend contract requests go to ChatGPT/Codex. Staging only for testing; production remains protected. This kickoff does not itself mark any work complete.
+
+
+## FIN-03 staging re-audit and active claim — 28 Nov 2026
+
+| Task | Status | Owner | Branch | Acceptance |
+|---|---|---|---|---|
+| FIN-03 provider-confirmed refund lifecycle and allocations | ACTIVE / AUDIT VERIFIED | ChatGPT/Codex | `codex/fin03-refund-lifecycle-audit` | Separate request/provider states; stable idempotent provider refs; refund webhooks; no false processed state; immutable allocations; journal only after provider-confirmed processing; bank refunds separate; tests and staging. |
+
+Staging evidence: 2 legacy refunds (`approved` 1, `processed` 1); zero `private.provider_refunds`; zero succeeded payment attempts. Existing `public.refund()` still does local processing without provider confirmation. Paystack webhook handler stores all signed events but handles settlement only for `charge.success`; refund events are currently acknowledged as processed without refund-state reconciliation. Historical processed status must be flagged legacy/unverified. Details and acceptance gates in `PAYMENT_REFUND_AUDIT.md`.
+
+**Sequencing:** PAY-01 #75 and PAY-02 #76 are open. Their migration replay integration must be reconciled before this task's migration is merged. This task does not initiate any real refund or provider request.
