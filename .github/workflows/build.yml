@@ -48,6 +48,8 @@ jobs:
           version: 3.1.0
       - run: test -f supabase/config.toml || supabase init
       - run: supabase start -x edge-runtime,logflare,vector,imgproxy,studio,realtime,mailpit
+      - name: Universal access foundation checks (039)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/039_universal_access_foundation_checks.sql
       - name: Run Phase 2 checks
         shell: bash
         run: |
