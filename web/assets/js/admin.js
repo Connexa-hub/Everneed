@@ -188,7 +188,8 @@
   A.rpub=function(b){rpc("review_product",{p_product:id(b),p_decision:"publish",p_note:null},"Product published")};
   A.rchg=function(b){C.ask("Ask for changes","Tell the seller what to fix",true).then(function(n){if(n)rpc("review_product",{p_product:id(b),p_decision:"reject",p_note:n},"Sent back to the seller")})};
   A.ssus=function(b){C.ask("Suspend this store?","Reason (the seller will see it)",true).then(function(n){if(n)rpc("suspend_store",{p_store:id(b),p_reason:n},"Store suspended")})};
-  A.sback=function(b){rpc("approve_store",{p_store:id(b),p_note:"Reinstated"},"Store reinstated")};
+  /* There is no reinstate function yet (BACKEND REQUEST B4). approve_store puts the store back to approved but resets activation_status to verification_required and tells the seller their application is approved, so ask first and say what really happens. */
+  A.sback=function(b){C.ask("Reinstate this store?","Note to the seller (optional)",false).then(function(n){if(n!==null)Supa.rpc("approve_store",{p_store:id(b),p_note:n||"Reinstated"}).then(function(){C.toast("Store set back to approved. It is not live until it is activated again.");again()}).catch(fail)})};
   /* Free-limit checkboxes switch their number field on and off. */
   document.addEventListener("change",function(e){var t=e.target;if(!t.getAttribute||!t.getAttribute("data-so"))return;var f=t.form,inp=f&&f[t.getAttribute("data-so")];if(inp){inp.disabled=t.checked;if(t.checked)inp.value=""}});
 })();
