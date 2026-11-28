@@ -32,6 +32,14 @@ jobs:
         run: node tools/build-tokens.mjs && git diff --exit-code css/tokens.css
       # QA-01: 360 px smoke, axe and bundle budget; posts a report comment on the PR. See tools/qa/README.md.
       - uses: ./.github/actions/qa-smoke
+      # Claude 2 (X2-01/X2-02): the web seller workspace must assemble, boot-resolve and pick the right Supabase project.
+      # Not packaged into the APK yet; that happens with the route prefix and ownership gate (X2-03, X2-05).
+      - name: Seller bundle assembles and passes checks
+        env:
+          BUILD_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          node tools/assemble-seller-bundle.mjs
+          node tools/check-seller-bundle.mjs
   database:
     name: Database tests
     runs-on: ubuntu-latest

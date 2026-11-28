@@ -1,10 +1,14 @@
 /* Core: helpers, router, layouts, appearance panel. Theme itself comes from the app's js/theme.js (copied at build).
    Routing uses real paths (/portal/products). Old #/ links and hash writes are converted automatically (see legacy and the history shim),
-   so files can be moved to real paths one at a time. */
+   so files can be moved to real paths one at a time.
+   Inside the app (tools/assemble-seller-bundle.mjs) two runtime settings change where the address lives, and nothing changes on the website:
+   - window.EV_BASE: a path prefix ("/seller"). Every address Core writes gets the prefix; every path Core reads has it removed, so screens still see "/portal".
+   - window.EV_ROUTE==="hash": the route lives after the # ("/seller/index.html#/portal/products"). The app's local server answers an unknown path such as
+     /seller/portal/products with the SHOPPER index.html, so a reload on a nested page must not depend on the path. The file part never changes. */
 window.Core=(function(){
   var V={},A={},F={},me=null,ic=Ico.svg,rt=null;
   /* Anything older code writes as "#/x" (history.replaceState, pushState) becomes a real path "/x". */
-  ["pushState","replaceState"].forEach(function(k){var o=history[k];history[k]=function(s,t,u){if(typeof u==="string"&&u.indexOf("#/")===0)u=u.slice(1);return o.call(history,s,t,u)}});
+  ["pushState","replaceState"].forEach(function(k){var o=history[k];history[k]=function(s,t,u){if(typeof u==="string"&&u.indexOf("#/")===0&&!hashMode())u=base()+u.slice(1);return o.call(history,s,t,u)}});
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
   function $(s,r){return(r||document).querySelector(s)}
   function money(n){try{return new Intl.NumberFormat("en-NG",{style:"currency",currency:CFG.baseCurrency,maximumFractionDigits:0}).format(n||0)}catch(e){return"₦"+(n||0)}}
@@ -60,12 +64,25 @@ window.Core=(function(){
 
   /* ---------- Router: real paths ---------- */
   /* A leftover "#/x/y" in the address bar (old links, emailed links, code that still sets location.hash) becomes "/x/y". OAuth "#access_token=" fragments are left alone. */
-  function legacy(){var h=location.hash;if(h&&h.indexOf("#/")===0){try{history.replaceState(null,"",h.slice(1))}catch(e){}}}
-  function curPath(){return location.pathname.replace(/\/+$/,"")||"/"}
-  function norm(to){to=String(to||"/");if(to.indexOf("#/")===0)to=to.slice(1);if(to.charAt(0)!=="/")to="/"+to;return to}
-  /* Same links written in the markup of older files as href="#/x" become real hrefs, so open-in-new-tab, copy link and long-press all work. */
-  function fixLinks(root){(root||document).querySelectorAll('a[href^="#/"]').forEach(function(a){a.setAttribute("href",a.getAttribute("href").slice(1))})}
-  function go(to,replace){to=norm(to);if(to!==location.pathname+location.search){try{history[replace?"replaceState":"pushState"](null,"",to)}catch(e){location.href=to;return}}route()}
+  function base(){return String(window.EV_BASE||"").replace(/\/+$/,"")}
+  function hashMode(){return window.EV_ROUTE==="hash"}
+  /* An address that is a page of this app (not a file, another site, or an asset). */
+  function isPage(h){return h.charAt(0)==="/"&&h.charAt(1)!=="/"&&!/^\/(assets|fonts)\//.test(h)&&!/\.[a-z0-9]{2,5}($|[?#])/i.test(h)}
+  function unbase(p){var b=base();if(b&&(p===b||p.indexOf(b+"/")===0))p=p.slice(b.length);return p||"/"}
+  function legacy(){if(hashMode())return;var h=location.hash;if(h&&h.indexOf("#/")===0){try{history.replaceState(null,"",base()+h.slice(1))}catch(e){}}}
+  /* The page's own path without the base, and with no query string. */
+  function curPath(){var p=hashMode()?(location.hash.indexOf("#/")===0?location.hash.slice(1).split("?")[0]:"/"):unbase(location.pathname);return p.replace(/\/+$/,"")||"/"}
+  function curFull(){return hashMode()?(location.hash.indexOf("#/")===0?location.hash.slice(1):"/"):unbase(location.pathname)+location.search}
+  function norm(to){to=String(to||"/");if(to.indexOf("#/")===0)to=to.slice(1);if(to.charAt(0)!=="/")to="/"+to;return unbase(to)}
+  /* The address to write for an app path. */
+  function url(p){return hashMode()?location.pathname+location.search+"#"+p:base()+p}
+  /* Same links written in the markup of older files as href="#/x" become real hrefs, so open-in-new-tab, copy link and long-press all work.
+     With a base or hash route, root-absolute page links ("/portal") are rewritten the same way so they point inside the app. */
+  function fixLinks(root){(root||document).querySelectorAll("a[href]").forEach(function(a){var h=a.getAttribute("href")||"";
+    if(h.indexOf("#/")===0){if(!hashMode())a.setAttribute("href",base()+h.slice(1));return}
+    if((base()||hashMode())&&isPage(h)){var q=unbase(h);a.setAttribute("href",hashMode()?"#"+q:base()+q)}})}
+  /* Screens re-render with go(location.pathname,true). Inside the app location.pathname is the bundle file or carries the base, so it means "this page". */
+  function go(to,replace){if(to===location.pathname&&(base()||hashMode()))to=curFull();to=norm(to);if(to!==curFull()){var u=url(to);try{history[replace?"replaceState":"pushState"](null,"",u)}catch(e){location.href=u;return}}route()}
   function route(){legacy();
     var path=curPath(),parts=path==="/"?[]:path.slice(1).split("/"),authPath=path==="/sign-in"||path==="/create-account"||path==="/login"||path==="/login/new",
       seg=authPath?"login":(parts[0]||"home"),args=authPath?[path==="/create-account"||path==="/login/new"?"new":"in"]:parts.slice(1),f=V[seg],app=$("#root");
@@ -81,15 +98,15 @@ window.Core=(function(){
   /* Page-to-page navigation without a reload. Files, other sites, new tabs and modified clicks are left to the browser. */
   document.addEventListener("click",function(e){if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
     var a=e.target.closest&&e.target.closest("a[href]");if(!a||(a.target&&a.target!=="_self")||a.hasAttribute("download"))return;
-    var h=a.getAttribute("href")||"";if(h.indexOf("#/")===0)h=h.slice(1);else if(h.charAt(0)!=="/"||h.charAt(1)==="/")return;
-    if(/^\/(assets|fonts)\//.test(h)||/\.[a-z0-9]{2,5}($|\?)/i.test(h))return;
+    var h=a.getAttribute("href")||"";if(h.indexOf("#/")===0)h=h.slice(1);else if(!isPage(h))return;
+    if(!isPage(h)||/^\/(assets|fonts)\//.test(h)||/\.[a-z0-9]{2,5}($|\?)/i.test(h))return;
     e.preventDefault();go(h)});
 
   document.addEventListener("click",function(e){var b=e.target.closest("[data-act]");if(b){var f=A[b.getAttribute("data-act")];if(f){e.preventDefault();f(b,e)}}if(e.target.closest("[data-tact]"))setTimeout(ap,0)});
   document.addEventListener("change",function(e){if(e.target.getAttribute&&e.target.getAttribute("data-tact"))setTimeout(ap,0)});
   document.addEventListener("submit",function(e){var f=e.target.closest("[data-form]");if(!f)return;e.preventDefault();var h=F[f.getAttribute("data-form")];if(!h)return;var d={};new FormData(f).forEach(function(v,k){if(!(k in d))d[k]=v});h(f,d,e)});
   function ap(){var el=$("#apprw");if(el)el.innerHTML=appearance()}
-  A.out=function(){Supa.out();me=null;try{history.replaceState(null,"","/")}catch(e){}location.reload()};
+  A.out=function(){Supa.out();me=null;try{history.replaceState(null,"",url("/"))}catch(e){}location.reload()};
   A.menu=function(){document.body.classList.toggle("dr")};
   /* popstate (back and forward) and hashchange (old code, and the "re-render this page" event some screens dispatch) can both fire for one action, so they are merged. */
   function soon(){clearTimeout(rt);rt=setTimeout(route,16)}

@@ -6,7 +6,7 @@ function shell(o){o=o||{};const x=make({});const store={};
   x.ctx.document={documentElement:{classList:{toggle(c,v){x.cls=x.cls||{};x.cls[c]=v},add(){},remove(){}}},body:null,getElementById:()=>null,querySelector:()=>null,querySelectorAll:()=>[],addEventListener(){}};
   x.ctx.localStorage={getItem:k=>store[k]===undefined?null:store[k],setItem:(k,v)=>{store[k]=v},removeItem:k=>{delete store[k]}};
   x.ctx.matchMedia=()=>({matches:o.phone!==false});x.ctx.location={search:o.search||'',pathname:o.path||'/portal'};x.ctx.setTimeout=()=>0;
-  x.ctx.window=x.ctx;x.ctx.Core.path=()=>'/portal';
+  x.ctx.history={length:o.hist||3,back(){x.went='back'}};x.ctx.window=x.ctx;if(o.native){x.ctx.EV_NATIVE_SELLER=true;x.ctx.Capacitor={Plugins:{App:{addListener(n,f){x.listen=x.listen||{};x.listen[n]=f}}}}}x.ctx.Core.path=()=>x.ctx.location.pathname;
   vm.runInContext(icons,x.ctx);vm.runInContext(J('ds.js'),x.ctx);
   x.ctx.AX={shell(){return'<prev/>'},bell:()=>'<bell/>'};x.ctx.window.AX=x.ctx.AX;
   vm.runInContext(J('ds-app.js'),x.ctx);x.store=store;return x}
@@ -46,5 +46,13 @@ function shell(o){o=o||{};const x=make({});const store={};
    assert(x.ctx.AX.shell('portal','portal','<p/>',{}).includes('ds-ab'));
    assert(typeof x.ctx.window.EVSeller.exit==='function'&&x.ctx.window.EVSeller.back()===false)});
 
+ // ---- Android Back (X2-04)
+ await t('Android Back: registered only in the native bundle; website does nothing',()=>{
+   assert.equal(shell({search:'?shell=app'}).listen,undefined);assert.equal(typeof shell({native:true}).listen.backButton,'function')});
+ await t('Android Back: one step back on an inner page; leaves to the shopping side from the first screen; overlays close first',()=>{
+   let x=shell({native:true,path:'/portal/products'});x.ctx.EVSeller.exit=(to)=>{x.exited=to};x.listen.backButton();assert.equal(x.went,'back');assert.equal(x.exited,undefined);
+   x=shell({native:true,path:'/portal'});x.ctx.EVSeller.exit=(to)=>{x.exited=to};x.listen.backButton();assert.equal(x.exited,'');assert.equal(x.went,undefined);
+   x=shell({native:true,path:'/portal/products',hist:1});x.ctx.EVSeller.exit=(to)=>{x.exited=to};x.listen.backButton();assert.equal(x.exited,'','no history left: leave rather than close the app');
+   x=shell({native:true,path:'/portal/products'});x.ctx.EVSeller.exit=(to)=>{x.exited=to};x.ctx.EVSeller.back=()=>true;x.listen.backButton();assert.equal(x.went,undefined);assert.equal(x.exited,undefined)});
  console.log(`${pass} passed, ${fail} failed`);
 })();
