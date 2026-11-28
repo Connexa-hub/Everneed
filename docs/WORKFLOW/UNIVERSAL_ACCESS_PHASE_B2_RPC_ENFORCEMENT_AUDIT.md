@@ -670,3 +670,28 @@ ACL inspection confirmed explicit table ACLs on the sample objects; public-schem
 3. Change default privileges for both postgres and supabase_admin so future public tables/functions do not inherit broad client grants. Review sequences separately.
 4. Build staging-only ACL regression tests for every public table and newly created objects; ensure no anon/authenticated TRUNCATE/trigger/reference/maintain grants and no unexpected DML. Test public catalogue reads and intended seller/buyer writes via supported RPC/API paths.
 5. Phase A hardening remains separate from B1/B2 authorization work. Do not apply a revoke migration until web/app direct-write call sites, view behavior, column-level grants and service/trigger dependencies are mapped and CI proves safe. Production untouched.
+
+
+## 28 Nov 2026 — CX-04 effective ACL + advisor checkpoint (staging read-only)
+
+This is a corrected, read-only staging snapshot for `vjiadqygpyebpisxslbx`. No privilege, RLS, schema or data changes were applied. Production was not queried in this checkpoint.
+
+### Effective table privilege findings
+- **MAINTAIN:** 44 public tables are effectively granted to `authenticated`; 17 tables to `anon`. Direct ACL expansion confirms the grantor is `postgres` and the grantee is the respective API role. It is not necessary for normal REST/RPC app operations and is excessive for these roles.
+- **TRUNCATE:** effective checks confirm none on public base tables for `anon` or `authenticated`. Correct the earlier false-positive claim; do not list any as client TRUNCATE exposure.
+- Direct MAINTAIN examples include sensitive `orders`, `order_secrets`, `ledger_entries`, `payouts`, `refunds`, `store_private`, `stores`, `profiles`, and `audit_log` (authenticated), alongside catalogue and content tables. RLS does not substitute for revoking maintenance privileges.
+- Existing table DML is a separate dependency issue; no broad revoke was attempted.
+
+### Default ACL scope
+- Fresh `pg_default_acl`/ `aclexplode` snapshot shows schema-specific table defaults for creators `postgres` and `supabase_admin` in `public`, plus unrelated `graphql`, `graphql_public`, and `storage` scopes. Any remediation must be explicitly schema-scoped to `public`; do not modify GraphQL or Storage defaults as part of CX-04 public-table work.
+- Both `postgres` and `supabase_admin` default ACLs in `public` include MAINTAIN for `anon` and `authenticated`. This would perpetuate the issue for future tables.
+- Candidate narrow remediation: revoke only MAINTAIN on existing public tables from anon/authenticated and revoke MAINTAIN in the public-schema defaults for these two table creators. Before staging apply, add regression assertions, replay CI, verify all intended REST reads/writes and owner-scoped seller paths, and ensure new tables do not receive MAINTAIN. No migration is created in this checkpoint.
+
+### SECURITY DEFINER sample review
+- `admin_confirm_payment`, `admin_set_plan_entitlements`, `approve_store`, `dispatch`, `hub_receive`, `hub_consolidate`, and `record_payout` are executable by authenticated and each inspected body calls `private.need_admin()` before sensitive action. Their authenticated EXECUTE is intentional API surface subject to body authorization; linter warnings alone are not vulnerability findings.
+- `seller_plan_catalog`, `store_reply_stats`, and `support_sla_public` are anon-executable public read functions; bodies return catalog data, aggregated store response stats (minimum 3 chats), and SLA minutes. Keep public only if product contract confirms these fields are intentionally public.
+- Supabase security advisor reports 6 RLS-enabled/no-policy tables, 4 mutable search-path functions, 3 anon-executable SECURITY DEFINER RPCs and 47 authenticated-executable SECURITY DEFINER RPCs. The count is triage input, not a vulnerability count. Individually review search paths and permissions.
+
+### Verified staging store-name prerequisite
+- Stores: 3; normalized-name duplicates: 0; `stores_owner_id_key` confirmed unique; private `store_live(text)` has 6 dependent callers.
+- This supports R25 migration preconditions, but R24/R25 are still branch-only and not applied.
