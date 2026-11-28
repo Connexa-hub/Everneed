@@ -172,7 +172,7 @@
   V.admin=function(p){if(!Supa.uid())return{redirect:"#/login"};var me=C.me();if(!me||me.role!=="admin")return{layout:"portal",active:"",html:head("Admin only","This area is for the Everneed team. Seller tools are in your portal."),title:"Admin"};
     var sub=p[0]||"";function out(h,t,active){return{layout:"admin",active:active||"admin"+(sub?"/"+sub:""),html:h,title:t||"Admin"}}
     if(sub==="appearance")return out(head("Appearance")+'<div id="apprw" style="margin-top:20px">'+C.appearance()+"</div>");
-    if(sub==="waitlist")return q("waitlist?select=*&order=created_at.desc&limit=500").then(function(r){WL=r||[];return out(waitlist(WL),"Waitlist")},function(){WL=[];return out(head("Waitlist")+C.empty("Waitlist is not set up yet","Apply shared/sql/011_website_sync.sql in the Supabase SQL editor, then reload."),"Waitlist")});
+    if(sub==="waitlist")return q("waitlist?select=*&order=created_at.desc&limit=500").then(function(r){WL=r||[];return out(waitlist(WL),"Waitlist")},function(e){WL=[];return out(head("Waitlist")+C.empty("The waitlist could not load",(e&&e.message?e.message+". ":"")+"Sign in as an admin and reload. If it keeps failing, tell the backend owner."),"Waitlist")});
     if(sub==="applications")return{redirect:"/admin/sellers"};
     if(sub==="stores")return{redirect:"/admin/sellers/stores"};
     if(sub==="sellers"){var tab=p[1]||"";if(tab!==""&&tab!=="stores"&&tab!=="plans"&&tab!=="verification")tab="";
@@ -188,7 +188,8 @@
   A.rpub=function(b){rpc("review_product",{p_product:id(b),p_decision:"publish",p_note:null},"Product published")};
   A.rchg=function(b){C.ask("Ask for changes","Tell the seller what to fix",true).then(function(n){if(n)rpc("review_product",{p_product:id(b),p_decision:"reject",p_note:n},"Sent back to the seller")})};
   A.ssus=function(b){C.ask("Suspend this store?","Reason (the seller will see it)",true).then(function(n){if(n)rpc("suspend_store",{p_store:id(b),p_reason:n},"Store suspended")})};
-  A.sback=function(b){rpc("approve_store",{p_store:id(b),p_note:"Reinstated"},"Store reinstated")};
+  /* There is no reinstate function yet (BACKEND REQUEST B4). approve_store puts the store back to approved but resets activation_status to verification_required and tells the seller their application is approved, so ask first and say what really happens. */
+  A.sback=function(b){C.ask("Reinstate this store?","Note to the seller (optional)",false).then(function(n){if(n!==null)Supa.rpc("approve_store",{p_store:id(b),p_note:n||"Reinstated"}).then(function(){C.toast("Store set back to approved. It is not live until it is activated again.");again()}).catch(fail)})};
   /* Free-limit checkboxes switch their number field on and off. */
   document.addEventListener("change",function(e){var t=e.target;if(!t.getAttribute||!t.getAttribute("data-so"))return;var f=t.form,inp=f&&f[t.getAttribute("data-so")];if(inp){inp.disabled=t.checked;if(t.checked)inp.value=""}});
 })();
