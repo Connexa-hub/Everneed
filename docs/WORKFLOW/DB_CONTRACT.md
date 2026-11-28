@@ -312,3 +312,15 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+## Admin order directory — migration 20261128070200 (Codex; staging applied)
+
+- RPC: `public.admin_order_directory(p_search text, p_status text, p_payment_status text, p_payment_method text, p_page integer, p_page_size integer)`.
+- Authorization: calls `private.need_admin()`; `anon` and `PUBLIC` execute revoked; `authenticated` can invoke the admin-gated RPC.
+- Search: order ID, payment reference, buyer/customer name, phone, profile email, store name. Search term trimmed and capped at 120 characters.
+- Filters: order status, payment status, payment method.
+- Pagination: 1-based page, page size clamped 1–100, ordered newest-first by `orders.at` and ID. JSON returns `items,total,page,pageSize,hasMore`.
+- Each item includes order/payment summary, buyer name/email/phone, seller count and store names; raw `cust` JSON and item contents are not returned.
+- Regression: `supabase/tests/041_admin_order_directory_rpc_checks.sql`.
+- Staging: migration applied and structural regression test passed. Rollback-wrapped authenticated-admin smoke search returned the expected order, buyer summary, 2 stores, NGN total, statuses, and pagination metadata. Production untouched.
