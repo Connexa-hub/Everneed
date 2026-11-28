@@ -53,6 +53,8 @@ const btn=(id)=>({getAttribute:k=>k==='data-id'?id:null});
  await t('hub tab: consolidate disabled with a reason until every seller is at the hub; no fake enabled button',async()=>{const x=setup();const H=x.ctx.EVHub;
    let h=H.card(ord('o1','preparing',[so('a','at_hub'),so('b','handover_pending')]),'hub');assert(h.includes('disabled')&&h.includes('Waiting for 1 seller to drop off'));
    h=H.card(ord('o1','preparing',[so('a','at_hub'),so('b','at_hub')]),'hub');assert(!h.includes('disabled')&&h.includes('ds-hb-con'))});
+ await t('hub tab: a seller order that failed the check blocks consolidation and the reason says so (real staging case CX01-10)',async()=>{const H=setup().ctx.EVHub;
+   const h=H.card(ord('o1','preparing',[so('a','issue'),so('b','at_hub')]),'hub');assert(h.includes('disabled')&&h.includes('failed the hub check')&&!h.includes('Waiting for'))});
  await t('dispatch tab: no parcel -> disabled with reason; with parcel -> enabled',async()=>{const H=setup().ctx.EVHub;
    assert(H.card(ord('o','ready_for_delivery',[so('a','consolidated')]),'dispatch').includes('Consolidate the order first'));
    assert(!H.card(ord('o','ready_for_delivery',[so('a','consolidated')],{deliveries:{parcel_label:'EN-X',status:'pending'}}),'dispatch').includes('disabled'))});
