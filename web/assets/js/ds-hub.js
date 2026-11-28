@@ -63,7 +63,7 @@
   function card(o,tab){var d=one(o.deliveries),sellers=live(o),acts="",why="";
     if(tab==="hub"){var ok=canConsolidate(o);
       acts='<button type="button" class="ds-btn" data-act="ds-hb-con" data-id="'+esc(o.id)+'"'+(ok?"":" disabled")+(ok?"":' aria-describedby="hbw-'+esc(o.id)+'"')+">Consolidate</button>";
-      if(!ok)why="Waiting for "+waiting(o)+(waiting(o)===1?" seller":" sellers")+" to drop off and pass the check."}
+      if(!ok)why=has(o,"issue")?"A seller order failed the hub check, so this order cannot be consolidated. See Needs attention.":"Waiting for "+waiting(o)+(waiting(o)===1?" seller":" sellers")+" to drop off and pass the check."}
     if(tab==="dispatch"){var rd=!!d;
       acts='<button type="button" class="ds-btn" data-act="ds-hb-dis" data-id="'+esc(o.id)+'"'+(rd?"":" disabled")+(rd?"":' aria-describedby="hbw-'+esc(o.id)+'"')+">Dispatch</button>";
       if(!rd)why="No parcel exists yet. Consolidate the order first."}
