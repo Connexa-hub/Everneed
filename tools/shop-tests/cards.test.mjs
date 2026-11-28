@@ -131,7 +131,7 @@ await t('init returning paid:true finishes without a payment sheet', async () =>
 await t('verify failed -> new-payment button; abandoned -> continue button; ongoing -> nothing', async () => {
   let e = env([{ url: 'u', reference: 'R7' }, { paid: false, status: 'failed' }]);
   e.Cards.act('cnew', { o: 'o1' }); await tick(); e.Cards.act('cchk', {}); await tick();
-  ok(/data-act="cretry"/.test(last(e.log)), 'failed -> cretry');
+  ok(/data-act="cnew"/.test(last(e.log)) && !/cretry/.test(last(e.log)), 'failed -> same-key retry, never a fresh key before the server ends the attempt');
   e = env([{ url: 'u', reference: 'R8' }, { paid: false, status: 'abandoned' }]);
   e.Cards.act('cnew', { o: 'o1' }); await tick(); e.Cards.act('cchk', {}); await tick();
   ok(/Continue payment/.test(last(e.log)) && !/cretry/.test(last(e.log)), 'abandoned -> continue with same key');
@@ -139,6 +139,27 @@ await t('verify failed -> new-payment button; abandoned -> continue button; ongo
   e.Cards.act('cnew', { o: 'o1' }); await tick(); const n = e.log.sheets.length; e.Cards.act('cchk', {}); await tick();
   eq(e.log.sheets.length, n, 'ongoing leaves the sheet alone');
   ok(e.log.notes.some((x) => /Not confirmed yet/.test(x[1])), 'tells the user it is not confirmed');
+});
+
+await t('after a Paystack-reported failure the SAME dead attempt is never reopened; a server-ended attempt then gets a new key', async () => {
+  const { log, Cards } = env([
+    { url: 'https://pay/dead', reference: 'RD', attempt_id: 'AD' },            // first init
+    { paid: false, status: 'failed' },                                          // verify: Paystack says failed
+    { url: 'https://pay/dead', reference: 'RD', attempt_id: 'AD', reused: true }, // DB not closed yet: same attempt handed back
+    new Error('This payment attempt is terminal. Start a new payment attempt to retry.'), // later the worker closed it
+    { url: 'https://pay/new', access_code: 'AC9', reference: 'RN', attempt_id: 'AN' },
+  ]);
+  Cards.act('cnew', { o: 'o1' }); await tick();
+  Cards.act('cchk', {}); await tick();
+  const opened = log.opens.length;
+  Cards.act('cnew', { o: 'o1' }); await tick();
+  ok(/Still closing the previous attempt/.test(last(log)), 'tells the shopper the old attempt is still closing');
+  eq(log.opens.length, opened, 'the dead session is not reopened');
+  Cards.act('cnew', { o: 'o1' }); await tick();
+  ok(/data-act="cretry"/.test(last(log)), 'terminal 409 -> fresh key offered');
+  Cards.act('cretry', { o: 'o1' }); await tick();
+  const k = initKeys(log); eq(k[0], k[1], 'first retry reused the key'); eq(k[1], k[2], 'second retry reused the key'); ok(k[2] !== k[3], 'new key only after the server ended the attempt');
+  eq(log.store.pay.ref, 'RN', 'new attempt is now the pending one');
 });
 
 await t('returning to the app (visible) asks the server; soft start only reacts to paid', async () => {
