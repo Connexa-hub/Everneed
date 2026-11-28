@@ -28,6 +28,11 @@ jobs:
       - run: npm install
       - name: Run checks
         run: npm test
+      - name: Staging QA provisioner syntax and project-ref guard
+        run: |
+          node --check tools/staging/provision-qa-users.mjs
+          SUPABASE_URL=https://vjiadqygpyebpisxslbx.supabase.co node tools/staging/provision-qa-users.mjs --dry-run
+          if SUPABASE_URL=https://zpgasfweaixwsktlueje.supabase.co node tools/staging/provision-qa-users.mjs --dry-run; then echo '::error::Provisioner must reject production ref'; exit 1; fi
       - name: Tokens are up to date
         run: node tools/build-tokens.mjs && git diff --exit-code css/tokens.css
       # QA-01: 360 px smoke, axe and bundle budget; posts a report comment on the PR. See tools/qa/README.md.
