@@ -67,6 +67,8 @@ begin
     raise exception 'FAIL: seller_set_pause is executable by anonymous/PUBLIC';
   end if;
 
+  perform set_config('request.jwt.claims',json_build_object('sub',owner_id,'role','authenticated')::text,true);
+  perform set_config('request.jwt.claims',json_build_object('sub',owner_id,'role','authenticated')::text,true);
   perform set_config('request.jwt.claim.sub',owner_id::text,true);
   perform set_config('request.jwt.claim.role','authenticated',true);
   set local role authenticated;
@@ -84,6 +86,7 @@ begin
   end;
   if not past_expiry_rejected then raise exception 'FAIL: past pause expiry was accepted'; end if;
 
+  perform set_config('request.jwt.claims',json_build_object('sub',non_owner_id,'role','authenticated')::text,true);
   perform set_config('request.jwt.claim.sub',non_owner_id::text,true);
   begin
     perform public.seller_set_pause(now()+interval '2 days');
