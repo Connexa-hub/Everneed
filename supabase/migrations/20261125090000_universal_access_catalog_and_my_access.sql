@@ -408,6 +408,8 @@ as $function$
     'scope_type',scope_type,
     'scope_id',scope_id,
     'scope_name',scope_name,
+    'store_id',case when plane='store' and scope_type='store' then scope_id else null end,
+    'store_name',case when plane='store' and scope_type='store' then scope_name else null end,
     'role',role_key,
     'display_name',display_name,
     'permissions',permissions,
