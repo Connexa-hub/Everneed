@@ -601,3 +601,12 @@ Goal: the app and the website use the same files, labels, money rules and look.
 **START NOW:** The agreed ten-Claude team is active on `web-portal`. Claude 10 (the tenth Claude, not an extra AI) must read the canonical docs, audit current repo and tracker status, create a prioritized executable plan, and coordinate Claude 1–9 to begin parallel work. Do not wait for another user kickoff. All nine builders work across app + web according to their specialist lanes; Claude 10 owns research, planning, design strategy, assignment, dependency management, moderation, integration, review, debugging/QA and end-to-end completion.
 
 Startup protocol: (1) verify current branch/head and repo state; (2) read `WORKFLOW_DOCS_INDEX.md`, `PROJECT_STANDARD_AND_ROADMAP.md`, `AI_COORDINATION_STANDARD.md`, `AI_PROTOCOL.md`, this tracker, and contracts relevant to each task; (3) inventory current work and stale/incomplete tasks, avoiding duplicate or conflicting edits; (4) Claude 10 assigns concrete task IDs, owners, acceptance criteria and dependencies for Claude 1–9; (5) each builder starts the highest-priority non-blocked task in its lane, claims it here, and reports a small actionable backend contract request when blocked; (6) Claude 10 reviews each delivery, directs corrections, and keeps this tracker and roadmap synchronized. Backend contract requests go to ChatGPT/Codex. Staging only for testing; production remains protected. This kickoff does not itself mark any work complete.
+
+
+## Codex backend active claim — PAY-01 (27 Nov 2026)
+
+| Task | Status | Owner | Branch | Scope / acceptance |
+|---|---|---|---|---|
+| PAY-01 manual payment/cancellation safety | IN PROGRESS | ChatGPT/Codex | `codex/payment-confirm-cancel-guards` | Admin confirmation must be bank-transfer only and require buyer-reported state; paid/partially-refunded orders cannot be cancelled before refund completion. Preserve verified Paystack path. Migration, SQL regression, DB contract and staging evidence required. |
+
+**Initial audit evidence (Everneed-staging only):** `admin_confirm_payment` previously called shared confirmation core without checking method or `payment_reported` state; cancellation core could mark paid orders cancelled and generate only an `approved` refund record. Paystack settlement path uses a verified payment attempt and separate journal-posting routine. Migration/test are in the active branch; staging verification pending. No production inspection or changes.
