@@ -1,26 +1,28 @@
 -- R24/R25 store pause and normalized global store-name uniqueness regression.
 begin;
 create or replace function public.zz_r24_as(p_user uuid) returns void
-language plpgsql as $
+language plpgsql as $r24_auth$
 begin
   perform set_config('request.jwt.claims',json_build_object('sub',p_user,'role','authenticated')::text,true);
   perform set_config('request.jwt.claim.sub',p_user::text,true);
   perform set_config('request.jwt.claim.role','authenticated',true);
   execute 'set local role authenticated';
-end $;
+end;
+$r24_auth$;
 
 create or replace function public.zz_r24_anon() returns void
-language plpgsql as $
+language plpgsql as $r24_anon$
 begin
   perform set_config('request.jwt.claims','{"role":"anon"}',true);
   perform set_config('request.jwt.claim.sub','',true);
   execute 'set local role anon';
-end $;
+end;
+$r24_anon$;
 
 create or replace function public.zz_r24_back() returns void
-language plpgsql as $ begin execute 'reset role'; end $;
+language plpgsql as $r24_back$ begin execute 'reset role'; end; $r24_back$;
 
-do $
+do $r24_test$
 declare
   owner_id uuid := gen_random_uuid();
   non_owner_id uuid := gen_random_uuid();
@@ -166,5 +168,5 @@ begin
   end if;
   raise notice 'PASS: store name normalization/uniqueness, one-store-per-owner and owner pause/resume';
 end
-$$;
+$r24_test$;
 rollback;
