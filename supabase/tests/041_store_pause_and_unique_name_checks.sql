@@ -7,7 +7,7 @@ declare
   duplicate_id text := gen_random_uuid()::text;
   result jsonb;
   duplicate_rejected boolean := false;
-  direct_write_rejected boolean := false;
+  direct_write_rejected boolean := false;\n  index_definition text;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
   values(owner_id,'authenticated','authenticated','store-pause-ci-'||owner_id||'@example.test','',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
@@ -24,7 +24,7 @@ begin
 
   begin
     insert into public.stores(id,owner_id,slug,name,status,activation_status,country)
-    values(duplicate_id,gen_random_uuid(),'pause-ci-duplicate-'||owner_id,'pause ci store','draft','verification_required','NG');
+    values(duplicate_id,gen_random_uuid(),'pause-ci-duplicate-'||owner_id,E'\\t pause ci store\\n','draft','verification_required','NG');
   exception when unique_violation then
     duplicate_rejected := true;
   end;
