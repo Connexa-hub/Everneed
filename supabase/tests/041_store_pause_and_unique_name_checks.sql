@@ -3,10 +3,14 @@ begin;
 do $$
 declare
   owner_id uuid := gen_random_uuid();
+  non_owner_id uuid := gen_random_uuid();
   store_id text := gen_random_uuid()::text;
   duplicate_id text := gen_random_uuid()::text;
   result jsonb;
   duplicate_rejected boolean := false;
+  expiry_cap_rejected boolean := false;
+  past_expiry_rejected boolean := false;
+  non_owner_rejected boolean := false;
   direct_write_rejected boolean := false;
   index_definition text;
 begin
@@ -53,6 +57,29 @@ begin
   perform set_config('request.jwt.claim.sub',owner_id::text,true);
   perform set_config('request.jwt.claim.role','authenticated',true);
   set local role authenticated;
+  begin
+    perform public.seller_set_pause(now()+interval '91 days');
+  exception when others then
+    expiry_cap_rejected := true;
+  end;
+  if not expiry_cap_rejected then raise exception 'FAIL: pause expiry exceeded 90-day cap'; end if;
+
+  begin
+    perform public.seller_set_pause(now()-interval '1 minute');
+  exception when others then
+    past_expiry_rejected := true;
+  end;
+  if not past_expiry_rejected then raise exception 'FAIL: past pause expiry was accepted'; end if;
+
+  perform set_config('request.jwt.claim.sub',non_owner_id::text,true);
+  begin
+    perform public.seller_set_pause(now()+interval '2 days');
+  exception when others then
+    non_owner_rejected := true;
+  end;
+  if not non_owner_rejected then raise exception 'FAIL: non-owner could pause the store'; end if;
+  perform set_config('request.jwt.claim.sub',owner_id::text,true);
+
   result := public.seller_set_pause(now()+interval '2 days');
   if result->>'is_paused' <> 'true' or (result->>'business_timezone') <> 'Africa/Lagos' then
     raise exception 'FAIL: pause RPC did not return active pause and store timezone';
