@@ -18,5 +18,12 @@ $$;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLES FROM PUBLIC, anon, authenticated;
-ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
-  REVOKE TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLES FROM PUBLIC, anon, authenticated;
+DO $
+BEGIN
+  IF pg_has_role(current_user, 'supabase_admin', 'member') THEN
+    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public REVOKE TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLES FROM PUBLIC, anon, authenticated';
+  ELSE
+    RAISE NOTICE 'CX-04: current migration role cannot alter supabase_admin defaults; privileged follow-up required';
+  END IF;
+END
+$;
