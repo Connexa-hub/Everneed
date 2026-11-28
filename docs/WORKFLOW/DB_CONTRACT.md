@@ -312,3 +312,11 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+## Payment confirmation and paid cancellation guards — migration 20261127150000 (Codex; staging pending)
+
+- `public.admin_confirm_payment(p_order)` is restricted to admin and now confirms only bank-transfer orders whose parent `status` and `payment_status` are both `payment_reported`. It rejects other payment methods and unreported transfers. Already-paid retries return `already` without duplicate posting.
+- The verified Paystack settlement path remains separate: `settle_verified_payment_attempt` validates the attempt/provider result and invokes `private.confirm_payment_core` directly. This migration does not gate that trusted path.
+- `private.cancel_order_core` now rejects cancellation while payment is `paid` or `partially_refunded`; refund processing must occur before cancellation. This removes the legacy behaviour that created an `approved` refund request during cancellation while marking the order refunded/cancelled. Unpaid and already-refunded order cancellation remains governed by the existing cancellation state/ownership rules.
+- Regression assertions: `supabase/tests/040_payment_manual_confirm_cancel_guard_checks.sql`. Staging application and runtime checks are pending. Production untouched.
