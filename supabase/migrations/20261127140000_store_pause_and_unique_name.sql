@@ -83,7 +83,9 @@ SET search_path TO ''
 AS $$
 DECLARE
   v_store_id text;
-  v_timezone text;\n  v_before jsonb;\n  v_after jsonb;
+  v_timezone text;
+  v_before jsonb;
+  v_after jsonb;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Please sign in.';
@@ -99,6 +101,11 @@ BEGIN
     RAISE EXCEPTION 'Pause expiry must be in the future and no more than 90 days away.';
   END IF;
 
+  SELECT jsonb_build_object('paused_until', paused_until)
+    INTO v_before
+  FROM public.stores
+  WHERE id = v_store_id AND owner_id = auth.uid();
+
   UPDATE public.stores
   SET paused_until = p_paused_until
   WHERE id = v_store_id AND owner_id = auth.uid() AND NOT is_official
@@ -107,6 +114,19 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Store pause permission denied.';
   END IF;
+
+  v_after := jsonb_build_object(
+    'paused_until', p_paused_until,
+    'is_paused', p_paused_until IS NOT NULL AND p_paused_until > now()
+  );
+  PERFORM private.audit(
+    auth.uid(),
+    CASE WHEN p_paused_until IS NULL THEN 'seller_store_resume' ELSE 'seller_store_pause' END,
+    'store',
+    v_store_id,
+    v_before,
+    v_after
+  );
 
   RETURN jsonb_build_object(
     'store_id', v_store_id,
