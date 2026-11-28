@@ -46,7 +46,7 @@ begin
   from pg_index i join pg_class c on c.oid=i.indexrelid
   join pg_namespace n on n.oid=c.relnamespace
   where n.nspname='public' and c.relname='stores_name_normalized_key' and i.indisunique;
-  if v_idx is null or position('regexp_replace' in v_idx)=0 or position('lower' in v_idx)=0 then
+  if v_idx is null or position('regexp_replace' in v_idx)=0 or position('lower' in v_idx)=0 or position('btrim' in v_idx)=0 then
     raise exception 'R25 normalized unique index missing or wrong expression';
   end if;
 
@@ -55,7 +55,7 @@ begin
   end if;
   if exists (
     select 1 from public.stores
-    group by lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g'))
+    group by lower(btrim(regexp_replace(name, '[[:space:]]+', ' ', 'g')))
     having count(*)>1
   ) then
     raise exception 'Normalized duplicate store names exist';
