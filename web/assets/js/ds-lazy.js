@@ -14,6 +14,7 @@
   function need(kind,p){
     if(!p)return"";
     if(kind==="portal"){if(p[0]==="product")return"ds-editor.js";if(p[0]==="team"&&proto())return"ds-team.js"}
+    if(kind==="admin"&&p[0]==="disputes")return"ds-disputes.js"; /* WEB-AD11: real, read-only admin page, no preview flag */
     if(kind==="admin"&&proto()){if(p[0]==="staff")return"ds-team.js";if(p[0]==="dispatch")return"ds-dispatch.js"}
     return"";
   }

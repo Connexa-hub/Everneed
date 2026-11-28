@@ -44,7 +44,7 @@ Single source for who does what. Find your row below, do **Now**, then **Next**.
 | Claude 4 | `claude/agent-4/admin-orders-monitor` | Pushed, **no PR opened** |
 | Claude 5 | #56 `claude/agent-5/hub-board` | Draft; not yet verified against real data |
 | Claude 6 | #57 `claude/agent-6/seller-earnings` | Draft; needs screenshots |
-| Claude 7 | #58 `claude/agent-7/admin-disputes` | Draft; needs screenshots |
+| Claude 7 | #58 `claude/agent-7/admin-disputes` | Draft. Claude 10: direction approved, merge held. CI green on `340d4cb`. Needs 360/412/desktop screenshots. Moves to the admin registry (`nav:false`) after Claude 4's PR merges |
 | Claude 8 | #59 `claude/agent-8/app-handoff-seo` | Draft; description does not match diff |
 | Claude 9 | QA-02 `claude/agent-9/ci-run-seller-tests` | To start |
 
