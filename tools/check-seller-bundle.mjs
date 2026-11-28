@@ -83,6 +83,12 @@ if (isMain) {
 
 // 5. One shared session with the shopper app.
 if (exists("native-env.js") && !read("native-env.js").includes('EV_SESSION_KEY="en_sess"')) fail("native-env.js must set EV_SESSION_KEY to en_sess");
+// 6. Routing inside the app: the route lives after the #, because the app's local server answers an unknown path with the shopper index.html.
+if (exists("native-env.js")) {
+  const ne = read("native-env.js");
+  if (!ne.includes('EV_ROUTE="hash"')) fail("native-env.js must set EV_ROUTE to hash (a reload on a nested page would otherwise open the shopper app)");
+  if (!ne.includes('EV_BASE="/seller"')) fail("native-env.js must set EV_BASE to /seller");
+}
 const storeSrc = fs.readFileSync("js/store.js", "utf8");
 if (!/var K="en_"/.test(storeSrc)) fail("js/store.js key prefix changed; the shared session key en_sess may no longer match");
 
