@@ -325,7 +325,7 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Direct owner writes to pause columns are blocked by `private.stores_guard()`; the RPC is the supported interface. The frontend can display returned `timezone` and `pause` fields and map failures to clear messages.
 
 ### R25 — normalized store name uniqueness
-- Unique expression index `stores_name_normalized_key` on `lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g'))`. Trim edges and collapse whitespace; lowercase; punctuation and accents are preserved intentionally.
+- Unique expression index `stores_name_normalized_key` on `lower(btrim(regexp_replace(name, '[[:space:]]+', ' ', 'g')))`. Trim edges and collapse whitespace; lowercase; punctuation and accents are preserved intentionally.
 - Existing `UNIQUE(owner_id)` and `UNIQUE(slug)` remain. **One seller = one store.** No multi-store support or store switcher.
 - Duplicate insert/update yields PostgreSQL unique violation (23505) on named index. No silent rename. Existing normalized collisions abort migration pending owner reconciliation.
 
