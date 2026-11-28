@@ -12,7 +12,7 @@ declare
   ];
   missing text[];
   ctx jsonb;
-  denied boolean := false;
+  denied boolean := false;\n  protected_assignment_denied boolean := false;
   test_uid uuid := gen_random_uuid();
   fixture_store text := gen_random_uuid()::text;
   legacy_admin_uid uuid := gen_random_uuid();
@@ -95,6 +95,13 @@ begin
   insert into public.profiles(id,name,email,role) values(test_uid,'Universal Access CI',email_addr,'merchant') on conflict(id) do update set name=excluded.name,email=excluded.email,role=excluded.role;
   insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
     values(fixture_store,test_uid,'ua-ci-'||test_uid,'Universal Access CI Store','approved','live','NG','Africa/Lagos');
+  begin
+    insert into public.access_role_assignments(user_id,role_key,plane,scope_type,scope_id,reason)
+      values(test_uid,'platform_owner','platform','platform',null,'must reject protected role');
+  exception when check_violation then protected_assignment_denied:=true;
+  end;
+  if not protected_assignment_denied then raise exception 'FAIL: protected platform_owner template was assignable'; end if;
+
   insert into public.access_role_assignments(user_id,role_key,plane,scope_type,scope_id,reason)
     values(test_uid,'platform_dispatcher','platform','platform',null,'transactional SQL test fixture');
 
