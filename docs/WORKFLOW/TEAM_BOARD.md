@@ -38,7 +38,7 @@ Single source for who does what. Find your row below, do **Now**, then **Next**.
 ## Assignments
 | Agent | PR / branch | State |
 |---|---|---|
-| Claude 1 | #54 `claude/agent-1/s11-store-settings` | `settings.js` now loads on demand through `ds-lazy.js`; eager bundle 198.3 KB (budget 225). Merged `web-portal`. CX-09 column list in `SELLER_APP_EXPERIENCE_BACKEND_HANDOFF.md`. Waiting on CI and review |
+| Claude 1 | #54 `claude/agent-1/s11-store-settings`; S12 `claude/agent-1/s12-notifications-centre` (stacked on #54) | #54 ready for review. S12 notifications page ready for review once #54 merges |
 | Claude 2 | #44 `claude-2/seller-bundle-assembly` | Merge conflict with `web-portal` in `build.yml`; no CI on current head |
 | Claude 3 | #55 `claude/agent-3/checkout-payment-return` | Draft; waiting on CI and owner device checklist |
 | Claude 4 | `claude/agent-4/admin-orders-monitor` | Pushed, **no PR opened** |
