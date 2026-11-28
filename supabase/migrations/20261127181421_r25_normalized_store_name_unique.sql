@@ -7,7 +7,7 @@ do $check$
 begin
   if exists (
     select 1 from public.stores
-    group by lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g'))
+    group by lower(btrim(regexp_replace(name, '[[:space:]]+', ' ', 'g')))
     having count(*) > 1
   ) then
     raise exception 'Cannot add store-name uniqueness: existing normalized duplicates require owner-approved reconciliation.';
@@ -16,6 +16,6 @@ end
 $check$;
 
 create unique index if not exists stores_name_normalized_key
-  on public.stores (lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g')));
+  on public.stores (lower(btrim(regexp_replace(name, '[[:space:]]+', ' ', 'g'))));
 
 commit;
