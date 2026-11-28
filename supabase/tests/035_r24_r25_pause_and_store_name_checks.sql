@@ -53,6 +53,10 @@ begin
   if not exists(select 1 from pg_constraint where conrelid='public.stores'::regclass and conname='stores_owner_id_key' and contype='u') then
     raise exception 'Accepted one-store-per-owner constraint was removed';
   end if;
+  if lower(btrim(regexp_replace(E'\\t Foo\\n', '[[:space:]]+', ' ', 'g'))) <> 'foo' then
+    raise exception 'R25 normalization does not trim tab/newline whitespace';
+  end if;
+
   if exists (
     select 1 from public.stores
     group by lower(btrim(regexp_replace(name, '[[:space:]]+', ' ', 'g')))
