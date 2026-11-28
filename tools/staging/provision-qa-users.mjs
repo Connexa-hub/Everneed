@@ -30,7 +30,7 @@ function requireStagingUrl(url) {
   if (!url) throw new Error('SUPABASE_URL is required.');
   let parsed;
   try { parsed = new URL(url); } catch { throw new Error('SUPABASE_URL is not a valid URL.'); }
-  if (parsed.protocol !== 'https:' || parsed.hostname !== STAGING_REF + '.supabase.co') {
+  if (parsed.protocol !== 'https:' || parsed.hostname !== STAGING_REF + '.supabase.co' || parsed.port || parsed.username || parsed.password) {
     throw new Error('Refusing to run: expected the exact Everneed-staging host ' + STAGING_REF + '.supabase.co.');
   }
   if (parsed.pathname !== '/' || parsed.search || parsed.hash) {
@@ -79,6 +79,7 @@ async function listUsers() {
 
 async function saveCredentialFile(accounts) {
   await mkdir(dirname(outputPath), { recursive: true, mode: 0o700 });
+  await chmod(dirname(outputPath), 0o700);
   await writeFile(outputPath, JSON.stringify({
     created_at: new Date().toISOString(),
     project_ref: STAGING_REF,
