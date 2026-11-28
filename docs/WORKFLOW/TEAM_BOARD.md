@@ -42,7 +42,7 @@ Single source for who does what. Find your row below, do **Now**, then **Next**.
 | Claude 2 | #44 `claude-2/seller-bundle-assembly` | Merge conflict with `web-portal` in `build.yml`; no CI on current head |
 | Claude 3 | #55 `claude/agent-3/checkout-payment-return` | Draft; waiting on CI and owner device checklist |
 | Claude 4 | `claude/agent-4/admin-orders-monitor` | Pushed, **no PR opened** |
-| Claude 5 | #56 `claude/agent-5/hub-board` | Draft; not yet verified against real data |
+| Claude 5 | #56 `claude/agent-5/hub-board` | Draft; `web-portal` merged, CI green on merge head b7ca810 (later commits re-running). Checked against fixtures CX01-06/07/08/10 (live staging rows, REST stubbed in browser): found and fixed a wrong "Waiting for seller" message on CX01-10. **To dispatch is untested**: no `ready_for_delivery` fixture exists. Port to the section registry after Claude 4's PR merges |
 | Claude 6 | #57 `claude/agent-6/seller-earnings` | Draft; needs screenshots |
 | Claude 7 | #58 `claude/agent-7/admin-disputes` | Draft; needs screenshots |
 | Claude 8 | #59 `claude/agent-8/app-handoff-seo` | Draft; description does not match diff |

@@ -1,5 +1,6 @@
 /* Loads heavy or preview-only screens on demand so the first load stays small. Placed where ds-editor.js used to be in index.html.
    - ds-editor.js: only when a product editor page (/portal/product/…) opens (about 8 KB gzipped).
+   - ds-hub.js: the live hub board, only for /admin/hub (WEB-AD09).
    - ds-team.js: the team/staff PREVIEW (sample data), only with the flag ?proto=roles (remembered for the tab, ?proto=off clears it).
    If a file cannot be loaded the normal page still opens. Files load from the same folder as this script (works under /seller/assets/). */
 (function(){
@@ -14,6 +15,7 @@
   function need(kind,p){
     if(!p)return"";
     if(kind==="portal"){if(p[0]==="product")return"ds-editor.js";if(p[0]==="team"&&proto())return"ds-team.js"}
+    if(kind==="admin"&&p[0]==="hub")return"ds-hub.js";
     if(kind==="admin"&&proto()){if(p[0]==="staff")return"ds-team.js";if(p[0]==="dispatch")return"ds-dispatch.js"}
     return"";
   }
@@ -24,5 +26,5 @@
       return load(f).then(function(){return C.V[k](p)},function(){return old(p)});
     };
   });
-  window.EVLazy={editor:function(){return load("ds-editor.js")},team:function(){return load("ds-team.js")},dispatch:function(){return load("ds-dispatch.js")}};
+  window.EVLazy={editor:function(){return load("ds-editor.js")},team:function(){return load("ds-team.js")},dispatch:function(){return load("ds-dispatch.js")},hub:function(){return load("ds-hub.js")}};
 })();
