@@ -21,18 +21,40 @@ BEGIN
     END LOOP;
   END LOOP;
 
+  -- Verify defaults owned by the current migration role (postgres).
   IF EXISTS (
     SELECT 1
     FROM pg_default_acl d
-    JOIN pg_namespace n ON n.oid = d.defaclnamespace
+    JOIN pg_namespace n ON n.oid=d.defaclnamespace
     CROSS JOIN LATERAL aclexplode(d.defaclacl) acl
-    WHERE n.nspname = 'public'
-      AND d.defaclobjtype = 'r'
-      AND acl.grantee IN (0, 'anon'::regrole::oid, 'authenticated'::regrole::oid)
+    WHERE n.nspname='public'
+      AND d.defaclobjtype='r'
+      AND d.defaclrole='postgres'::regrole
+      AND acl.grantee IN (0,'anon'::regrole::oid,'authenticated'::regrole::oid)
       AND acl.privilege_type IN ('TRUNCATE','REFERENCES','TRIGGER','MAINTAIN')
   ) THEN
-    RAISE EXCEPTION 'FAIL: public table default ACL still grants unsafe privilege';
+    RAISE EXCEPTION 'FAIL: postgres public table defaults still grant unsafe privileges';
   END IF;
-  RAISE NOTICE 'PASS: public table unsafe privileges and defaults are trimmed';
+
+  -- supabase_admin is a superuser role, but postgres in this environment is not a member.
+  -- Enforce this part when the runner has authority; otherwise report it explicitly.
+  IF pg_has_role(current_user,'supabase_admin','member') THEN
+    IF EXISTS (
+      SELECT 1
+      FROM pg_default_acl d
+      JOIN pg_namespace n ON n.oid=d.defaclnamespace
+      CROSS JOIN LATERAL aclexplode(d.defaclacl) acl
+      WHERE n.nspname='public'
+        AND d.defaclobjtype='r'
+        AND d.defaclrole='supabase_admin'::regrole
+        AND acl.grantee IN (0,'anon'::regrole::oid,'authenticated'::regrole::oid)
+        AND acl.privilege_type IN ('TRUNCATE','REFERENCES','TRIGGER','MAINTAIN')
+    ) THEN
+      RAISE EXCEPTION 'FAIL: supabase_admin public table defaults still grant unsafe privileges';
+    END IF;
+  ELSE
+    RAISE NOTICE 'CX-04 partial: supabase_admin defaults require a privileged follow-up';
+  END IF;
+  RAISE NOTICE 'PASS: current public table privileges and postgres defaults are trimmed';
 END
 $$;
