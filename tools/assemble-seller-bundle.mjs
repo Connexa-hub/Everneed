@@ -2,7 +2,7 @@
 /**
  * Assemble the web seller/admin workspace (web/) for the Android app, under www/seller/.
  *
- * Owner: Claude 2 (see docs/WORKFLOW/CLAUDE_TEAM_WORKSPACE.md, task X2-01/X2-02).
+ * Owner: Claude 2 (see docs/WORKFLOW/TEAM_BOARD.md, tasks X2-01/X2-02).
  *
  * Why this exists: web/ in git does not contain the shared files the Cloudflare build copies in
  * (config.js, supa.js, icons.js, art.js, geo.js, turnstile.js, theme.js, tokens.css, fonts.css, fonts/).
