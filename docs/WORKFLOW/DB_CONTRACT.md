@@ -314,7 +314,7 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
 
 
-## Payment confirmation and paid cancellation guards — migration 20261127150000 (Codex; staging pending)
+## Payment confirmation and paid cancellation guards — migration 20261128053053 (Codex; staging pending)
 
 - `public.admin_confirm_payment(p_order)` is restricted to admin and now confirms only bank-transfer orders whose parent `status` and `payment_status` are both `payment_reported`. It rejects other payment methods and unreported transfers. Already-paid retries return `already` without duplicate posting.
 - The verified Paystack settlement path remains separate: `settle_verified_payment_attempt` validates the attempt/provider result and invokes `private.confirm_payment_core` directly. This migration does not gate that trusted path.
