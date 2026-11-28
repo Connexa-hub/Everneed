@@ -312,3 +312,12 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+## FIN-03 refund provider lifecycle — staging audit (28 Nov 2026; no code change in this audit commit)
+
+- `public.refund(p_order,p_seller_order,p_amount,p_reason)` currently marks local refund `processed`, updates order payment status and posts legacy ledger entries without provider confirmation. Treat this legacy path as unsafe for automated settlement.
+- Staging counts: two public refund records (one `approved`, one legacy `processed`); zero private provider-refund records; zero successful payment attempts. No real refund/provider call was performed.
+- Existing `private.provider_refunds` states (`eligible/awaiting_approval/submitting/pending_provider/succeeded/failed/reconciliation_required`) do not match Paystack lifecycle exactly. Add explicit `pending/processing/needs_attention/processed` mapping and distinguish legacy unverified history.
+- Paystack signed webhook path currently reconciles `charge.success` only. Refund events are not correlated/applied and are acknowledged as generic processed events.
+- FIN-03 implementation acceptance: stable refund idempotency/reference; original successful transaction validation; exact integer minor amount/currency; immutable line/seller allocation from checkout snapshot; signed event inbox; monotonic event transition; provider `processed` alone finalizes customer refund/accounting; failures/unknowns stay non-completed; manual bank-transfer refund evidence is a separate workflow; no live provider request during QA.
