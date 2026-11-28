@@ -34,16 +34,20 @@
       "axe": {}
     },
     "admin-home": {
-      "touchSmall": 2
+      "touchSmall": 2,
+      "axe": {}
     },
     "seller-home": {
-      "touchSmall": 2
+      "touchSmall": 2,
+      "axe": {}
     },
     "seller-products": {
-      "touchSmall": 2
+      "touchSmall": 2,
+      "axe": {}
     },
     "seller-orders": {
-      "touchSmall": 2
+      "touchSmall": 2,
+      "axe": {}
     }
   }
 }
