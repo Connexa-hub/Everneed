@@ -3,8 +3,9 @@
 //
 //   node tools/qa/run-tests.mjs [--out tools/qa/out]
 //
-// Helpers that are not tests are listed in HELPERS (or start with "_"). A directory that is missing is noted and skipped;
-// a directory that exists but holds no test files fails, so a rename cannot silently turn the check off.
+// Helpers that are not tests are listed in HELPERS (or start with "_"). A REQUIRED directory that is missing fails the run;
+// an optional one (tools/shop-tests, until PR #55 merges) is noted and skipped. Any existing directory with no test files fails,
+// so a rename cannot silently turn the check off.
 import { readdirSync, existsSync, writeFileSync, mkdirSync, appendFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve, dirname } from 'node:path';
@@ -14,7 +15,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(here, '..', '..');
 const argv = process.argv.slice(2);
 const OUT = resolve(argv.includes('--out') ? argv[argv.indexOf('--out') + 1] : join(here, 'out'));
-const DIRS = ['tools/web-seller-tests', 'tools/shop-tests'];
+const DIRS = [{ path: 'tools/web-seller-tests', required: true }, { path: 'tools/shop-tests', required: false }];
 const HELPERS = new Set(['harness.js']);
 const TIMEOUT_MS = 60000;
 
@@ -23,9 +24,13 @@ const notes = [];
 let failures = 0;
 const t0 = Date.now();
 
-for (const d of DIRS) {
+for (const { path: d, required } of DIRS) {
   const dir = join(ROOT, d);
-  if (!existsSync(dir)) { notes.push(d + ' does not exist on this branch; skipped'); continue; }
+  if (!existsSync(dir)) {
+    if (required) { failures++; rows.push({ file: d + '/', ok: false, ms: 0, note: 'required test directory is missing' }); }
+    else notes.push(d + ' does not exist on this branch; skipped');
+    continue;
+  }
   const files = readdirSync(dir).filter((f) => /\.(m?js|cjs)$/.test(f) && !HELPERS.has(f) && !f.startsWith('_')).sort();
   if (!files.length) { failures++; rows.push({ file: d + '/', ok: false, ms: 0, note: 'directory has no test files' }); continue; }
   for (const f of files) {
