@@ -121,6 +121,18 @@ for (const qa of users) {
     const id = authUser?.user?.id || authUser?.id;
     if (!id) throw new Error('Auth Admin response did not include user ID.');
 
+    const credentialIndex = credentials.push({
+      key: qa.key,
+      email: qa.email,
+      password: pass,
+      user_id: id,
+      profile_role: qa.profileRole,
+      access_note: qa.accessNote,
+      verified_sign_in: false,
+      created_or_reset: user ? 'password_reset' : 'created',
+    }) - 1;
+    await saveCredentialFile(credentials);
+
     // Profiles use the authorized service-role REST path; no direct auth.users SQL.
     await request('/rest/v1/profiles?on_conflict=id', {
       method: 'POST',
@@ -135,16 +147,8 @@ for (const qa of users) {
       body: { email: qa.email, password: pass },
     });
 
-    credentials.push({
-      key: qa.key,
-      email: qa.email,
-      password: pass,
-      user_id: id,
-      profile_role: qa.profileRole,
-      access_note: qa.accessNote,
-      verified_sign_in: true,
-      created_or_reset: user ? 'password_reset' : 'created',
-    });
+    credentials[credentialIndex].verified_sign_in = true;
+    await saveCredentialFile(credentials);
     console.log('✓ ' + qa.key + ': provisioned and sign-in verified');
   } catch (error) {
     failed = true;
