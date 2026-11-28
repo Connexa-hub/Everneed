@@ -22,7 +22,7 @@ FOR EACH ROW EXECUTE FUNCTION private.normalize_store_name();
 
 -- Existing staging names were audited for normalized collisions (none found).
 CREATE UNIQUE INDEX IF NOT EXISTS stores_normalized_name_unique
-ON public.stores (lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g')));
+ON public.stores (lower(btrim(regexp_replace(name, '[[:space:]]+', ' ', 'g'))));
 
 CREATE INDEX IF NOT EXISTS stores_paused_until_idx
 ON public.stores (paused_until)
@@ -83,7 +83,7 @@ SET search_path TO ''
 AS $$
 DECLARE
   v_store_id text;
-  v_timezone text;
+  v_timezone text;\n  v_before jsonb;\n  v_after jsonb;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Please sign in.';
