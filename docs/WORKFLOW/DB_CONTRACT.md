@@ -312,3 +312,29 @@ For new migrations, use the exact timestamp version assigned by the staging migr
 - Migration `20261119031033_product_editor_mode_entitlement` explicitly keeps advanced product fields available on all tiers. Free/Starter use `product_editor_mode='guided'`; Growth/Pro use `full`. This is UI guidance, not a schema-field lock. Regression test 038 verifies the Free seller's capability RPC.
 
 - Internal catalogue SECURITY DEFINER trigger helpers are revoked from PUBLIC/anon/authenticated by migration `20261119031258_product_catalog_trigger_acl_hardening`; test 038 checks the ACL and then exercises the triggers through the normal insert/update path.
+
+
+## Staging backend contract update — 27 Nov 2026 (R24/R25, PR pending)
+
+**Staging-only implementation proposal in PR #69; not applied to staging yet.** Production remains untouched.
+
+### R24 — temporary store pause
+- Add `stores.paused_until timestamptz`. `NULL` means active; an expiry in the future means paused; an expiry at/past current time is automatically considered resumed. This is an absolute timestamp; seller UI uses the store's `business_timezone` for display and local date/time entry.
+- Owner-only RPC: `seller_set_pause(p_paused_until timestamptz DEFAULT NULL)` returns `{store_id, paused_until, business_timezone, is_paused}`. Passing `NULL` resumes. Expiry must be in the future and no more than 90 days away. Official/ownerless stores are not eligible.
+- Authenticated only; no anon/PUBLIC execute. Store owner cannot directly write the pause field; the stores guard protects it.
+- `private.store_live(store)` treats a paused store as not live. Existing storefront visibility and checkout validation paths that use this guard therefore block new purchases. Pause does not update order/payment/refund/inventory/fulfilment state. Existing orders continue their normal lifecycle.
+- Migration: `20261127140000_store_pause_and_unique_name.sql`; regression: `supabase/tests/041_store_pause_and_unique_name_checks.sql`. Pending workflow application and staging verification.
+
+### R25 — global store-name uniqueness
+- Normalize name by trimming and collapsing whitespace, then enforce case-insensitive global uniqueness with a unique expression index. Sellers receive a duplicate-name error; names are not silently rewritten beyond whitespace normalization.
+- Existing staging normalized-name collision audit returned no rows.
+- Keep `stores_owner_id_key` (one store per owner) and unique slug. Multi-store-per-owner is not approved.
+
+### CX-09 profile-edit policy audit
+- Staging stores RLS: owner SELECT/UPDATE with owner preserved; public read only for approved/live stores; admin read. The store guard protects owner_id, official/demo flags, approved_at, slug and owner-controlled status transitions. `store_private` owner select/insert/update is scoped by `private.owns_store`.
+- Store profile fields (`name`, `tagline`, `about`, `logo_url`, `cover_url`, `accent`, categories and location fields) do not currently trigger an automatic re-review. No owner decision authorizes an automated re-review blocker for routine profile changes; policy/manual review remains an admin decision. The new normalized name index provides global collision prevention.
+- R24/R25 schema/function changes are pending PR #69 and staging workflow. No production changes.
+
+
+### CX-04 privilege audit follow-up (27 Nov 2026)
+Repeated effective `has_table_privilege` audit confirms the earlier migration removed `TRUNCATE`, `REFERENCES`, and `TRIGGER` from current public tables. However, `MAINTAIN` is still effective for anon/authenticated on multiple tables, and the public-schema default ACLs for both `postgres` and `supabase_admin` still grant unsafe table privileges (including `MAINTAIN`) to anon/authenticated for future tables. PR #69 adds forward migration `20261127150000_cx04_public_table_default_privilege_hardening` to revoke unsafe privileges from current tables and future public-table defaults, plus regression `040`. **Pending approved staging workflow and verification; do not report CX-04 closed until effective current-table and default ACL checks return zero.**

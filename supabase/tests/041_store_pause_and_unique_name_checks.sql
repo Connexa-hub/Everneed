@@ -1,0 +1,172 @@
+-- R24/R25 store pause and normalized global store-name uniqueness regression.
+begin;
+create or replace function public.zz_r24_as(p_user uuid) returns void
+language plpgsql as $r24_auth$
+begin
+  perform set_config('request.jwt.claims',json_build_object('sub',p_user,'role','authenticated')::text,true);
+  perform set_config('request.jwt.claim.sub',p_user::text,true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
+  execute 'set local role authenticated';
+end;
+$r24_auth$;
+
+create or replace function public.zz_r24_anon() returns void
+language plpgsql as $r24_anon$
+begin
+  perform set_config('request.jwt.claims','{"role":"anon"}',true);
+  perform set_config('request.jwt.claim.sub','',true);
+  execute 'set local role anon';
+end;
+$r24_anon$;
+
+create or replace function public.zz_r24_back() returns void
+language plpgsql as $r24_back$ begin execute 'reset role'; end; $r24_back$;
+
+do $r24_test$
+declare
+  owner_id uuid := gen_random_uuid();
+  non_owner_id uuid := gen_random_uuid();
+  store_id text := gen_random_uuid()::text;
+  duplicate_id text := gen_random_uuid()::text;
+  result jsonb;
+  duplicate_rejected boolean := false;
+  expiry_cap_rejected boolean := false;
+  past_expiry_rejected boolean := false;
+  non_owner_rejected boolean := false;
+  direct_write_rejected boolean := false;
+  index_definition text;
+  create_order_definition text;
+begin
+  insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_super_admin)
+  values(owner_id,'authenticated','authenticated','store-pause-ci-'||owner_id||'@example.test','',now(),'{}'::jsonb,'{}'::jsonb,now(),now(),false);
+  insert into public.profiles(id,name,email,role)
+  values(owner_id,'Store pause CI','store-pause-ci-'||owner_id||'@example.test','merchant')
+  on conflict(id) do update set role='merchant';
+
+  insert into public.stores(id,owner_id,slug,name,status,activation_status,country,business_timezone)
+  values(store_id,owner_id,'pause-ci-'||owner_id,'  Pause   CI Store  ','approved','live','NG','Africa/Lagos');
+
+  insert into public.store_subscriptions(store_id,plan_id,status,current_period_start,current_period_end)
+    values(store_id,'plan-free','trialing',now(),now()+interval '30 days');
+
+  if not private.store_live(store_id) then
+    raise exception 'FAIL: fixture store must be live before pause';
+  end if;
+  perform public.zz_r24_anon();
+  if not exists(select 1 from public.stores where id=store_id) then
+    raise exception 'FAIL: live store is not publicly visible before pause';
+  end if;
+  perform public.zz_r24_back();
+
+  if (select name from public.stores where id=store_id) <> 'Pause CI Store' then
+    raise exception 'FAIL: store name whitespace normalization did not occur';
+  end if;
+
+  begin
+    insert into public.stores(id,owner_id,slug,name,status,activation_status,country)
+    values(duplicate_id,gen_random_uuid(),'pause-ci-duplicate-'||owner_id,E'\t pause ci store\n','draft','verification_required','NG');
+  exception when unique_violation then
+    duplicate_rejected := true;
+  end;
+  if not duplicate_rejected then
+    raise exception 'FAIL: normalized case-insensitive duplicate store name was accepted';
+  end if;
+
+  if not exists(select 1 from pg_constraint where conrelid='public.stores'::regclass and conname='stores_owner_id_key') then
+    raise exception 'FAIL: one-store-per-owner unique constraint missing';
+  end if;
+
+  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='stores' and column_name='paused_until') then
+    raise exception 'FAIL: stores.paused_until column missing';
+  end if;
+  select indexdef into index_definition from pg_indexes
+  where schemaname='public' and tablename='stores' and indexname='stores_normalized_name_unique';
+  if index_definition is null or index_definition not ilike '%regexp_replace%' or index_definition not ilike '%btrim%' then
+    raise exception 'FAIL: normalized unique index missing or edge-whitespace normalization incomplete';
+  end if;
+
+  if has_function_privilege('anon','public.seller_set_pause(timestamptz)','EXECUTE') then
+    raise exception 'FAIL: seller_set_pause is executable by anonymous/PUBLIC';
+  end if;
+
+  perform set_config('request.jwt.claims',json_build_object('sub',owner_id,'role','authenticated')::text,true);
+  perform public.zz_r24_as(owner_id);
+  if private.is_privileged() then raise exception 'FAIL: owner QA JWT is incorrectly considered privileged'; end if;
+  begin
+    perform public.seller_set_pause(now()+interval '91 days');
+  exception when others then
+    expiry_cap_rejected := true;
+  end;
+  if not expiry_cap_rejected then raise exception 'FAIL: pause expiry exceeded 90-day cap'; end if;
+
+  begin
+    perform public.seller_set_pause(now()-interval '1 minute');
+  exception when others then
+    past_expiry_rejected := true;
+  end;
+  if not past_expiry_rejected then raise exception 'FAIL: past pause expiry was accepted'; end if;
+
+  perform public.zz_r24_as(non_owner_id);
+  begin
+    perform public.seller_set_pause(now()+interval '2 days');
+  exception when others then
+    non_owner_rejected := true;
+  end;
+  if not non_owner_rejected then raise exception 'FAIL: non-owner could pause the store'; end if;
+  perform set_config('request.jwt.claim.sub',owner_id::text,true);
+
+  result := public.seller_set_pause(now()+interval '2 days');
+  if result->>'is_paused' <> 'true' or (result->>'business_timezone') <> 'Africa/Lagos' then
+    raise exception 'FAIL: pause RPC did not return active pause and store timezone';
+  end if;
+  if private.store_live(store_id) then raise exception 'FAIL: paused store still passes store_live gate'; end if;
+  perform public.zz_r24_anon();
+  if exists(select 1 from public.stores where id=store_id) then
+    raise exception 'FAIL: paused store remains publicly visible';
+  end if;
+  perform public.zz_r24_back();
+  begin
+    update public.stores set paused_until=now()+interval '3 days' where id=store_id;
+  exception when others then
+    direct_write_rejected := true;
+  end;
+  if not direct_write_rejected then
+    raise exception 'FAIL: direct seller UPDATE bypassed pause RPC';
+  end if;
+  perform public.zz_r24_back();
+  if (select paused_until from public.stores where id=store_id) is null then
+    raise exception 'FAIL: pause RPC did not persist expiry';
+  end if;
+  if not exists(select 1 from public.audit_log where actor_id=owner_id and target_type='store' and target_id=store_id and action='seller_store_pause') then
+    raise exception 'FAIL: pause action not audited';
+  end if;
+
+  perform public.zz_r24_as(owner_id);
+  perform public.seller_set_pause(null);
+  perform public.zz_r24_back();
+  if (select paused_until from public.stores where id=store_id) is not null then
+    raise exception 'FAIL: resume RPC did not clear pause';
+  end if;
+  if not exists(select 1 from public.audit_log where actor_id=owner_id and target_type='store' and target_id=store_id and action='seller_store_resume') then
+    raise exception 'FAIL: resume action not audited';
+  end if;
+  if not private.store_live(store_id) then raise exception 'FAIL: resumed store did not return to live gate'; end if;
+  perform public.zz_r24_anon();
+  if not exists(select 1 from public.stores where id=store_id) then
+    raise exception 'FAIL: resumed store is not publicly visible';
+  end if;
+  perform public.zz_r24_back();
+  select pg_get_functiondef(p.oid) into create_order_definition
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname='create_order' and p.prokind='f';
+  if create_order_definition is null or position('private.store_live' in create_order_definition)=0 then
+    raise exception 'FAIL: checkout create_order does not use the pause-aware store-live gate';
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='stores' and policyname='stores public read' and qual ilike '%private.store_live%')
+     or not exists(select 1 from pg_policies where schemaname='public' and tablename='products' and policyname='products_public_read' and qual ilike '%private.store_live%') then
+    raise exception 'FAIL: storefront/product public policies do not use store-live gate';
+  end if;
+  raise notice 'PASS: store name normalization/uniqueness, one-store-per-owner and owner pause/resume';
+end
+$r24_test$;
+rollback;
