@@ -131,7 +131,7 @@ end;
 $function$;
 revoke all on function private.access_role_assignment_template_guard() from public, anon, authenticated;
 create trigger access_role_assignment_template_guard
-before insert or update on public.access_role_assignments
+before insert or update of role_key, plane, scope_type on public.access_role_assignments
 for each row execute function private.access_role_assignment_template_guard();
 
 -- Access catalogues are backend-managed. No client CRUD/read access in this phase.
