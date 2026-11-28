@@ -107,6 +107,33 @@ create index if not exists access_role_assignments_scope_active_idx
   on public.access_role_assignments(scope_type, scope_id, role_key)
   where revoked_at is null;
 
+-- Protect non-assignable or disabled templates at the database boundary, not only in future admin UI.
+create or replace function private.access_role_assignment_template_guard()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+declare
+  v_active boolean;
+  v_assignable boolean;
+begin
+  select active, assignable into v_active, v_assignable
+  from public.access_role_catalog
+  where role_key=new.role_key and plane=new.plane and scope_type=new.scope_type;
+  if not found or not v_active then
+    raise exception 'ACCESS_ROLE_TEMPLATE_INACTIVE' using errcode='23514';
+  end if;
+  if not v_assignable then
+    raise exception 'ACCESS_ROLE_TEMPLATE_PROTECTED' using errcode='23514';
+  end if;
+  return new;
+end;
+$function$;
+revoke all on function private.access_role_assignment_template_guard() from public, anon, authenticated;
+create trigger access_role_assignment_template_guard
+before insert or update on public.access_role_assignments
+for each row execute function private.access_role_assignment_template_guard();
+
 -- Access catalogues are backend-managed. No client CRUD/read access in this phase.
 alter table public.access_permission_catalog enable row level security;
 alter table public.access_role_catalog enable row level security;
