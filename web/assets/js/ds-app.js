@@ -55,7 +55,7 @@
         +'<button type="button" data-act="ds-amenu" aria-label="Menu" aria-haspopup="dialog">'+D.icon("menu",24)+"</button></div>"
         +'<a class="ds-abc'+(acur(active,M.msg)?" on":"")+'" href="'+M.msg+'" aria-label="'+(st?"Messages":"Inbox")+'">'+D.icon("chat",24)+'<span class="nbd" hidden>0</span></a></nav></div>';
     }
-    var c=cur(active),focus=String(active||"").indexOf("portal/product")===0&&/^\/portal\/product\//.test(location.pathname);
+    var c=cur(active),focus=String(active||"").indexOf("portal/product")===0&&/^\/portal\/product\//.test(C.path());
     function it(k,href,icon,label){return'<a href="'+href+'"'+(c===k?' class="on" aria-current="page"':"")+' aria-label="'+label+'">'+D.icon(icon,24)+"</a>"}
     setTimeout(load,0);
     if(String(active||"")!=="portal")inner=String(inner).replace(/<h1 class="ds-title">([^<]*)<\/h1>/,function(m,t){return'<h1 class="ds-title"><button type="button" class="ds-ts" data-act="ds-asw" aria-haspopup="dialog">'+t+D.icon("chevd",18)+"</button></h1>"});
@@ -126,4 +126,14 @@
   A["ds-srec"]=function(b){SD.q=b.getAttribute("data-q");var e=doc.querySelector(".ds-as"),i=e&&e.querySelector("input");if(i){i.value=SD.q;i.focus()}if(e)paintSearch(e)};
   A["ds-sclr"]=function(){try{localStorage.removeItem(RK)}catch(e){}var e=doc.querySelector(".ds-as");if(e)paintSearch(e)};
   doc.addEventListener("click",function(e){var r=e.target.closest&&e.target.closest(".ds-as a.ds-sr[data-q]");if(r){remember(r.getAttribute("data-q"));try{sessionStorage.setItem("ev-oq",r.hasAttribute("data-ord")?r.getAttribute("data-q"):"")}catch(x){}}},true);
+  /* Android Back inside the app (X2-04). Order: close an open overlay; at the seller's first screen go back to the shopping side; otherwise one step back.
+     The plugin only exists in the native app, so on the website this does nothing. Starting points are the screens the bottom bar opens at the top level. */
+  var HOMES={"/":1,"/portal":1,"/admin":1,"/admin/store":1};
+  function androidBack(){
+    if(window.EVSeller.back())return;
+    if(HOMES[C.path()]||history.length<=1){window.EVSeller.exit("");return}
+    history.back();
+  }
+  window.EVSeller.androidBack=androidBack;
+  try{var AP=window.EV_NATIVE_SELLER===true&&window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.App;if(AP&&AP.addListener)AP.addListener("backButton",androidBack)}catch(e){}
 })();
