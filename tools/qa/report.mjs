@@ -1,4 +1,5 @@
 // QA-01: turns tools/qa/out/report.json (written by smoke.mjs) and bundle.txt into report.md, which CI posts on the PR.
+// QA-02: also includes tests.txt (written by run-tests.mjs) when present.
 //   node tools/qa/report.mjs [outDir]
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
@@ -19,6 +20,8 @@ if (withAxe.length) { md.push('', '**axe violations** (rule, impact, elements)')
 if (!axeRan) md.push('', '_axe-core was not installed: accessibility rules were not checked._');
 const bundle = join(OUT, 'bundle.txt');
 if (existsSync(bundle)) md.push('', '**Bundle**', '```', readFileSync(bundle, 'utf8').trim(), '```');
+const tests = join(OUT, 'tests.txt');
+if (existsSync(tests)) md.push('', '**Offline tests (QA-02)**', '```', readFileSync(tests, 'utf8').trim(), '```');
 const ext = [...new Set(results.flatMap((r) => r.external || []))];
 if (ext.length) md.push('', 'External hosts contacted (all stubbed or blocked): ' + ext.map((h) => '`' + h + '`').join(', '));
 md.push('', '<details><summary>Baseline JSON for these results</summary>', '', '```json', JSON.stringify(Object.fromEntries(results.map((r) => [r.name, { touchSmall: r.touchSmall, ...(r.axe ? { axe: r.axe } : {}) }])), null, 2), '```', '</details>', '');
