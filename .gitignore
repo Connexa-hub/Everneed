@@ -4,3 +4,6 @@ www/
 # Local Android signing material
 *.keystore
 tools/qa/out/
+
+# Staging QA credentials (never commit)
+.qa/
