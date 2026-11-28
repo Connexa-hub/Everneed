@@ -19,6 +19,7 @@ DROP TRIGGER IF EXISTS stores_normalize_name_before_write ON public.stores;
 CREATE TRIGGER stores_normalize_name_before_write
 BEFORE INSERT OR UPDATE OF name ON public.stores
 FOR EACH ROW EXECUTE FUNCTION private.normalize_store_name();
+REVOKE ALL ON FUNCTION private.normalize_store_name() FROM PUBLIC, anon, authenticated;
 
 -- Existing staging names were audited for normalized collisions (none found).
 CREATE UNIQUE INDEX IF NOT EXISTS stores_normalized_name_unique
