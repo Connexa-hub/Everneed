@@ -1,6 +1,26 @@
 -- R24/R25 store pause and normalized global store-name uniqueness regression.
 begin;
-do $$
+create or replace function public.zz_r24_as(p_user uuid) returns void
+language plpgsql as $
+begin
+  perform set_config('request.jwt.claims',json_build_object('sub',p_user,'role','authenticated')::text,true);
+  perform set_config('request.jwt.claim.sub',p_user::text,true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
+  execute 'set local role authenticated';
+end $;
+
+create or replace function public.zz_r24_anon() returns void
+language plpgsql as $
+begin
+  perform set_config('request.jwt.claims','{"role":"anon"}',true);
+  perform set_config('request.jwt.claim.sub','',true);
+  execute 'set local role anon';
+end $;
+
+create or replace function public.zz_r24_back() returns void
+language plpgsql as $ begin execute 'reset role'; end $;
+
+do $
 declare
   owner_id uuid := gen_random_uuid();
   non_owner_id uuid := gen_random_uuid();
@@ -30,11 +50,11 @@ begin
   if not private.store_live(store_id) then
     raise exception 'FAIL: fixture store must be live before pause';
   end if;
-  set local role anon;
+  perform public.zz_r24_anon();
   if not exists(select 1 from public.stores where id=store_id) then
     raise exception 'FAIL: live store is not publicly visible before pause';
   end if;
-  reset role;
+  perform public.zz_r24_back();
 
   if (select name from public.stores where id=store_id) <> 'Pause CI Store' then
     raise exception 'FAIL: store name whitespace normalization did not occur';
@@ -68,10 +88,7 @@ begin
   end if;
 
   perform set_config('request.jwt.claims',json_build_object('sub',owner_id,'role','authenticated')::text,true);
-  perform set_config('request.jwt.claims',json_build_object('sub',owner_id,'role','authenticated')::text,true);
-  perform set_config('request.jwt.claim.sub',owner_id::text,true);
-  perform set_config('request.jwt.claim.role','authenticated',true);
-  set local role authenticated;
+  perform public.zz_r24_as(owner_id);
   if private.is_privileged() then raise exception 'FAIL: owner QA JWT is incorrectly considered privileged'; end if;
   begin
     perform public.seller_set_pause(now()+interval '91 days');
@@ -87,8 +104,7 @@ begin
   end;
   if not past_expiry_rejected then raise exception 'FAIL: past pause expiry was accepted'; end if;
 
-  perform set_config('request.jwt.claims',json_build_object('sub',non_owner_id,'role','authenticated')::text,true);
-  perform set_config('request.jwt.claim.sub',non_owner_id::text,true);
+  perform public.zz_r24_as(non_owner_id);
   begin
     perform public.seller_set_pause(now()+interval '2 days');
   exception when others then
@@ -102,11 +118,11 @@ begin
     raise exception 'FAIL: pause RPC did not return active pause and store timezone';
   end if;
   if private.store_live(store_id) then raise exception 'FAIL: paused store still passes store_live gate'; end if;
-  set local role anon;
+  perform public.zz_r24_anon();
   if exists(select 1 from public.stores where id=store_id) then
     raise exception 'FAIL: paused store remains publicly visible';
   end if;
-  reset role;
+  perform public.zz_r24_back();
   begin
     update public.stores set paused_until=now()+interval '3 days' where id=store_id;
   exception when others then
@@ -115,7 +131,7 @@ begin
   if not direct_write_rejected then
     raise exception 'FAIL: direct seller UPDATE bypassed pause RPC';
   end if;
-  reset role;
+  perform public.zz_r24_back();
   if (select paused_until from public.stores where id=store_id) is null then
     raise exception 'FAIL: pause RPC did not persist expiry';
   end if;
@@ -123,9 +139,9 @@ begin
     raise exception 'FAIL: pause action not audited';
   end if;
 
-  set local role authenticated;
+  perform public.zz_r24_as(owner_id);
   perform public.seller_set_pause(null);
-  reset role;
+  perform public.zz_r24_back();
   if (select paused_until from public.stores where id=store_id) is not null then
     raise exception 'FAIL: resume RPC did not clear pause';
   end if;
@@ -133,11 +149,11 @@ begin
     raise exception 'FAIL: resume action not audited';
   end if;
   if not private.store_live(store_id) then raise exception 'FAIL: resumed store did not return to live gate'; end if;
-  set local role anon;
+  perform public.zz_r24_anon();
   if not exists(select 1 from public.stores where id=store_id) then
     raise exception 'FAIL: resumed store is not publicly visible';
   end if;
-  reset role;
+  perform public.zz_r24_back();
   select pg_get_functiondef(p.oid) into create_order_definition
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
   where n.nspname='public' and p.proname='create_order' and p.prokind='f';
